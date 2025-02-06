@@ -20,16 +20,23 @@ export default class SeriesService extends BaseService<Series> {
         throw new Error('Nenhuma nota encontrada')
     }
     
-    const uniqueCombinations = new Map();
+    const schoolMap = new Map<string, { school: string; series: string[] }>()
 
     data.forEach(item => {
-        const seriesName = item.series?.name;
         const schoolName = item.school?.name;
-        if (seriesName && schoolName) {
-            uniqueCombinations.set(`${seriesName}-${schoolName}`, { series: seriesName, school: schoolName });
+        const seriesName = item.series?.name;
+
+        if (schoolName && seriesName) {
+            if (!schoolMap.has(schoolName)) {
+                schoolMap.set(schoolName, { school: schoolName, series: [] })
+            }
+
+            const schoolEntry = schoolMap.get(schoolName);
+            if (schoolEntry && !schoolEntry.series.includes(seriesName)) {
+                schoolEntry.series.push(seriesName);
+            }
         }
-    });
-    
-    return Array.from(uniqueCombinations.values());
+    })
+    return Array.from(schoolMap.values())
   }
 }

@@ -40,19 +40,20 @@ export default class ScheduleService extends BaseService<Schedule> {
   }
 
   async listClassrooms(teacherId: string) {
-    const {data, error} = await this.client
+    const {data, error}: {data: {classroomId: string}[] | null, error: any} = await this.client
       .from('schedule')
-      .select('classroomId', { distinct:true })
+      .select('distinct classroomId')
       .eq('teacherId', teacherId)
     
       if (error) {
         throw new Error(`Erro ao buscar turmas: ${error.message}`)
       }
-      if (!data) {
+      if (!data || data.length === 0) {
         throw new Error('Nenhuma turma encontrada')
       }
-
-      return data
+      const classArray: string[] = []
+      data.forEach(item => classArray.push(item.classroomId))
+      return classArray
   }
 
   async getSchedule(teacherId: string) {
