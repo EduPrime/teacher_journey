@@ -1,0 +1,35 @@
+import BaseService from '@/services/BaseService'
+import type { Series } from '@prisma/client'
+
+ const table = 'series' as const // Modifique para sua tabela
+
+export default class SeriesService extends BaseService<Series> {
+  constructor() {
+     super(table) // Passando o nome da tabela para a classe base
+  }
+  async listSeriesAndSchools(classes: string[]) {
+    const {data , error} = await this.client
+    .from('classroom')
+    .select('*, series:seriesId (name), school:schoolId (name)')
+    .in('classroomId', classes)
+
+    if (error) {
+        throw new Error(`Erro ao buscar notas com dados dos alunos: ${error.message}`)
+    }
+    if (!data) {
+        throw new Error('Nenhuma nota encontrada')
+    }
+    
+    const uniqueCombinations = new Map();
+
+    data.forEach(item => {
+        const seriesName = item.series?.name;
+        const schoolName = item.school?.name;
+        if (seriesName && schoolName) {
+            uniqueCombinations.set(`${seriesName}-${schoolName}`, { series: seriesName, school: schoolName });
+        }
+    });
+    
+    return Array.from(uniqueCombinations.values());
+  }
+}
