@@ -90,7 +90,7 @@ const routes: Array<CustomRouteRecordRaw> = [
       moduleName: 'TeacherView',
       moduleIcon: pencil,
       icon: calendar,
-      name: 'Registro de conteudo',
+      name: 'Indicadores Individuais',
       order: 7,
       requiredRole: ['public', 'admin'],
     },
