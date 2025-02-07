@@ -13,11 +13,19 @@ import {
 import { alertCircleOutline, arrowDownOutline, arrowUpOutline, businessOutline, menu } from 'ionicons/icons'
 import { Pagination } from 'swiper/modules'
 import { Swiper, SwiperSlide } from 'swiper/vue'
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import 'swiper/css'
 import 'swiper/css/pagination'
+import StageService from '../services/StageService'
+import ScheduleService from '../services/ScheduleService'
 
 const modules = ref([Pagination])
+const stageService = new StageService()
+const scheduleService = new ScheduleService()
+const stages = ref([])
+const schedules = ref([])
+const teacherId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+const institutionId = 'bd14f407-3758-4656-a299-e4cf3859dd29'
 
 // Dados mockados
 const alertasInformacoes = {
@@ -66,6 +74,33 @@ const alertaDesempenho = [
   },
 ]
 const selectDay = ref('Seg')
+
+async function loadStages() {
+  try {
+    stages.value = await stageService.getCurrentStage(institutionId)
+    console.log('Estágios carregados:', stages.value)
+  }
+  catch (error) {
+    console.error('Erro ao carregar os estágios:', error)
+  }
+}
+
+async function loadSchedule() {
+  try {
+    schedules.value = await scheduleService.getSchedule(teacherId)
+    console.log('Horários carregados:', schedules.value)
+  }
+  catch (error) {
+    console.error('Erro ao carregar os horários:', error)
+  }
+  
+}
+
+onMounted(() => {
+  loadStages()
+  loadSchedule()
+})
+
 </script>
 
 <template>

@@ -2,12 +2,12 @@ import { text, pencil, calendar, saveSharp, extensionPuzzle, shapes, create } fr
 import { CustomRouteRecordRaw } from '@/router/RouterType';
 import TeacherJourney from './views/TeacherJourney.vue';
 import TeacherContent from './views/TeacherContent.vue';
-import TeacherView from './views/Teacherview.vue';
+import TeacherView from './views/TeacherView.vue';
 const routes: Array<CustomRouteRecordRaw> = [
   {
     path: '/teacherjourney',
     name: 'TeacherJourney',
-    component: TeacherJourney,
+    component: TeacherView,
     meta: {
       moduleName: 'TeacherJourney',
       moduleIcon: pencil,
@@ -81,20 +81,7 @@ const routes: Array<CustomRouteRecordRaw> = [
       order: 6,
       requiredRole: ['public', 'admin'],
     },
-  },
-  {
-    path: '/teacherjourney/view',
-    name: 'teacherView',
-    component: TeacherView,
-    meta: {
-      moduleName: 'TeacherView',
-      moduleIcon: pencil,
-      icon: calendar,
-      name: 'Indicadores Individuais',
-      order: 7,
-      requiredRole: ['public', 'admin'],
-    },
-  },
-];
+  }
+]
 
 export default routes;

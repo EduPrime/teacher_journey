@@ -7,10 +7,11 @@ export default class StageService extends BaseService<Stage> {
   constructor() {
      super(table)
   }
-  async getCurrentStage() {
+  async getCurrentStage(institutionId: string) {
     const {data , error} = await this.client
       .from('stage')
       .select('stageNumber, start, end')
+      .eq('institutionId', institutionId)
     
       if (error) {
         throw new Error(`Erro ao buscar etapa atual: ${error.message}`)
