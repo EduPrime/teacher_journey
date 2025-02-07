@@ -7,10 +7,10 @@ import { useRouter } from 'vue-router'
 
 // Importar o serviço e o componente gerados
 import TeacherJourney from '../components/TeacherJourney.vue'
-import TeacherJourneyService from '../services/TeacherJourneyService'
+//import TeacherJourneyService from '../services/TeacherJourneyService'
 
 // Instanciar o serviço
-const teacherJourneyService = new TeacherJourneyService()
+//const teacherJourneyService = new TeacherJourneyService()
 
 const router = useRouter()
 
@@ -25,13 +25,14 @@ onMounted(async () => {
 
 // Função para carregar os dados usando o serviço
 async function loadData() {
-  try {
+  /*try {
     const data = await teacherJourneyService.getAll()
     dataList.value = data || []
     console.log('Dados carregados:', data)
   } catch (error) {
     console.error('Erro ao carregar os dados:', error)
   }
+  */
 }
 
 // Função para navegar para a página de registro

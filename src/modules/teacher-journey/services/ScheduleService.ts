@@ -63,7 +63,7 @@ export default class ScheduleService extends BaseService<Schedule> {
             *,
             classroom:classroomId (name),
             school:schoolId (name),
-            discipline:disciplineId (name),
+            discipline:disciplineId (name)
             `
         ).eq('teacherId', teacherId)
 

@@ -10,7 +10,7 @@ export default class StageService extends BaseService<Stage> {
   async getCurrentStage(institutionId: string) {
     const {data , error} = await this.client
       .from('stage')
-      .select('stageNumber, start, end')
+      .select('numberStage, startDate, endDate')
       .eq('institutionId', institutionId)
     
       if (error) {
@@ -25,11 +25,11 @@ export default class StageService extends BaseService<Stage> {
       let daysLeft: number | null = null
   
       for (const stage of data) {
-          const startDate = new Date(stage.start)
-          const endDate = new Date(stage.end)
+          const startDate = new Date(stage.startDate)
+          const endDate = new Date(stage.endDate)
   
           if (today >= startDate && today <= endDate) {
-              currentStage = stage.stageNumber;
+              currentStage = stage.numberStage;
               daysLeft = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
               break;
           }
