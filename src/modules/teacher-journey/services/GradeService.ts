@@ -1,7 +1,7 @@
 import BaseService from '@/services/BaseService'
 import type { ExamGrade } from '@prisma/client'
 
- const table = 'disciplineGrade' as const
+ const table = 'examGrade' as const
 export default class ExamService extends BaseService<ExamGrade> {
   constructor() {
      super(table)

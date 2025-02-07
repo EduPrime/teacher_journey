@@ -11,7 +11,7 @@ export default class SeriesService extends BaseService<Series> {
     const {data , error} = await this.client
     .from('classroom')
     .select('*, series:seriesId (name), school:schoolId (name)')
-    .in('classroomId', classes)
+    .in('id', classes)
 
     if (error) {
         throw new Error(`Erro ao buscar notas com dados dos alunos: ${error.message}`)
