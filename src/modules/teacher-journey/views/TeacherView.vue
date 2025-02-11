@@ -34,11 +34,15 @@ const alertasInformacoes = {
 }
 
 const quadroHorarios = {
-  dias: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'],
-  horarios: [
-    { icone: 'path_to_icon', horario: '07:30 - 11:30', turma: '4º ANO C' },
-    { icone: 'path_to_icon', professor: 'Gulomar Costa Reis' },
-  ],
+  dias: [
+    { label: 'Seg', value: 'MONDAY' },
+    { label: 'Ter', value: 'TUESDAY' },
+    { label: 'Qua', value: 'WEDNESDAY' },
+    { label: 'Qui', value: 'THURSDAY' },
+    { label: 'Sex', value: 'FRIDAY' },
+    { label: 'Sáb', value: 'SATURDAY' },
+  ],  
+  
 }
 
 const necessidadesEspeciais = [
@@ -73,7 +77,7 @@ const alertaDesempenho = [
     ],
   },
 ]
-const selectDay = ref('Seg')
+const selectDay = ref('MONDAY')
 
 async function loadStages() {
   try {
@@ -96,11 +100,35 @@ async function loadSchedule() {
   
 }
 
+function filterClassesByDay(){
+  console.log(selectDay.value)
+}
+const horarios = computed(() => {
+  // horarios: [
+  //   { icone: 'path_to_icon', horario: '07:30 - 11:30', turma: '4º ANO C' },
+  //   { icone: 'path_to_icon', professor: 'Gulomar Costa Reis' },
+  // ],
+  const filteredSchedule = schedules.value.filter(schedule => {
+    return schedule.weekday === selectDay.value
+  })
+  return filteredSchedule
+})
+watch(horarios, ()=> {
+  console.log(horarios.value)
+  // console.log(s)
+})
+
 onMounted(() => {
   loadStages()
   loadSchedule()
 })
-
+function formatHour(horario:any) {
+  const [HH,mm] = horario.start.split(':')
+  const startDate = `${HH}:${mm}`
+    const [HHend,mmend] = horario.end.split(':')
+  const endDate = `${HHend}:${mmend}`
+  return `${startDate} - ${endDate}`
+}
 </script>
 
 <template>
@@ -115,6 +143,11 @@ onMounted(() => {
           </svg>
           <div class="text-primary text-lg">
             Alertas e Informações
+          </div>
+          <div v-if="stages?.daysLeft <=10" class="warning-close-date">
+            Após o fechamento do bimestre ( em {{stages.daysLeft}} dias ) será 
+            necessário entrar em contato com a secretária para 
+            efetuar o preenchimento ou alterações no período encerrado 
           </div>
         </div>
         <div class="info-row">
@@ -148,23 +181,23 @@ onMounted(() => {
         </div>
         <div class="grid">
           <div class="row bg">
-            <div v-for="dia in quadroHorarios.dias" :key="dia" :class="{ active: dia === selectDay }"
-              @click="selectDay = dia">
-              {{ dia }}
+            <div v-for="dia in quadroHorarios.dias" :key="dia.key" :class="{ active: dia.key === selectDay }"
+              @click="selectDay = dia.key">
+              {{ dia.value }}
             </div>
           </div>
-          <div v-for="(horario, index) in quadroHorarios.horarios" :key="index" class="grid-row">
+          <div v-for="(horario, index) in horarios" :key="index" class="grid-row">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path
                 d="M17.5 14.1667H5.83337V2.50004H17.5M17.5 0.833374H5.83337C5.39135 0.833374 4.96742 1.00897 4.65486 1.32153C4.3423 1.63409 4.16671 2.05801 4.16671 2.50004V14.1667C4.16671 14.6087 4.3423 15.0327 4.65486 15.3452C4.96742 15.6578 5.39135 15.8334 5.83337 15.8334H17.5C17.9421 15.8334 18.366 15.6578 18.6786 15.3452C18.9911 15.0327 19.1667 14.6087 19.1667 14.1667V2.50004C19.1667 2.05801 18.9911 1.63409 18.6786 1.32153C18.366 1.00897 17.9421 0.833374 17.5 0.833374ZM11.6667 12.5H13.3334V4.16671H10V5.83337H11.6667M2.50004 4.16671H0.833374V17.5C0.833374 17.9421 1.00897 18.366 1.32153 18.6786C1.63409 18.9911 2.05801 19.1667 2.50004 19.1667H15.8334V17.5H2.50004V4.16671Z"
                 fill="#71438D" />
             </svg>
-            <div v-if="horario.horario">
-              <div>{{ horario.horario }}</div>
-              <div>{{ horario.turma }}</div>
+            <div>
+              <div>{{ formatHour(horario) }}</div>
+              <div>{{ horario.classroom.name }}</div>
             </div>
-            <div v-else class="text-primary text-lg">
-              {{ horario.professor }}
+            <div class="text-primary text-lg">
+              {{ horario.school.name }}
             </div>
           </div>
         </div>
@@ -231,7 +264,7 @@ onMounted(() => {
   </ContentLayout>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .section {
   margin-bottom: 24px;
 }
@@ -249,7 +282,17 @@ onMounted(() => {
   flex: 1;
 
 }
+.warning-close-date{
+  background-color: var(--ion-color-warning);
+  color: #222;
+  .title {
+    font-size: 18px;
+    font-weight: 600;
+  }
+  // .text {
 
+  // }
+}
 .row {
   margin-top: 16px;
   display: flex;
