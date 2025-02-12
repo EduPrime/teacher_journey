@@ -8,7 +8,7 @@ export default class ScheduleService extends BaseService<Schedule> {
      super(table)
   }
   async countSchools(teacherId: string) {
-    const {count, error} = await this.client
+    const { count, error } = await this.client
       .from('schedule')
       .select('count(distinct schoolId)')
       .eq('teacherId', teacherId)
@@ -24,7 +24,7 @@ export default class ScheduleService extends BaseService<Schedule> {
   }
 
   async countClassrooms(teacherId: string) {
-    const {count, error} = await this.client
+    const { count, error } = await this.client
       .from('schedule')
       .select('count(distinct classroomId)')
       .eq('teacherId', teacherId)
@@ -40,9 +40,9 @@ export default class ScheduleService extends BaseService<Schedule> {
   }
 
   async listClassrooms(teacherId: string) {
-    const {data, error}: {data: {classroomId: string}[] | null, error: any} = await this.client
+    const { data, error }: { data: { classroomId: string }[] | null, error: any } = await this.client
       .from('schedule')
-      .select('distinct classroomId')
+      .select('classroomId')
       .eq('teacherId', teacherId)
     
       if (error) {
@@ -53,11 +53,12 @@ export default class ScheduleService extends BaseService<Schedule> {
       }
       const classArray: string[] = []
       data.forEach(item => classArray.push(item.classroomId))
-      return classArray
+    const classSet = new Set(classArray)
+    return classSet
   }
 
   async getSchedule(teacherId: string) {
-    const {data , error} = await this.client
+    const { data, error } = await this.client
         .from('schedule')
         .select(`
             *,
