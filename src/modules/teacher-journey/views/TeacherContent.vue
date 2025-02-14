@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import ContentLayout from '@/components/theme/ContentLayout.vue'
+import EduCalendar from '@/components/WeekDayPicker.vue'
 import { IonButton, IonCol, IonIcon, IonRow, IonSearchbar, IonTitle, IonContent, IonSelect, IonItem, IonSelectOption, IonLabel, IonModal, IonCard, IonCardContent, IonCardHeader, IonCardSubtitle, IonCardTitle,
-  IonAccordion, IonAccordionGroup, IonDatetime } from '@ionic/vue'
-import { add, arrowDown, arrowUp, businessOutline, calendar, calendarOutline, menu, people, peopleOutline, personOutline, school } from 'ionicons/icons'
+  IonAccordion, IonAccordionGroup, IonDatetime, IonChip, IonTextarea } from '@ionic/vue'
+import { add, arrowDown, arrowUp, businessOutline, calendar, calendarOutline, menu, people, peopleOutline, personOutline, save, school } from 'ionicons/icons'
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -49,6 +50,8 @@ const toggleAccordion = () => {
     filterCollapse.value = !filterCollapse.value
   }
 }
+const selectedDayInfo = ref()
+const accordionContent = ref(false)
 
 // Carregar dados ao montar o componente
 onMounted(async () => {
@@ -109,26 +112,20 @@ function setSerie(serie: Occupation): void {
   console.log('setSerie:', filteredOcupation.value.series)
   setModalSerie(false)
 }
+
+function addFirstContent(): void {
+  console.log('addFirstContent ', accordionContent.value)
+  accordionContent.value = true
+}
 </script>
 
 <template>
-  <ContentLayout class="ion-no-margin ion-no-padding">
-    <ion-content class="ion-no-margin ion-no-padding" style="--background: rgba(249, 211, 227, 0.2); height: 49%; padding-bottom: 10rem;" v-show="filterCollapse">
+  <ContentLayout>
+    <ion-content class="" style="--background: rgba(249, 211, 227, 0.3); height: 235px;" v-show="filterCollapse">
       <ion-text color="secondary">
-        <h3 class="">Filtros</h3>
-        <p class="">Preencha os filtros abaixo para uma mais acertiva</p>
-      </ion-text>
-      <!-- <div class="sidebyside">
-        <ion-button id="schools-modal" expand="full" color="primary" class="item ion-no-padding ion-no-margin" size="large" style="font-size: small;" @click="setModalSchool(true)">
-          <ion-icon slot="start" :icon="businessOutline"></ion-icon>
-        </ion-button>
-        <ion-button id="schools-modal" expand="full" color="primary" class="company-icon ion-no-padding ion-no-margin" size="large" style="font-size: small;" @click="setModalSchool(true)">
-          <ion-icon slot="start" :icon="businessOutline"></ion-icon>
-          <ion-text style="font-size: x-small;">
-            {{ filteredOcupation.school || 'Selecione uma escola' }}
-          </ion-text>
-        </ion-button>
-      </div> -->
+        <h4>Filtros</h4>
+        <p style="font-size: 14px;">Preencha os filtros abaixo para uma mais acertiva</p>
+      </ion-text>      
       <IonItem style="--min-height: 57px;" color="primary" @click="setModalSchool(true)">
         <ion-label>{{ filteredOcupation.school || 'Selecione uma escola' }}</ion-label>
         <IonIcon slot="start" :icon="businessOutline" />
@@ -137,15 +134,8 @@ function setSerie(serie: Occupation): void {
         <ion-label>{{ filteredOcupation.series ? filteredOcupation.series.join(', ') : 'Selecione uma série' }}</ion-label>
         <IonIcon slot="start" :icon="peopleOutline" />
       </ion-item>
-      <!-- <ion-button id="schools-modal" expand="full" color="primary" class="ion-no-padding ion-no-margin" size="large" style="font-size: small;" @click="setModalSchool(true)">
-          <ion-icon slot="start" :icon="businessOutline"></ion-icon>
-            {{ filteredOcupation.school || 'Selecione uma escola' }}
-        </ion-button>
-        <ion-button id="open-modal2" expand="full" color="tertiary" class="ion-no-padding ion-no-margin" size="large" style="font-size: small;" @click="setModalSerie(true)">
-          <ion-icon slot="start" :icon="peopleOutline"></ion-icon>
-          {{ filteredOcupation.series ? filteredOcupation.series.join(', ') : 'Selecione uma série' }}
-        </ion-button> -->
     </ion-content>
+    
     <ion-modal :is-open="isModalSchool" :initial-breakpoint="0.6" :breakpoints="[0, 0.6, 0.87]" @ionModalDidDismiss="setModalSchool(false)">
       <div class="block">
       <ion-list v-for="(school, i) in ocupation" :key="i" :value="school.school">
@@ -155,6 +145,7 @@ function setSerie(serie: Occupation): void {
       </ion-list>
       </div>
     </ion-modal>
+
     <ion-modal :is-open="isModalSerie" :initial-breakpoint="0.6" :breakpoints="[0, 0.6, 0.87]" @ionModalDidDismiss="setModalSerie(false)">
       <div class="block">
         <ion-list v-for="(serie, i) in ocupation" :key="i" :value="serie.series ? serie.series[i] : ''">
@@ -164,75 +155,174 @@ function setSerie(serie: Occupation): void {
         </ion-list>
       </div>
     </ion-modal>
-    <div :style="{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0px' }">
+
+    <div :style="{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: filterCollapse ? '0' : '5px' }">
       <ion-text v-show="!filterCollapse" color="secondary">
-      <h3>Filtros</h3>
+        <h3>Filtros</h3>
       </ion-text>
-      <ion-button color="tertiary" @click="toggleAccordion()" :style="{ marginTop: filterCollapse ? '-23px' : '0px' }">
-      <ion-icon slot="icon-only" :icon="filterCollapse ? arrowUp : arrowDown"></ion-icon>
+      <ion-button color="tertiary" @click="toggleAccordion()" :style="{ marginTop: filterCollapse ? '-20px' : '2px', marginLeft: filterCollapse ? '21.9em' : 'auto', marginRight: filterCollapse ? '10px' : '10px' }">
+        <ion-icon slot="icon-only" :icon="filterCollapse ? arrowUp : arrowDown"></ion-icon>
       </ion-button>
     </div>
-    <ion-accordion-group ref="accordionGroup" :multiple="true" :value="['first']">
+
+    <ion-accordion-group ref="accordionGroup" class="ion-content" :multiple="true" :value="['first']">
       <ion-accordion value="first">
-        <div class="ion-no-padding" slot="content">
-          <!-- <ion-item>
-            <ion-icon color="secondary" aria-hidden="true" :icon="calendarOutline" slot="start"></ion-icon>
-            <ion-label>Registro de conteúdo diário</ion-label>
-          </ion-item> -->
-          <ion-card>
-            <ion-card-header>
-              <ion-card-title color="secondary">
-              </ion-card-title>
-            </ion-card-header>    
-            <ion-card-content>
-              <ion-datetime display-format="DD/MM/YYYY" placeholder="Selecione a data"></ion-datetime>
-            </ion-card-content>
-          </ion-card>
+        <div class="" slot="content">
+          <div style="margin: 0 0 5px 0">
+            <ion-text color="secondary" style="display: flex; align-items: center;">
+              <ion-icon color="secondary" size="small" style="margin-right: 1%;" aria-hidden="true" :icon="calendarOutline"></ion-icon>
+                Registro de conteúdo diário
+            </ion-text>
+          </div>
+          <edu-calendar v-model="selectedDayInfo" />
         </div>
       </ion-accordion>
     </ion-accordion-group>
+    
 
-    <!-- <IonItem color="primary">
-      <IonIcon slot="start" class="cursor-pointer" :icon="businessOutline" />
-      <IonSelect :model="schools" toggle-icon="disable" interface="action-sheet" placeholder="Selecione a escola">
-        <IonSelectOption v-for="(school, i) in ocupation" :key="i" :value="school.school">
-          {{ school.school }}
-        </IonSelectOption>
-      </IonSelect>
-    </IonItem>
-    <IonItem color="tertiary">
-      <IonIcon slot="start" class="cursor-pointer" :icon="peopleOutline"/>
-      <IonSelect :model="series" toggle-icon="disable" interface="modal" placeholder="Selecione a série">
-        <IonSelectOption v-for="(serie, i) in ocupation" :key="i" :value="serie.series ? serie.series[i] : ''">
-          {{ serie.series ? serie.series[i] : '' }}
-        </IonSelectOption>
-      </IonSelect>
-    </IonItem> -->
+    <ion-card v-if="!accordionContent" class="ion-no-padding ion-margin-top">
+      <ion-card-header color="secondary">
+        <div style="display: flex; align-items: center; height: 10px;">
+          <ion-icon :icon="save" size="small" style="margin-right: 8px;"/>
+            <ion-card-title style="font-size: medium;">Registro de conteúdo</ion-card-title>
+        </div>
+      </ion-card-header>
 
+      <div v-if="accordionContent">
+        <ion-card-content class="">
+          <ion-text color="secondary">
+            Notamos que você ainda não fez o registro diário, toque no botão abaixo para iniciar.
+          </ion-text>
+        </ion-card-content>
+  
+        <div style="display: flex; justify-content: flex-end;">
+          <ion-button class="ion-margin" color="tertiary" @click="addFirstContent()">
+            <ion-icon slot="icon-only" :icon="add"></ion-icon>
+          </ion-button>
+        </div>
+      </div>
+      
+      <div v-if="!accordionContent">
+        <ion-card-content class="ion-padding-top">
+            <ion-select
+              class="ion-select-card-content"
+              label="Disciplina"
+              label-placement="floating"
+              fill="outline"
+              cancel-text="Cancelar"
+              :multiple="true"              
+            >
+                <ion-select-option value="Matemática">Matemática</ion-select-option>
+                <ion-select-option value="Português">Português</ion-select-option>
+                <ion-select-option value="Ciências">Ciências</ion-select-option>
+                <ion-select-option value="História">História</ion-select-option>
+                <ion-select-option value="Geografia">Geografia</ion-select-option>
+                <ion-select-option value="Educação Física">Educação Física</ion-select-option>
+                <ion-select-option value="Artes">Artes</ion-select-option>
+                <ion-select-option value="Inglês">Inglês</ion-select-option>
+            </ion-select>
+            <br>
+            <ion-textarea
+              label="Conteúdo"
+              label-placement="floating"
+              fill="outline"
+              placeholder="Digite o conteúdo"
+              style="--color: var(--ion-color-secondary);"
+              :auto-grow="true"
+              value="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris tellus sem, auctor accumsan egestas sed, venenatis at ex. Nam consequat ex odio."
+            >
+            </ion-textarea>
+            <br>
+            <ion-select
+              class="ion-select-card-content"
+              label="Currículos"
+              label-placement="floating"
+              fill="outline"
+              cancel-text="Cancelar"
+              style="--color: var(--ion-color-secondary);"
+              :multiple="true"
+            >
+              <ion-select-option>EF02LP00PE - Leitura e interpretação textual bas</ion-select-option>
+              <ion-select-option>EF02LP01PE - Uso do material didático na sala d</ion-select-option>
+            </ion-select>
+        </ion-card-content>
+  
+        <div style="display: flex; justify-content: flex-end;">
+          <ion-button class="ion-margin" color="tertiary" @click="addFirstContent()">
+            <ion-icon slot="icon-only" :icon="add"></ion-icon>
+          </ion-button>
+        </div>
+      </div>
+    </ion-card>
+    
+    <ion-content>
+      <ion-accordion-group v-if="accordionContent" expand="inset" :multiple="true" :value="['first']">
+        <ion-accordion value="first">
+          <ion-item slot="header" color="secondary">
+            <ion-label>6 Ano - "A" - 06/01/2025</ion-label>
+          </ion-item>
+          <div class="ion-padding" slot="content">
+            <ion-chip color="secondary">item.chip1</ion-chip>
+            <br>
+            <ion-text color="secondary">First Content</ion-text>
+            <br>
+            <ion-chip color="tertiary">item.chip2</ion-chip>
+            <ion-chip color="tertiary">item.chip3</ion-chip>
+            <br>
+            <div style="display: flex; justify-content: right; margin-top: 20px;">
+              <ion-button color="tertiary" size="small">Copiar</ion-button>
+              <ion-button color="secondary" size="small">Editar</ion-button>
+              <ion-button color="warning" size="small">Excluir</ion-button>
+            </div>
+          </div>
+        </ion-accordion>
+        <ion-accordion value="second">
+          <ion-item slot="header" color="rose">
+            <ion-label>Second Accordion</ion-label>
+          </ion-item>
+          <div class="ion-padding" slot="content">Second Content</div>
+        </ion-accordion>
+        <ion-accordion value="third">
+          <ion-item slot="header" color="rose">
+            <ion-label>Third Accordion</ion-label>
+          </ion-item>
+          <div class="ion-padding" slot="content">Third Content</div>
+        </ion-accordion>
+      </ion-accordion-group>
+    </ion-content>
 
+    
+<!-- 
+    <ion-accordion-group v-if="accordionContent" class="content-accondion-style rose accordioncontent" expand="inset" :multiple="true">
+      <ion-accordion v-for="(item, index) in mockData" :key="index" :value="item.value">
+        <ion-item slot="header" color="rose">
+          <ion-label>{{ item.label }}</ion-label>
+        </ion-item>
+        <div class="ion-padding" slot="content">
+          <ion-chip color="primary">{{ item.chip1 }}</ion-chip>
+          <ion-chip color="secondary">{{ item.chip2 }}</ion-chip>
+          <ion-chip color="tertiary">{{ item.chip3 }}</ion-chip>
+          <ion-text>{{ item.text }}</ion-text>
+          <div style="display: flex; justify-content: space-between; margin-top: 10px;">
+            <ion-button color="tertiary">Copiar</ion-button>
+            <ion-button color="secondary">Editar</ion-button>
+            <ion-button color="warning">Excluir</ion-button>
+          </div>
+        </div>
+      </ion-accordion>
+    </ion-accordion-group> -->
   </ContentLayout>
 </template>
 
 <style scoped>
-/* .sidebyside {
-  display: flex;
-  flex-direction: row;
-  align-content: stretch;
-  width: 100%;
-} */
-/* .item {
-  flex-grow: 1;
+ion-content {
+  --padding-start: 10px;
+  --padding-end: 10px;
 }
-.company-icon {
-  flex-grow: 11;
-} */
-/* .filter-collapse ion-button ion-icon {
-  margin-inline: -9em 0.3em;
-} */
-/* .filter-collapse ion-button {
-  --padding-top: 14px;
-  --padding-bottom: 14px;
-} */
+.ion-content {
+  padding-left: 10px;
+  padding-right: 10px;
+}
 ion-accordion-group {
   margin-inline: 0 !important;
   margin-top: 16px;
@@ -240,7 +330,54 @@ ion-accordion-group {
 toggle-icon {
   color: white;
 }
-ion-card {
-  margin-inline: 0 !important;
+.ion-select-card-content {
+  --border-color: var(--ion-color-secondary);
+  --placeholder-color: var(--ion-color-secondary);
+  --placeholder-opacity: 1;
+  width: 100%;
+}
+
+.ion-select-card-content::part(text) {
+  flex: 0 0 auto;
+}
+
+.ion-select-card-content::part(text) {
+  color: var(--ion-color-secondary);
+  background-color: rgba(79, 41, 116, 0.1);
+  border-radius: 16px;
+  padding: 2px 8px;
+  display: inline-block;
+}
+
+/* .ion-select-card-content::part(placeholder) {
+  border-radius: 16px;
+  padding: 2px 8px;
+  display: inline-block;
+} */
+
+.ion-select-card-content::part(icon) {
+  color: var(--ion-color-secondary);
+  opacity: 1;
+}
+.content-accondion-style {
+  --ion-color-rose: #fecdd3;
+  --ion-color-rose-rgb: 254, 205, 211;
+  --ion-color-rose-contrast: #000000;
+  --ion-color-rose-contrast-rgb: 0, 0, 0;
+  --ion-color-rose-shade: #e0b4ba;
+  --ion-color-rose-tint: #fed2d7;
+}
+
+.rose {
+  --ion-color-base: var(--ion-color-rose);
+  --ion-color-base-rgb: var(--ion-color-rose-rgb);
+  --ion-color-contrast: var(--ion-color-rose-contrast);
+  --ion-color-contrast-rgb: var(--ion-color-rose-contrast-rgb);
+  --ion-color-shade: var(--ion-color-rose-shade);
+  --ion-color-tint: var(--ion-color-rose-tint);
+}
+
+ion-accordion-group.accordioncontent div[slot='content'] {
+  background: rgba(var(--ion-color-rose-rgb), 0.25);
 }
 </style>
