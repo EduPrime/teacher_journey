@@ -169,10 +169,12 @@ function addFirstContent(): void {
         <IonIcon slot="icon-only" :icon="filterCollapse ? arrowUp : arrowDown" />
       </IonButton>
     </div>
-    <ion-text color="secondary" class="ion-content ion-padding-vertical" style="display: flex; align-items: center;">
-      <IonIcon color="secondary" size="small" style="margin-right: 1%;" aria-hidden="true" :icon="calendarOutline" />
-      Registro de conteúdo diário
-    </ion-text>
+    <h3>
+      <ion-text color="secondary" class="ion-content ion-padding-vertical" style="display: flex; align-items: center;">
+        <IonIcon color="secondary" style="margin-right: 1%;" aria-hidden="true" :icon="calendarOutline" />
+        Lançamento Diário
+      </ion-text>
+    </h3>
     <EduCalendar v-model="selectedDayInfo" />
 
     <IonAccordionGroup ref="accordionGroup" class="ion-content" :multiple="true" :value="['first']">
