@@ -51,7 +51,27 @@ function toggleAccordion() {
   }
 }
 const selectedDayInfo = ref()
-const accordionContent = ref(false)
+const isAccordionContent = ref(false)
+const isSaveTeacherContent = ref(false)
+// const registros = ref<Registro[]>([])
+
+type Registro = {
+  turma: string;
+  data: string;
+  disciplinas: string[];
+  descricao: string;
+  codigos: string[];
+}
+
+const registros = ref<Registro[]>([
+  {
+    turma: "6º Ano - 'A'",
+    data: "06/01/2025",
+    disciplinas: ["Língua Portuguesa", "Inglês"],
+    descricao: "Leitura e interpretação textual nas páginas 14, 15 e 16 do livro didático, seguido de resumo básico escrito em inglês com auxílio do dicionário tradutor.",
+    codigos: ["EF02LPO0PE", "EF02LPO1PE", "EF02LPO2PE", "EF02LEI02PE"]
+  }
+])
 
 // Carregar dados ao montar o componente
 onMounted(async () => {
@@ -117,8 +137,13 @@ function setSerie(serie: Occupation): void {
 }
 
 function addFirstContent(): void {
-  console.log('addFirstContent ', accordionContent.value)
-  accordionContent.value = true
+  console.log('addFirstContent ', isSaveTeacherContent.value)
+  isSaveTeacherContent.value = true
+}
+
+function saveTeacherContent(): void {
+  console.log('saveTeacherContent ', isAccordionContent.value)
+  isAccordionContent.value = true
 }
 </script>
 
@@ -170,7 +195,7 @@ function addFirstContent(): void {
       </IonButton>
     </div>
     <h3>
-      <ion-text color="secondary" class="ion-content ion-padding-vertical" style="display: flex; align-items: center;">
+      <ion-text color="secondary" class="ion-content ion-padding-bottom" style="display: flex; align-items: center;">
         <IonIcon color="secondary" style="margin-right: 1%;" aria-hidden="true" :icon="calendarOutline" />
         Lançamento Diário
       </ion-text>
@@ -184,23 +209,24 @@ function addFirstContent(): void {
         </div>
       </IonAccordion>
     </IonAccordionGroup>
+    
 
-    <IonCard v-if="!accordionContent" class="ion-no-padding ion-margin-top">
-      <IonCardHeader color="secondary">
+    <ion-card v-if="!isAccordionContent" class="ion-no-padding ion-margin-top">
+      <ion-card-header color="secondary">
         <div style="display: flex; align-items: center; height: 10px;">
           <IonIcon :icon="save" size="small" style="margin-right: 8px;" />
           <IonCardTitle style="font-size: medium;">
             Registro de conteúdo
           </IonCardTitle>
         </div>
-      </IonCardHeader>
+      </ion-card-header>
 
-      <div v-if="accordionContent">
-        <IonCardContent class="">
+      <div v-if="!isSaveTeacherContent">
+        <ion-card-content class="">
           <ion-text color="secondary">
             Notamos que você ainda não fez o registro diário, toque no botão abaixo para iniciar.
           </ion-text>
-        </IonCardContent>
+        </ion-card-content>
 
         <div style="display: flex; justify-content: flex-end;">
           <IonButton class="ion-margin" color="tertiary" @click="addFirstContent()">
@@ -208,130 +234,81 @@ function addFirstContent(): void {
           </IonButton>
         </div>
       </div>
-
-      <div v-if="!accordionContent">
-        <IonCardContent class="ion-padding-top">
-          <IonSelect
-            class="ion-select-card-content"
-            label="Disciplina"
-            label-placement="floating"
-            fill="outline"
-            cancel-text="Cancelar"
-            :multiple="true"
-          >
-            <IonSelectOption value="Matemática">
-              Matemática
-            </IonSelectOption>
-            <IonSelectOption value="Português">
-              Português
-            </IonSelectOption>
-            <IonSelectOption value="Ciências">
-              Ciências
-            </IonSelectOption>
-            <IonSelectOption value="História">
-              História
-            </IonSelectOption>
-            <IonSelectOption value="Geografia">
-              Geografia
-            </IonSelectOption>
-            <IonSelectOption value="Educação Física">
-              Educação Física
-            </IonSelectOption>
-            <IonSelectOption value="Artes">
-              Artes
-            </IonSelectOption>
-            <IonSelectOption value="Inglês">
-              Inglês
-            </IonSelectOption>
-          </IonSelect>
-          <br>
-          <IonTextarea
-            label="Conteúdo"
-            label-placement="floating"
-            fill="outline"
-            placeholder="Digite o conteúdo"
-            style="--color: var(--ion-color-secondary);"
-            :auto-grow="true"
-            value="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris tellus sem, auctor accumsan egestas sed, venenatis at ex. Nam consequat ex odio."
-          />
-          <br>
-          <IonSelect
-            class="ion-select-card-content"
-            label="Currículos"
-            label-placement="floating"
-            fill="outline"
-            cancel-text="Cancelar"
-            style="--color: var(--ion-color-secondary);"
-            :multiple="true"
-          >
-            <IonSelectOption>EF02LP00PE - Leitura e interpretação textual bas</IonSelectOption>
-            <IonSelectOption>EF02LP01PE - Uso do material didático na sala d</IonSelectOption>
-          </IonSelect>
-        </IonCardContent>
-
-        <div style="display: flex; justify-content: flex-end;">
-          <IonButton class="ion-margin" color="tertiary" @click="addFirstContent()">
-            <IonIcon slot="icon-only" :icon="add" />
-          </IonButton>
-        </div>
-      </div>
-    </IonCard>
-
-    <IonContent>
-      <IonAccordionGroup v-if="accordionContent" expand="inset" :multiple="true" :value="['first']">
-        <IonAccordion value="first">
-          <IonItem slot="header" color="secondary">
-            <IonLabel>6 Ano - "A" - 06/01/2025</IonLabel>
-          </IonItem>
-          <div slot="content" class="ion-padding">
-            <IonChip color="secondary">
-              item.chip1
-            </IonChip>
+      
+      <div v-if="isSaveTeacherContent">
+        <ion-card-content class="ion-padding-top">
+            <ion-select
+              class="ion-select-card-content"
+              label="Disciplina"
+              label-placement="floating"
+              fill="outline"
+              cancel-text="Cancelar"
+              :multiple="true"              
+            >
+                <ion-select-option value="Matemática">Matemática</ion-select-option>
+                <ion-select-option value="Português">Português</ion-select-option>
+                <ion-select-option value="Ciências">Ciências</ion-select-option>
+                <ion-select-option value="História">História</ion-select-option>
+                <ion-select-option value="Geografia">Geografia</ion-select-option>
+                <ion-select-option value="Educação Física">Educação Física</ion-select-option>
+                <ion-select-option value="Artes">Artes</ion-select-option>
+                <ion-select-option value="Inglês">Inglês</ion-select-option>
+            </ion-select>
             <br>
-            <ion-text color="secondary">
-              First Content
-            </ion-text>
+            <ion-textarea
+              label="Conteúdo"
+              label-placement="floating"
+              fill="outline"
+              placeholder="Digite o conteúdo"
+              style="--color: var(--ion-color-secondary);"
+              :auto-grow="true"
+              value="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris tellus sem, auctor accumsan egestas sed, venenatis at ex. Nam consequat ex odio."
+            >
+            </ion-textarea>
             <br>
-            <IonChip color="tertiary">
-              item.chip2
-            </IonChip>
-            <IonChip color="tertiary">
-              item.chip3
-            </IonChip>
-            <br>
-            <div style="display: flex; justify-content: right; margin-top: 20px;">
-              <IonButton color="tertiary" size="small">
-                Copiar
-              </IonButton>
-              <IonButton color="secondary" size="small">
-                Editar
-              </IonButton>
-              <IonButton color="warning" size="small">
-                Excluir
-              </IonButton>
+            <ion-select
+              class="ion-select-card-content"
+              label="Currículos"
+              label-placement="floating"
+              fill="outline"
+              cancel-text="Cancelar"
+              style="--color: var(--ion-color-secondary);"
+              :multiple="true"
+            >
+              <ion-select-option>EF02LP00PE - Leitura e interpretação textual bas</ion-select-option>
+              <ion-select-option>EF02LP01PE - Uso do material didático na sala d</ion-select-option>
+            </ion-select>
+            <div class="ion-margin-top" style="display: flex; justify-content: right;">
+              <ion-button color="warning" size="small">Cancelar</ion-button>
+              <ion-button color="secondary" size="small" @click="saveTeacherContent()" >Salvar</ion-button>
             </div>
+        </ion-card-content>
+      </div>
+    </ion-card>
+    
+    <ion-accordion-group ref="refAccordionContents" class="ion-content" v-if="isAccordionContent" expand="inset" :multiple="true" :value="[registros[0].turma]">
+      <ion-accordion v-for="(registro, index) in registros" :key="index" :value="registro.turma">
+        <ion-item slot="header" color="secondary">
+          <ion-label>{{ registro.turma }} - {{ registro.data }}</ion-label>
+        </ion-item>
+        <div slot="content" style="margin: 10px 0 0 10px;">
+          <ion-chip style="margin-left: 0px; margin-right: 10px;" v-for="(disciplina, i) in registro.disciplinas" :key="i" color="secondary">{{ disciplina }}</ion-chip>
+          <div style="margin: 10px 10px 10px 5px;">
+            <ion-text color="secondary" class="ion-text-justify">{{ registro.descricao }}</ion-text>
           </div>
-        </IonAccordion>
-        <IonAccordion value="second">
-          <IonItem slot="header" color="rose">
-            <IonLabel>Second Accordion</IonLabel>
-          </IonItem>
-          <div slot="content" class="ion-padding">
-            Second Content
+          <ion-chip style="margin-left: 0px;  margin-right: 10px; font-size: 12px;" v-for="(codigo, i) in registro.codigos" :key="i" color="tertiary">{{ codigo }}</ion-chip>
+          <br>
+          <div class="ion-margin" style="display: flex; justify-content: right; margin-top: 20px; gap: 5px;">
+            <ion-button color="tertiary" size="small" style="text-transform: capitalize;">Copiar</ion-button>
+            <ion-button color="secondary" size="small" style="text-transform: capitalize;">Editar</ion-button>
+            <ion-button color="danger" size="small" style="text-transform: capitalize;">Excluir</ion-button>
           </div>
-        </IonAccordion>
-        <IonAccordion value="third">
-          <IonItem slot="header" color="rose">
-            <IonLabel>Third Accordion</IonLabel>
-          </IonItem>
-          <div slot="content" class="ion-padding">
-            Third Content
-          </div>
-        </IonAccordion>
-      </IonAccordionGroup>
-    </IonContent>
+        </div>
+      </ion-accordion>
+    </ion-accordion-group>
 
-    <!--
+    
+<!-- 
     <ion-accordion-group v-if="accordionContent" class="content-accondion-style rose accordioncontent" expand="inset" :multiple="true">
       <ion-accordion v-for="(item, index) in mockData" :key="index" :value="item.value">
         <ion-item slot="header" color="rose">
