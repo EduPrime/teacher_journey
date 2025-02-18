@@ -14,7 +14,7 @@ const routes: Array<CustomRouteRecordRaw> = [
       icon: create,
       name: 'Diário',
       order: 1,
-      requiredRole: ['public', 'admin'],
+      requiredRole: ['PROFESSOR'],
     },
   },
   {
@@ -27,7 +27,7 @@ const routes: Array<CustomRouteRecordRaw> = [
       icon: calendar,
       name: 'Frequência',
       order: 2,
-      requiredRole: ['public', 'admin'],
+      requiredRole: ['PROFESSOR'],
     },
   },
   {
@@ -40,7 +40,7 @@ const routes: Array<CustomRouteRecordRaw> = [
       icon: text,
       name: 'Avaliação conceitual',
       order: 3,
-      requiredRole: ['public', 'admin'],
+      requiredRole: ['PROFESSOR'],
     },
   },
   {
@@ -53,7 +53,7 @@ const routes: Array<CustomRouteRecordRaw> = [
       icon: shapes,
       name: 'Parecer descritivo',
       order: 4,
-      requiredRole: ['public', 'admin'],
+      requiredRole: ['PROFESSOR'],
     },
   },
   {
@@ -66,7 +66,7 @@ const routes: Array<CustomRouteRecordRaw> = [
       icon: extensionPuzzle,
       name: 'Desempenho PCD',
       order: 5,
-      requiredRole: ['public', 'admin'],
+      requiredRole: ['PROFESSOR'],
     },
   },
   {
@@ -79,7 +79,7 @@ const routes: Array<CustomRouteRecordRaw> = [
       icon: saveSharp,
       name: 'Registro de conteudo',
       order: 6,
-      requiredRole: ['public', 'admin'],
+      requiredRole: ['PROFESSOR'],
     },
   }
 ]

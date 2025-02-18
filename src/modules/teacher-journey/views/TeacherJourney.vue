@@ -2,15 +2,15 @@
 import ContentLayout from '@/components/theme/ContentLayout.vue'
 import { IonButton, IonCol, IonIcon, IonRow, IonSearchbar, IonTitle, IonToolbar } from '@ionic/vue'
 import { add } from 'ionicons/icons'
-import { ref, onMounted, computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 // Importar o serviço e o componente gerados
 import TeacherJourney from '../components/TeacherJourney.vue'
-//import TeacherJourneyService from '../services/TeacherJourneyService'
+// import TeacherJourneyService from '../services/TeacherJourneyService'
 
 // Instanciar o serviço
-//const teacherJourneyService = new TeacherJourneyService()
+// const teacherJourneyService = new TeacherJourneyService()
 
 const router = useRouter()
 
@@ -25,7 +25,7 @@ onMounted(async () => {
 
 // Função para carregar os dados usando o serviço
 async function loadData() {
-  /*try {
+  /* try {
     const data = await teacherJourneyService.getAll()
     dataList.value = data || []
     console.log('Dados carregados:', data)
@@ -46,10 +46,9 @@ const filteredData = computed(() => {
     return dataList.value
   }
   return dataList.value.filter((item: any) =>
-    JSON.stringify(item).toLowerCase().includes(searchQuery.value.toLowerCase())
+    JSON.stringify(item).toLowerCase().includes(searchQuery.value.toLowerCase()),
   )
 })
- 
 </script>
 
 <template>
