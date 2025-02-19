@@ -30,11 +30,17 @@ const userid = ref<string>('')
 const teacherid = ref<string>('')
 const schools = ref<string[]>([])
 const series = ref<string[]>([])
+const isFilterCollapse = ref(true)
+const isCopyModalOpen = ref(false)
 const isModalSchool = ref(false)
 const isModalSerie = ref(false)
+const isDayNoneRecord = ref(true)
+const isFormAvailable = ref(false)
 const setModalSchool = (open: boolean) => (isModalSchool.value = open)
 const setModalSerie = (open: boolean) => (isModalSerie.value = open)
-const filterCollapse = ref(true)
+const setFilterCollapse = (open: boolean) => (isFilterCollapse.value = open)
+const setDayNoneRecord = (open: boolean) => (isDayNoneRecord.value = open)
+const setFormAvailable = (open: boolean) => (isFormAvailable.value = open)
 const accordionGroup = ref(true)
 
 const colorStyle = ref({
@@ -43,24 +49,26 @@ const colorStyle = ref({
   tertiary: getComputedStyle(document.documentElement).getPropertyValue('--ion-color-tertiary').trim(),
 })
 
-function toggleAccordion() {
-  if (!accordionGroup.value) {
-    return
-  }
-  const nativeEl = (accordionGroup.value as any).$el
+// function toggleAccordion() {
+//   if (!accordionGroup.value) {
+//     return
+//   }
+//   const nativeEl = (accordionGroup.value as any).$el
 
-  if (nativeEl.value === 'first') {
-    nativeEl.value = undefined
-    filterCollapse.value = !filterCollapse.value
-  }
-  else {
-    nativeEl.value = 'first'
-    filterCollapse.value = !filterCollapse.value
-  }
-}
+//   if (nativeEl.value === 'first') {
+//     nativeEl.value = undefined
+//     isFilterCollapse.value = !isFilterCollapse.value
+//   }
+//   else {
+//     nativeEl.value = 'first'
+//     isFilterCollapse.value = !isFilterCollapse.value
+//   }
+// }
 const selectedDayInfo = ref()
 const isAccordionContent = ref(false)
 const isSaveTeacherContent = ref(false)
+const setSaveTeacherContent = (open: boolean) => (isSaveTeacherContent.value = open)
+const setCopyModalOpen = (open: boolean) => (isCopyModalOpen.value = open)
 // const registros = ref<Registro[]>([])
 
 interface Registro {
@@ -78,6 +86,20 @@ const registros = ref<Registro[]>([
     disciplinas: ['Língua Portuguesa', 'Inglês'],
     descricao: 'Leitura e interpretação textual nas páginas 14, 15 e 16 do livro didático, seguido de resumo básico escrito em inglês com auxílio do dicionário tradutor.',
     codigos: ['EF02LPO0PE', 'EF02LPO1PE', 'EF02LPO2PE', 'EF02LEI02PE'],
+  },
+  {
+    turma: '7º Ano - \'B\'',
+    data: '06/01/2025',
+    disciplinas: ['Matemática', 'Geografia'],
+    descricao: 'Leitura e interpretação textual nas páginas 14, 15 e 16 do livro didático, seguido de resumo básico escrito em inglês com auxílio do dicionário tradutor.',
+    codigos: ['EF04LPO0PE', 'EF04LPO1PE', 'EF10LPO2PE', 'EF11LEI02PE'],
+  },
+  {
+    turma: '8º Ano - \'A\'',
+    data: '06/01/2025',
+    disciplinas: ['Inglês', 'Geografia'],
+    descricao: 'Leitura e interpretação textual nas páginas 14, 15 e 16 do livro didático, seguido de resumo básico escrito em inglês com auxílio do dicionário tradutor.',
+    codigos: ['EF02LPO0PE', 'EF02LPO1PE', 'EF10LPO2PE', 'EF11LEI02PE'],
   },
 ])
 
@@ -144,20 +166,23 @@ function setSerie(serie: Occupation): void {
   setModalSerie(false)
 }
 
-function addFirstContent(): void {
-  console.log('addFirstContent ', isSaveTeacherContent.value)
-  isSaveTeacherContent.value = true
+function addFirstRecord(): void {
+  setDayNoneRecord(!isDayNoneRecord)
+  setFormAvailable(true)
+  console.log('addFirstContent ', isDayNoneRecord.value, isFormAvailable.value)
 }
 
 function saveTeacherContent(): void {
   console.log('saveTeacherContent ', isAccordionContent.value)
+  setFormAvailable(false)
   isAccordionContent.value = true
+  console.log('saveTeacherContent updated ', isAccordionContent.value)
 }
 </script>
 
 <template>
   <ContentLayout>
-    <IonContent v-show="filterCollapse" class="" style="--background: rgba(249, 211, 227, 0.3); height: 235px;" :style="`box-shadow: inset 0 0 10px ${hexToRgb(colorStyle.primary, '0.2')}`">
+    <IonContent v-show="isFilterCollapse" class="" style="--background: rgba(249, 211, 227, 0.3); height: 235px;" :style="`box-shadow: inset 0 0 10px ${hexToRgb(colorStyle.primary, '0.2')}`">
       <ion-text color="secondary">
         <h4>Filtros</h4>
         <p style="font-size: 14px;">
@@ -194,31 +219,26 @@ function saveTeacherContent(): void {
       </div>
     </IonModal>
 
-    <div :style="{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: filterCollapse ? '0' : '5px' }">
-      <ion-text v-show="!filterCollapse" color="secondary">
-        <h3>Filtros</h3>
+    <div :style="{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: isFilterCollapse ? '0' : '5px' }">
+      <ion-text v-show="!isFilterCollapse" color="secondary">
+        <div class="ion-margin-horizontal">
+          <span style="margin-right: 10px; color: var(--ion-color-accent)">{{ filteredOcupation.school }}</span>
+          <small style="color: var(--ion-color-accent)">{{ filteredOcupation.series ? filteredOcupation.series.join(', ') : '' }}</small>
+        </div>
       </ion-text>
-      <IonButton color="tertiary" :style="{ marginTop: filterCollapse ? '-20px' : '2px', marginLeft: filterCollapse ? '21.9em' : 'auto', marginRight: filterCollapse ? '10px' : '10px' }" @click="toggleAccordion()">
-        <IonIcon slot="icon-only" :icon="filterCollapse ? arrowUp : arrowDown" />
+      <IonButton color="tertiary" :style="{ marginTop: isFilterCollapse ? '-20px' : '2px', marginLeft: isFilterCollapse ? '21.9em' : 'auto', marginRight: isFilterCollapse ? '10px' : '10px' }" @click="setFilterCollapse(!isFilterCollapse)">
+        <IonIcon slot="icon-only" :icon="isFilterCollapse ? arrowUp : arrowDown" />
       </IonButton>
     </div>
     <h3>
       <ion-text color="secondary" class="ion-content ion-padding-bottom" style="display: flex; align-items: center;">
         <IonIcon color="secondary" style="margin-right: 1%;" aria-hidden="true" :icon="calendarOutline" />
-        Lançamento Diário
+        Lançamento diário
       </ion-text>
     </h3>
     <EduCalendar v-model="selectedDayInfo" />
 
-    <IonAccordionGroup ref="accordionGroup" class="ion-content" :multiple="true" :value="['first']">
-      <IonAccordion value="first">
-        <div slot="content" class="">
-          <div style="margin: 0 0 5px 0" />
-        </div>
-      </IonAccordion>
-    </IonAccordionGroup>
-
-    <IonCard v-if="!isAccordionContent" class="ion-no-padding ion-margin-top">
+    <IonCard v-show="isDayNoneRecord" class="ion-no-padding ion-margin-top">
       <IonCardHeader color="secondary">
         <div style="display: flex; align-items: center; height: 10px;">
           <IonIcon :icon="save" size="small" style="margin-right: 8px;" />
@@ -228,7 +248,7 @@ function saveTeacherContent(): void {
         </div>
       </IonCardHeader>
 
-      <div v-if="!isSaveTeacherContent">
+      <div>
         <IonCardContent class="">
           <ion-text color="secondary">
             Notamos que você ainda não fez o registro diário, toque no botão abaixo para iniciar.
@@ -236,13 +256,24 @@ function saveTeacherContent(): void {
         </IonCardContent>
 
         <div style="display: flex; justify-content: flex-end;">
-          <IonButton class="ion-margin" color="tertiary" @click="addFirstContent()">
+          <IonButton class="ion-margin" color="tertiary" @click="addFirstRecord()">
             <IonIcon slot="icon-only" :icon="add" />
           </IonButton>
         </div>
       </div>
+    </IonCard>
 
-      <div v-if="isSaveTeacherContent">
+    <IonCard v-show="isFormAvailable" class="ion-no-padding ion-margin-top">
+      <IonCardHeader color="secondary">
+        <div style="display: flex; align-items: center; height: 10px;">
+          <IonIcon :icon="save" size="small" style="margin-right: 8px;" />
+          <IonCardTitle style="font-size: medium;">
+            Registro de conteúdo
+          </IonCardTitle>
+        </div>
+      </IonCardHeader>
+
+      <div v-if="true">
         <IonCardContent class="ion-padding-top">
           <IonSelect
             class="ion-select-card-content"
@@ -301,10 +332,10 @@ function saveTeacherContent(): void {
             <IonSelectOption>EF02LP01PE - Uso do material didático na sala d</IonSelectOption>
           </IonSelect>
           <div class="ion-margin-top" style="display: flex; justify-content: right;">
-            <IonButton color="warning" size="small">
+            <IonButton color="danger" size="small" style="text-transform: capitalize;">
               Cancelar
             </IonButton>
-            <IonButton color="secondary" size="small" @click="saveTeacherContent()">
+            <IonButton color="secondary" size="small" style="text-transform: capitalize;" @click="saveTeacherContent()">
               Salvar
             </IonButton>
           </div>
@@ -313,7 +344,7 @@ function saveTeacherContent(): void {
     </IonCard>
 
     <IonAccordionGroup v-if="isAccordionContent" ref="refAccordionContents" class="ion-content" expand="inset" :multiple="true" :value="[registros[0].turma]">
-      <IonAccordion v-for="(registro, index) in registros" :key="index" :value="registro.turma">
+      <IonAccordion style="margin-bottom: 5px;" v-for="(registro, index) in registros" :key="index" :value="registro.turma">
         <IonItem slot="header" color="secondary">
           <IonLabel>{{ registro.turma }} - {{ registro.data }}</IonLabel>
         </IonItem>
@@ -331,7 +362,7 @@ function saveTeacherContent(): void {
           </IonChip>
           <br>
           <div class="ion-margin" style="display: flex; justify-content: right; margin-top: 20px; gap: 5px;">
-            <IonButton color="tertiary" size="small" style="text-transform: capitalize;">
+            <IonButton color="tertiary" size="small" style="text-transform: capitalize;" @click="setCopyModalOpen(!isCopyModalOpen)">
               Copiar
             </IonButton>
             <IonButton color="secondary" size="small" style="text-transform: capitalize;">
@@ -343,27 +374,121 @@ function saveTeacherContent(): void {
           </div>
         </div>
       </IonAccordion>
+      <div style="display: flex; justify-content: flex-end;">
+        <IonButton color="tertiary" @click="setFormAvailable(!isFormAvailable)"><IonIcon slot="icon-only" :icon="add" /></IonButton>
+      </div>
     </IonAccordionGroup>
 
-    <!--
-    <ion-accordion-group v-if="accordionContent" class="content-accondion-style rose accordioncontent" expand="inset" :multiple="true">
-      <ion-accordion v-for="(item, index) in mockData" :key="index" :value="item.value">
-        <ion-item slot="header" color="rose">
-          <ion-label>{{ item.label }}</ion-label>
-        </ion-item>
-        <div class="ion-padding" slot="content">
-          <ion-chip color="primary">{{ item.chip1 }}</ion-chip>
-          <ion-chip color="secondary">{{ item.chip2 }}</ion-chip>
-          <ion-chip color="tertiary">{{ item.chip3 }}</ion-chip>
-          <ion-text>{{ item.text }}</ion-text>
-          <div style="display: flex; justify-content: space-between; margin-top: 10px;">
-            <ion-button color="tertiary">Copiar</ion-button>
-            <ion-button color="secondary">Editar</ion-button>
-            <ion-button color="warning">Excluir</ion-button>
+    <ion-modal id="copy-modal" ref="copy-modal" class="ion-content" :is-open="isCopyModalOpen" @ion-modal-did-dismiss="setCopyModalOpen(false)">
+      <IonCard v-if="true" class="ion-no-padding ion-no-margin">
+        <IonCardHeader color="secondary">
+          <div style="display: flex; align-items: center; height: 15px;">
+            <div  style="font-size: 10px;">
+              <IonIcon :icon="save" />
+            </div>
+            <IonCardTitle style="font-size: medium;">
+              Copiar registro para outras turmas
+            </IonCardTitle>
           </div>
+        </IonCardHeader>
+
+        <div v-if="true">
+          <IonCardContent class="" style="display: flex; flex-direction: column; gap: 15px;">
+            <ion-text color="secondary">
+              Selecione uma turma referente a mesma série na qual foi criado o registro de conteúdo atual.
+            </ion-text>
+            <ion-select class="custom-floating-label" label-placement="floating" justify="space-between" label="Escola" fill="outline">
+              <ion-select-option v-for="(serie, index) in filteredOcupation.series" :key="index" :value="serie">
+              {{ serie }}
+              </ion-select-option>
+            </ion-select>
+            <ion-select class="custom-floating-label" label-placement="floating" label="Turma" fill="outline">
+              <ion-select-option v-for="(serie, index) in filteredOcupation.series" :key="index" :value="serie">
+              {{ serie }}
+              </ion-select-option>
+            </ion-select>
+            </IonCardContent>
+
+            <div class="ion-margin" style="display: flex; justify-content: right;">
+              <IonButton color="danger" size="small" style="text-transform: capitalize;" @click="setCopyModalOpen(!isCopyModalOpen)">
+                Cancelar
+              </IonButton>
+              <IonButton color="secondary" size="small" style="text-transform: capitalize;" @click="setCopyModalOpen(!isCopyModalOpen)">
+                Salvar
+              </IonButton>
+            </div>
         </div>
-      </ion-accordion>
-    </ion-accordion-group> -->
+
+        <div v-if="false">
+          <IonCardContent class="ion-padding-top">
+            <IonSelect
+              class="ion-select-card-content"
+              label="Disciplina"
+              label-placement="floating"
+              fill="outline"
+              cancel-text="Cancelar"
+              :multiple="true"
+            >
+              <IonSelectOption value="Matemática">
+                Matemática
+              </IonSelectOption>
+              <IonSelectOption value="Português">
+                Português
+              </IonSelectOption>
+              <IonSelectOption value="Ciências">
+                Ciências
+              </IonSelectOption>
+              <IonSelectOption value="História">
+                História
+              </IonSelectOption>
+              <IonSelectOption value="Geografia">
+                Geografia
+              </IonSelectOption>
+              <IonSelectOption value="Educação Física">
+                Educação Física
+              </IonSelectOption>
+              <IonSelectOption value="Artes">
+                Artes
+              </IonSelectOption>
+              <IonSelectOption value="Inglês">
+                Inglês
+              </IonSelectOption>
+            </IonSelect>
+            <br>
+            <IonTextarea
+              label="Conteúdo"
+              label-placement="floating"
+              fill="outline"
+              placeholder="Digite o conteúdo"
+              style="--color: var(--ion-color-secondary);"
+              :auto-grow="true"
+              value="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris tellus sem, auctor accumsan egestas sed, venenatis at ex. Nam consequat ex odio."
+            />
+            <br>
+            <IonSelect
+              class="ion-select-card-content"
+              label="Currículos"
+              label-placement="floating"
+              fill="outline"
+              cancel-text="Cancelar"
+              style="--color: var(--ion-color-secondary);"
+              :multiple="true"
+            >
+              <IonSelectOption>EF02LP00PE - Leitura e interpretação textual bas</IonSelectOption>
+              <IonSelectOption>EF02LP01PE - Uso do material didático na sala d</IonSelectOption>
+            </IonSelect>
+            <div class="ion-margin-top" style="display: flex; justify-content: right;">
+              <IonButton color="danger" size="small" style="text-transform: capitalize;">
+                Cancelar
+              </IonButton>
+              <IonButton color="secondary" size="small" style="text-transform: capitalize;" @click="saveTeacherContent()">
+                Salvar
+              </IonButton>
+            </div>
+          </IonCardContent>
+        </div>
+      </IonCard>
+    </ion-modal>
   </ContentLayout>
 </template>
 
@@ -402,35 +527,56 @@ toggle-icon {
   display: inline-block;
 }
 
-/* .ion-select-card-content::part(placeholder) {
-  border-radius: 16px;
-  padding: 2px 8px;
-  display: inline-block;
-} */
-
 .ion-select-card-content::part(icon) {
   color: var(--ion-color-secondary);
   opacity: 1;
-}
-.content-accondion-style {
-  --ion-color-rose: #fecdd3;
-  --ion-color-rose-rgb: 254, 205, 211;
-  --ion-color-rose-contrast: #000000;
-  --ion-color-rose-contrast-rgb: 0, 0, 0;
-  --ion-color-rose-shade: #e0b4ba;
-  --ion-color-rose-tint: #fed2d7;
-}
-
-.rose {
-  --ion-color-base: var(--ion-color-rose);
-  --ion-color-base-rgb: var(--ion-color-rose-rgb);
-  --ion-color-contrast: var(--ion-color-rose-contrast);
-  --ion-color-contrast-rgb: var(--ion-color-rose-contrast-rgb);
-  --ion-color-shade: var(--ion-color-rose-shade);
-  --ion-color-tint: var(--ion-color-rose-tint);
 }
 
 ion-accordion-group.accordioncontent div[slot='content'] {
   background: rgba(var(--ion-color-rose-rgb), 0.25);
 }
+
+ion-modal#copy-modal {
+  --width: fit-content;
+  /* --min-width: 350px; */
+  --height: fit-content;
+  --border-radius: 6px;
+  --box-shadow: 0 28px 48px rgba(0, 0, 0, 0.4);
+}
+
+ion-modal#copy-modal h1 {
+  margin: 20px 20px 10px 20px;
+}
+
+ion-modal#copy-modal ion-icon {
+  margin-top: 6px;
+  margin-right: 6px;
+
+  width: 22px;
+  height: 22px;
+
+  padding: 0 4px;
+
+  color: var(--ion-color-lightaccent-shade);
+}
+/* 
+.custom-floating-label::part(label) {
+  transform: translateY(10%) scale(1);
+} */
+ ion-select {
+  --placeholder-color: var(--ion-color-primary);
+  --placeholder-opacity: 1;
+  --border-color: var(--ion-color-primary)
+ }
+ ion-select::part(text) {
+    color: var(--ion-color-primary);
+  }
+  ion-select::part(icon) {
+    color: var(--ion-color-primary);
+    opacity: 1;
+  }
+  ion-select::part(label) {
+    color: var(--ion-color-primary);
+    opacity: 1;
+  }
 </style>
