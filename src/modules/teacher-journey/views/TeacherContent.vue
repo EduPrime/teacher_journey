@@ -10,11 +10,12 @@ import { useRouter } from 'vue-router'
 import ScheduleService from '../services/ScheduleService'
 import SeriesService from '../services/SeriesService'
 import TeacherService from '../services/TeacherService'
+import ClassroomService from '../services/ClassroomService'
 
 // import Calendar from '@/components/Calendar.vue'
 interface Occupation {
   school?: string
-  series?: string[]
+  classroom?: string[]
 }
 
 const ocupation = ref<Occupation[]>([])
@@ -23,25 +24,27 @@ const filteredOcupation = ref<Occupation>({})
 const teacherService = new TeacherService()
 const scheduleService = new ScheduleService()
 const seriesService = new SeriesService()
+const classroomService = new ClassroomService()
 
 const router = useRouter()
 
 const userid = ref<string>('')
 const teacherid = ref<string>('')
-const schools = ref<string[]>([])
+const choosenClassroom = ref<string>('')
+const classList = ref<string[]>([])
 const series = ref<string[]>([])
 const isFilterCollapse = ref(true)
 const isCopyModalOpen = ref(false)
 const isModalSchool = ref(false)
-const isModalSerie = ref(false)
+const isModalClassroom = ref(false)
 const isDayNoneRecord = ref(true)
 const isFormAvailable = ref(false)
 const setModalSchool = (open: boolean) => (isModalSchool.value = open)
-const setModalSerie = (open: boolean) => (isModalSerie.value = open)
+const setModalClassroom = (open: boolean) => (isModalClassroom.value = open)
 const setFilterCollapse = (open: boolean) => (isFilterCollapse.value = open)
 const setDayNoneRecord = (open: boolean) => (isDayNoneRecord.value = open)
 const setFormAvailable = (open: boolean) => (isFormAvailable.value = open)
-const accordionGroup = ref(true)
+// const accordionGroup = ref(true)
 
 const colorStyle = ref({
   primary: getComputedStyle(document.documentElement).getPropertyValue('--ion-color-primary').trim(),
@@ -113,7 +116,7 @@ onMounted(async () => {
 
 async function loadDataTeacher(): Promise<void> {
   const storedData = localStorage.getItem('userLocal')
-  // console.log('storedData:', JSON.parse(storedData || '{}').id)
+  console.log('storedData:', JSON.parse(storedData || '{}').id)
 
   if (storedData) {
     userid.value = JSON.parse(storedData).id
@@ -125,7 +128,7 @@ async function loadDataSchools(): Promise<void> {
   try {
     const data = await teacherService.listTeacherId(userid.value)
     teacherid.value = data.id || ''
-    // console.log('Dados carregados loadDataSchools:', data)
+    console.log('Dados carregados loadDataSchools:', data)
   }
   catch (error) {
     console.error('Erro ao carregar os dados:', error)
@@ -135,8 +138,8 @@ async function loadDataSchools(): Promise<void> {
 async function loadDataSchedule(): Promise<void> {
   try {
     const data = await scheduleService.listClassrooms(teacherid.value)
-    schools.value = Array.from(data) || []
-    // console.log('Dados carregados loadDataSchedule:', data)
+    classList.value = Array.from(data) || []
+    console.log('Dados carregados loadDataSchedule:', data)
   }
   catch (error) {
     console.error('Erro ao carregar os dados:', error)
@@ -145,9 +148,10 @@ async function loadDataSchedule(): Promise<void> {
 
 async function loadDataSeries(): Promise<void> {
   try {
-    const data = await seriesService.listSeriesAndSchools(schools.value)
+    const data = await classroomService.listCLassroomAndSchools(classList.value)
+    console.log('Dados loadDataSeries classList.value:', classList.value)
     ocupation.value = data || []
-    // console.log('Dados loadDataSeries:', data)
+    console.log('Dados loadDataSeries:', data)
   }
   catch (error) {
     console.error('Erro ao carregar os dados:', error)
@@ -157,13 +161,15 @@ async function loadDataSeries(): Promise<void> {
 function setSchool(school: Occupation): void {
   filteredOcupation.value.school = school.school
   console.log('setSchool:', filteredOcupation.value.school)
+  filteredOcupation.value.classroom = school.classroom
+  choosenClassroom.value = ''
   setModalSchool(false)
 }
 
-function setSerie(serie: Occupation): void {
-  filteredOcupation.value.series = serie.series
-  console.log('setSerie:', filteredOcupation.value.series)
-  setModalSerie(false)
+function setClassroom(serie: string): void {
+  choosenClassroom.value = serie
+  console.log('setClassroom:', choosenClassroom)
+  setModalClassroom(false)
 }
 
 function addFirstRecord(): void {
@@ -193,8 +199,8 @@ function saveTeacherContent(): void {
         <IonLabel>{{ filteredOcupation.school || 'Selecione uma escola' }}</IonLabel>
         <IonIcon slot="start" :icon="businessOutline" />
       </IonItem>
-      <IonItem style="--min-height: 57px;" color="tertiary" @click="setModalSerie(true)">
-        <IonLabel>{{ filteredOcupation.series ? filteredOcupation.series.join(', ') : 'Selecione uma série' }}</IonLabel>
+      <IonItem style="--min-height: 57px;" color="tertiary" @click="setModalClassroom(true)">
+        <IonLabel>{{ choosenClassroom || 'Selecione uma turma' }}</IonLabel>
         <IonIcon slot="start" :icon="peopleOutline" />
       </IonItem>
     </IonContent>
@@ -209,11 +215,11 @@ function saveTeacherContent(): void {
       </div>
     </IonModal>
 
-    <IonModal :is-open="isModalSerie" :initial-breakpoint="0.6" :breakpoints="[0, 0.6, 0.87]" @ion-modal-did-dismiss="setModalSerie(false)">
+    <IonModal :is-open="isModalClassroom" :initial-breakpoint="0.6" :breakpoints="[0, 0.6, 0.87]" @ion-modal-did-dismiss="setModalClassroom(false)">
       <div class="block">
-        <ion-list v-for="(serie, i) in ocupation" :key="i" :value="serie.series ? serie.series[i] : ''">
-          <IonItem @click="setSerie(serie)">
-            <IonLabel>{{ serie.series ? serie.series[i] : '' }}</IonLabel>
+        <ion-list v-for="(classroom, i) in filteredOcupation.classroom" :key="i" :value="classroom">
+          <IonItem @click="setClassroom(classroom)">
+            <IonLabel>{{ classroom }}</IonLabel>
           </IonItem>
         </ion-list>
       </div>
@@ -223,7 +229,7 @@ function saveTeacherContent(): void {
       <ion-text v-show="!isFilterCollapse" color="secondary">
         <div class="ion-margin-horizontal">
           <span style="margin-right: 10px; color: var(--ion-color-accent)">{{ filteredOcupation.school }}</span>
-          <small style="color: var(--ion-color-accent)">{{ filteredOcupation.series ? filteredOcupation.series.join(', ') : '' }}</small>
+          <small style="color: var(--ion-color-accent)">{{ filteredOcupation.classroom ? filteredOcupation.classroom.join(', ') : '' }}</small>
         </div>
       </ion-text>
       <IonButton color="tertiary" :style="{ marginTop: isFilterCollapse ? '-20px' : '2px', marginLeft: isFilterCollapse ? '21.9em' : 'auto', marginRight: isFilterCollapse ? '10px' : '10px' }" @click="setFilterCollapse(!isFilterCollapse)">
