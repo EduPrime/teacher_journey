@@ -236,7 +236,7 @@ function saveTeacherContent(): void {
         Lançamento diário
       </ion-text>
     </h3>
-    <EduCalendar v-model="selectedDayInfo" />
+    <EduCalendar v-model="selectedDayInfo" :teacher-id="teacherid" />
 
     <IonCard v-show="isDayNoneRecord" class="ion-no-padding ion-margin-top">
       <IonCardHeader color="secondary">
