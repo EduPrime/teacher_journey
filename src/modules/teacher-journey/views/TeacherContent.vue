@@ -30,6 +30,10 @@ const userid = ref<string>('')
 const teacherid = ref<string>('')
 const schools = ref<string[]>([])
 const series = ref<string[]>([])
+const schedules = ref()
+const copyContentSchool = ref()
+const copyContentClass = ref()
+
 const isFilterCollapse = ref(true)
 const isCopyModalOpen = ref(false)
 const isModalSchool = ref(false)
@@ -109,6 +113,9 @@ onMounted(async () => {
   await loadDataSchools(),
   await loadDataSchedule(),
   await loadDataSeries()
+  schedules.value = await scheduleService.getSchedules(teacherid.value)
+  console.log('schedules:', schedules.value);
+  
 })
 
 async function loadDataTeacher(): Promise<void> {
@@ -230,6 +237,9 @@ function saveTeacherContent(): void {
         <IonIcon slot="icon-only" :icon="isFilterCollapse ? arrowUp : arrowDown" />
       </IonButton>
     </div>
+   <pre>
+    {{ schedules }}
+   </pre>
     <h3>
       <ion-text color="secondary" class="ion-content ion-padding-bottom" style="display: flex; align-items: center;">
         <IonIcon color="secondary" style="margin-right: 1%;" aria-hidden="true" :icon="calendarOutline" />
@@ -397,14 +407,15 @@ function saveTeacherContent(): void {
             <ion-text color="secondary">
               Selecione uma turma referente a mesma série na qual foi criado o registro de conteúdo atual.
             </ion-text>
-            <ion-select class="custom-floating-label" label-placement="floating" justify="space-between" label="Escola" fill="outline">
-              <ion-select-option v-for="(serie, index) in filteredOcupation.series" :key="index" :value="serie">
-              {{ serie }}
+       
+            <ion-select v-if="schedules?.schools.length > 1" v-model="copyContentSchool" class="custom-floating-label" label-placement="floating" justify="space-between" label="Escola" fill="outline">
+              <ion-select-option v-for="(sc, index) in schedules?.schools" :key="index" :value="sc.id">
+              {{ sc.name }}
               </ion-select-option>
             </ion-select>
-            <ion-select class="custom-floating-label" label-placement="floating" label="Turma" fill="outline">
-              <ion-select-option v-for="(serie, index) in filteredOcupation.series" :key="index" :value="serie">
-              {{ serie }}
+            <ion-select class="custom-floating-label" v-model="copyContentClass" label-placement="floating" label="Turma" fill="outline">
+              <ion-select-option v-for="(cls, index) in copyContentSchool ? schedules?.classesPerSchool.find((i: any)=> i.schoolId === copyContentSchool).classes : schedules?.classesPerSchool.at(0).classes" :key="index" :value="cls">
+                {{ cls.classroomName }}
               </ion-select-option>
             </ion-select>
             </IonCardContent>
