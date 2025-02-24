@@ -11,6 +11,8 @@ import ScheduleService from '../services/ScheduleService'
 import SeriesService from '../services/SeriesService'
 import TeacherService from '../services/TeacherService'
 import ClassroomService from '../services/ClassroomService'
+import ContentService from '../services/ContentService'
+import { date } from 'yup'
 
 // import Calendar from '@/components/Calendar.vue'
 interface Occupation {
@@ -25,6 +27,7 @@ const teacherService = new TeacherService()
 const scheduleService = new ScheduleService()
 const seriesService = new SeriesService()
 const classroomService = new ClassroomService()
+const contentService = new ContentService()
 
 const router = useRouter()
 
@@ -111,7 +114,8 @@ onMounted(async () => {
   await loadDataTeacher(),
   await loadDataSchools(),
   await loadDataSchedule(),
-  await loadDataSeries()
+  await loadDataSeries(),
+  await loadDataContent()
 })
 
 async function loadDataTeacher(): Promise<void> {
@@ -152,6 +156,20 @@ async function loadDataSeries(): Promise<void> {
     console.log('Dados loadDataSeries classList.value:', classList.value)
     ocupation.value = data || []
     console.log('Dados loadDataSeries:', data)
+  }
+  catch (error) {
+    console.error('Erro ao carregar os dados:', error)
+  }
+}
+
+async function loadDataContent(): Promise<void> {
+  try {
+    const currentDate = new Date().toISOString();
+    console.log('loadDataContent currentDate: ', currentDate);
+    const data = await contentService.listContentByDate(teacherid.value, currentDate)
+    console.log('loadDataContent teacherid.value: ', teacherid.value)
+    // ocupation.value = data || []
+    console.log('Dados loadDataContent:', data)
   }
   catch (error) {
     console.error('Erro ao carregar os dados:', error)
