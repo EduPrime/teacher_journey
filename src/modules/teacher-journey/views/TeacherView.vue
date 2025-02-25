@@ -22,13 +22,51 @@ import StageService from '../services/StageService'
 import 'swiper/css'
 import 'swiper/css/pagination'
 
+type Stages = {
+  stageId: string
+  currentStage: string | null
+  daysLeft: number | null
+}
+type Schedules = {
+  classroom: {
+    name: string | null
+  }
+  school: {
+    name: string | null
+  }
+  discipline: {
+    name: string | null
+  }
+  classroomId: string | null
+  disciplineId: string | null
+  weekday: string | null
+  start: string | null
+  end: string | null
+}[]
+
+type Classes = {
+      id: string | null
+      name: string | null
+      school: string | null
+      discipline: string | null
+      disciplineId: string | null
+      students?: {
+      id: string | null
+      name: string | null
+      student: {
+        disability?: string[]
+      }
+      grade?: number
+      }[]
+    }[]
+
 const modules = ref([Pagination])
 const stageService = new StageService()
 const scheduleService = new ScheduleService()
 const enrollment = new EnrollmentService()
 const gradeService = new GradeService()
-const stages = ref([])
-const schedules = ref([])
+const stages = ref(<Stages>{})
+const schedules = ref(<Schedules>[])
 const teacherId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
 const institutionId = 'bd14f407-3758-4656-a299-e4cf3859dd29'
 
@@ -85,7 +123,7 @@ const alertaDesempenho = [
   },
 ]
 const selectDay = ref('MONDAY')
-const allClasses = ref([])
+const allClasses = ref(<Classes>[])
 async function loadStages() {
   try {
     stages.value = await stageService.getCurrentStage(institutionId)
@@ -98,9 +136,11 @@ async function loadStages() {
 async function loadSchedule() {
   try {
     schedules.value = await scheduleService.getSchedule(teacherId)
-    const classes = []
+
+    const classes = ref(<Classes>[])
+
     schedules.value.forEach((stage) => {
-      const existingClass = classes.find(cls => cls.id === stage.classroomId)
+      const existingClass = classes.value.find(cls => cls.id === stage.classroomId)
       if (!existingClass) {
         const newClass = {
           id: stage.classroomId,
@@ -109,10 +149,10 @@ async function loadSchedule() {
           discipline: stage.discipline.name,
           disciplineId: stage.disciplineId,
         }
-        classes.push(newClass)
+        classes.value.push(newClass)
       }
     })
-    allClasses.value = classes
+    allClasses.value = classes.value
   }
   catch (error) {
     console.error('Erro ao carregar os estágios:', error)
@@ -150,12 +190,12 @@ const disabledStudents = computed(() => {
     }
   })
 })
-const classrooms = ref([])
+const classrooms = ref()
 const students = ref()
 async function getStudents() {
   try {
     classrooms.value = await scheduleService.listClassrooms(teacherId)
-    classrooms.value.forEach(async (classroomId) => {
+    classrooms.value.forEach(async (classroomId: string) => {
       enrollment.getClassroomStudents(classroomId).then((classroomStudents) => {
         allClasses.value.forEach((classroom) => {
           if (
@@ -171,27 +211,27 @@ async function getStudents() {
   }
 }
 
-async function getClassAndDisciplines() {
-  const data = await scheduleService.getClassroomsAndDisciplines(teacherId)
-  data.forEach(async (classe) => {
-    gradeService.getGrades(classe.classroomId, classe.disciplineId, stages.value.currentId).then((classroomStudents) => {
-      allClasses.value.forEach((classroom) => {
-        if (
-          classroom.disciplineId === classroomStudents[0].disciplineId
-        ) {
-          classroom.students.forEach((currentStudent) => {
-            classroomStudents.forEach((classroomStudent) => {
-              if (currentStudent.id === classroomStudent.enrollmentId)
-                currentStudent.grade = classroomStudent.grade
-              // console.log(currentStudent, classroomStudents)
-            })
-          })
-        }
-      })
-    })
-  })
-  return data
-}
+// async function getClassAndDisciplines() {
+//   const data = await scheduleService.getClassroomsAndDisciplines(teacherId);
+//   data.forEach(async (classe) => {
+//     gradeService.getGrades(classe.classroomId, classe.disciplineId, stages.value.stageId).then((classroomStudents) => {
+//       allClasses.value.forEach((classroom) => {
+//         if (
+//           classroom.disciplineId === classroomStudents[0].disciplineId
+//         ) {
+//           classroom.students.forEach((currentStudent) => {
+//             classroomStudents.forEach((classroomStudent) => {
+//               if (currentStudent.id === classroomStudent.enrollmentId)
+//                 currentStudent.grade = classroomStudent.grade
+//               // console.log(currentStudent, classroomStudents)
+//             })
+//           })
+//         }
+//       })
+//     })
+//   })
+//   return data
+// }
 function getCapitalizedInitials(input: string): string {
   const initials = input
     .match(/\b[A-Z][a-z]*\b/g)
@@ -218,7 +258,7 @@ onMounted(async () => {
   loadClassrooms()
   getStudents()
   await loadStages()
-  getClassAndDisciplines()
+  // getClassAndDisciplines()
 })
 function formatHour(horario: any) {
   const [HH, mm] = horario.split(':')
@@ -240,7 +280,7 @@ function formatHour(horario: any) {
             Alertas e Informações
           </div>
         </div>
-        <div v-if="stages?.daysLeft <= 20" class="warning-close-date">
+        <div v-if="stages?.daysLeft && stages?.daysLeft <= 20" class="warning-close-date">
           <div class="title">
             Atenção ao fechamento de bimestre
           </div>
@@ -336,7 +376,7 @@ function formatHour(horario: any) {
                 <div class="flex between">
                   <strong>{{ classroom.name }}</strong>
                   <div class="header-badge">
-                    {{ getCapitalizedInitials(classroom.school) }}
+                    <!-- {{ getCapitalizedInitials(classroom.school) }} -->
                   </div>
                 </div>
                 <div v-for="(student, i) in classroom.students" :key="i" class="flex between">
@@ -383,7 +423,7 @@ function formatHour(horario: any) {
                 <div class="flex between">
                   <strong>{{ classroom.name }}</strong>
                   <div class="header-badge">
-                    {{ getCapitalizedInitials(classroom.school) }}
+                    <!-- {{ getCapitalizedInitials(classroom.school) }} -->
                   </div>
                 </div>
                 <div v-for="(student, i) in classroom.students" :key="i" class="flex text-orange between">

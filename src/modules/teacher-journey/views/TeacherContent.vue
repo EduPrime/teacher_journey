@@ -424,8 +424,8 @@ function saveTeacherContent(): void {
               <!-- todas as turmas são filtradas abaixo para garantir que estejam disponiveis para seleção apenas os items em que a seriesId seja igual a seriesId oriunda da turma selecionada no filtro principal da página ( o de escolas e turmas ) -->
               <IonSelectOption
                 v-for="(cls, index) in copyContentSchool
-                  ? schedules.classesPerSchool.find((i: any) => i.schoolId === copyContentSchool).classes.filter(cl => cl.seriesId === selectedClassroom)
-                  : schedules.classesPerSchool.at(0).classes.filter(cl => cl.seriesId === selectedClassroom)"
+                  ? schedules.classesPerSchool.find((i: any) => i.schoolId === copyContentSchool).classes.filter((cl: any) => cl.seriesId === selectedClassroom)
+                  : schedules.classesPerSchool.at(0).classes.filter((cl: any) => cl.seriesId === selectedClassroom)"
                 :key="index"
                 :value="cls"
               >
