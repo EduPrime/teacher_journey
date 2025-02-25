@@ -7,6 +7,7 @@ import { add, arrowDown, arrowUp, businessOutline, calendar, calendarOutline, me
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import ClassroomService from '../services/ClassroomService'
 import ScheduleService from '../services/ScheduleService'
 import SeriesService from '../services/SeriesService'
 import TeacherService from '../services/TeacherService'
@@ -23,6 +24,7 @@ const filteredOcupation = ref<Occupation>({})
 const teacherService = new TeacherService()
 const scheduleService = new ScheduleService()
 const seriesService = new SeriesService()
+const classroomService = new ClassroomService()
 
 const router = useRouter()
 
@@ -30,9 +32,13 @@ const userid = ref<string>('')
 const teacherid = ref<string>('')
 const schools = ref<string[]>([])
 const series = ref<string[]>([])
+
+const selectedClassroom = ref('352a5857-193f-4672-9abf-c5302afd1c37')
 const schedules = ref()
 const copyContentSchool = ref()
 const copyContentClass = ref()
+
+const currentClassroom = ref()
 
 const isFilterCollapse = ref(true)
 const isCopyModalOpen = ref(false)
@@ -114,8 +120,7 @@ onMounted(async () => {
   await loadDataSchedule(),
   await loadDataSeries()
   schedules.value = await scheduleService.getSchedules(teacherid.value)
-  console.log('schedules:', schedules.value);
-  
+  currentClassroom.value = await classroomService.getClassroom()
 })
 
 async function loadDataTeacher(): Promise<void> {
@@ -174,7 +179,7 @@ function setSerie(serie: Occupation): void {
 }
 
 function addFirstRecord(): void {
-  setDayNoneRecord(!isDayNoneRecord)
+  setDayNoneRecord(!isDayNoneRecord.value)
   setFormAvailable(true)
   console.log('addFirstContent ', isDayNoneRecord.value, isFormAvailable.value)
 }
@@ -205,12 +210,14 @@ function saveTeacherContent(): void {
         <IonIcon slot="start" :icon="peopleOutline" />
       </IonItem>
     </IonContent>
-
+    <!-- <pre>
+      filteredOcupation: {{ filteredOcupation }}
+    </pre> -->
     <IonModal :is-open="isModalSchool" :initial-breakpoint="0.6" :breakpoints="[0, 0.6, 0.87]" @ion-modal-did-dismiss="setModalSchool(false)">
       <div class="block">
-        <ion-list v-for="(school, i) in ocupation" :key="i" :value="school.school">
-          <IonItem @click="setSchool(school)">
-            <IonLabel>{{ school.school }}</IonLabel>
+        <ion-list v-for="(sch, i) in ocupation" :key="i" :value="sch.school">
+          <IonItem @click="setSchool(sch)">
+            <IonLabel>{{ sch.school }}</IonLabel>
           </IonItem>
         </ion-list>
       </div>
@@ -237,9 +244,9 @@ function saveTeacherContent(): void {
         <IonIcon slot="icon-only" :icon="isFilterCollapse ? arrowUp : arrowDown" />
       </IonButton>
     </div>
-   <pre>
-    {{ schedules }}
-   </pre>
+    <!-- <pre>
+      {{ schedules }}
+    </pre> -->
     <h3>
       <ion-text color="secondary" class="ion-content ion-padding-bottom" style="display: flex; align-items: center;">
         <IonIcon color="secondary" style="margin-right: 1%;" aria-hidden="true" :icon="calendarOutline" />
@@ -389,11 +396,11 @@ function saveTeacherContent(): void {
       </div>
     </IonAccordionGroup>
 
-    <ion-modal id="copy-modal" ref="copy-modal" class="ion-content" :is-open="isCopyModalOpen" @ion-modal-did-dismiss="setCopyModalOpen(false)">
+    <IonModal id="copy-modal" class="ion-content" :is-open="isCopyModalOpen" @ion-modal-did-dismiss="setCopyModalOpen(false)">
       <IonCard v-if="true" class="ion-no-padding ion-no-margin">
         <IonCardHeader color="secondary">
           <div style="display: flex; align-items: center; height: 15px;">
-            <div  style="font-size: 10px;">
+            <div style="font-size: 10px;">
               <IonIcon :icon="save" />
             </div>
             <IonCardTitle style="font-size: medium;">
@@ -407,27 +414,35 @@ function saveTeacherContent(): void {
             <ion-text color="secondary">
               Selecione uma turma referente a mesma série na qual foi criado o registro de conteúdo atual.
             </ion-text>
-       
-            <ion-select v-if="schedules?.schools.length > 1" v-model="copyContentSchool" class="custom-floating-label" label-placement="floating" justify="space-between" label="Escola" fill="outline">
-              <ion-select-option v-for="(sc, index) in schedules?.schools" :key="index" :value="sc.id">
-              {{ sc.name }}
-              </ion-select-option>
-            </ion-select>
-            <ion-select class="custom-floating-label" v-model="copyContentClass" label-placement="floating" label="Turma" fill="outline">
-              <ion-select-option v-for="(cls, index) in copyContentSchool ? schedules?.classesPerSchool.find((i: any)=> i.schoolId === copyContentSchool).classes : schedules?.classesPerSchool.at(0).classes" :key="index" :value="cls">
+            <IonSelect v-if="schedules?.schools.length > 1" v-model="copyContentSchool" class="custom-floating-label" label-placement="floating" justify="space-between" label="Escola" fill="outline">
+              <IonSelectOption v-for="(sc, index) in schedules?.schools" :key="index" :value="sc.id">
+                {{ sc.name }}
+              </IonSelectOption>
+            </IonSelect>
+            <IonSelect v-if="schedules" v-model="copyContentClass" class="custom-floating-label" label-placement="floating" label="Turma" fill="outline">
+              <!-- Se copyContentSchool existir é usado para encontrar o index ( escola ) no qual as turmas serão pegas e se não usa o index 0 para selecionar o primeiro item no array de turmas por escolas -->
+              <!-- todas as turmas são filtradas abaixo para garantir que estejam disponiveis para seleção apenas os items em que a seriesId seja igual a seriesId oriunda da turma selecionada no filtro principal da página ( o de escolas e turmas ) -->
+              <IonSelectOption
+                v-for="(cls, index) in copyContentSchool
+                  ? schedules.classesPerSchool.find((i: any) => i.schoolId === copyContentSchool).classes.filter(cl => cl.seriesId === selectedClassroom)
+                  : schedules.classesPerSchool.at(0).classes.filter(cl => cl.seriesId === selectedClassroom)"
+                :key="index"
+                :value="cls"
+              >
                 {{ cls.classroomName }}
-              </ion-select-option>
-            </ion-select>
-            </IonCardContent>
+              </IonSelectOption>
+            </IonSelect>
+          </IonCardContent>
 
-            <div class="ion-margin" style="display: flex; justify-content: right;">
-              <IonButton color="danger" size="small" style="text-transform: capitalize;" @click="setCopyModalOpen(!isCopyModalOpen)">
-                Cancelar
-              </IonButton>
-              <IonButton color="secondary" size="small" style="text-transform: capitalize;" @click="setCopyModalOpen(!isCopyModalOpen)">
-                Salvar
-              </IonButton>
-            </div>
+          <div class="ion-margin" style="display: flex; justify-content: right;">
+            <IonButton color="danger" size="small" style="text-transform: capitalize;" @click="setCopyModalOpen(!isCopyModalOpen)">
+              Cancelar
+            </IonButton>
+            <!-- @TODO: construir função para ao clicar em salvar inserir uma copia do registro de conteúdo atual para a turma selecionada -->
+            <IonButton color="secondary" size="small" style="text-transform: capitalize;" @click="setCopyModalOpen(!isCopyModalOpen)">
+              Salvar
+            </IonButton>
+          </div>
         </div>
 
         <div v-if="false">
@@ -499,7 +514,7 @@ function saveTeacherContent(): void {
           </IonCardContent>
         </div>
       </IonCard>
-    </ion-modal>
+    </IonModal>
   </ContentLayout>
 </template>
 
@@ -570,7 +585,7 @@ ion-modal#copy-modal ion-icon {
 
   color: var(--ion-color-lightaccent-shade);
 }
-/* 
+/*
 .custom-floating-label::part(label) {
   transform: translateY(10%) scale(1);
 } */
