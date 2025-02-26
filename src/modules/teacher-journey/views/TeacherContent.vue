@@ -18,6 +18,22 @@ interface Occupation {
   series?: string[]
 }
 
+interface Registro {
+  classroom: string
+  date: string
+  description: string
+  disciplines: string[]
+  bnccs: string[]
+}
+
+interface Registro {
+  classroom: string
+  date: string
+  description: string
+  disciplines: string[]
+  bnccs: string[]
+}
+
 const ocupation = ref<Occupation[]>([])
 const filteredOcupation = ref<Occupation>({})
 
@@ -59,61 +75,13 @@ const colorStyle = ref({
   tertiary: getComputedStyle(document.documentElement).getPropertyValue('--ion-color-tertiary').trim(),
 })
 
-// function toggleAccordion() {
-//   if (!accordionGroup.value) {
-//     return
-//   }
-//   const nativeEl = (accordionGroup.value as any).$el
-
-//   if (nativeEl.value === 'first') {
-//     nativeEl.value = undefined
-//     isFilterCollapse.value = !isFilterCollapse.value
-//   }
-//   else {
-//     nativeEl.value = 'first'
-//     isFilterCollapse.value = !isFilterCollapse.value
-//   }
-// }
 const selectedDayInfo = ref()
 const isAccordionContent = ref(false)
 const isSaveTeacherContent = ref(false)
 const setSaveTeacherContent = (open: boolean) => (isSaveTeacherContent.value = open)
 const setCopyModalOpen = (open: boolean) => (isCopyModalOpen.value = open)
-// const registros = ref<Registro[]>([])
+const registros = ref<Registro[]>([])
 
-interface Registro {
-  turma: string
-  data: string
-  disciplinas: string[]
-  descricao: string
-  codigos: string[]
-}
-
-const registros = ref<Registro[]>([
-  {
-    turma: '6º Ano - \'A\'',
-    data: '06/01/2025',
-    disciplinas: ['Língua Portuguesa', 'Inglês'],
-    descricao: 'Leitura e interpretação textual nas páginas 14, 15 e 16 do livro didático, seguido de resumo básico escrito em inglês com auxílio do dicionário tradutor.',
-    codigos: ['EF02LPO0PE', 'EF02LPO1PE', 'EF02LPO2PE', 'EF02LEI02PE'],
-  },
-  {
-    turma: '7º Ano - \'B\'',
-    data: '06/01/2025',
-    disciplinas: ['Matemática', 'Geografia'],
-    descricao: 'Leitura e interpretação textual nas páginas 14, 15 e 16 do livro didático, seguido de resumo básico escrito em inglês com auxílio do dicionário tradutor.',
-    codigos: ['EF04LPO0PE', 'EF04LPO1PE', 'EF10LPO2PE', 'EF11LEI02PE'],
-  },
-  {
-    turma: '8º Ano - \'A\'',
-    data: '06/01/2025',
-    disciplinas: ['Inglês', 'Geografia'],
-    descricao: 'Leitura e interpretação textual nas páginas 14, 15 e 16 do livro didático, seguido de resumo básico escrito em inglês com auxílio do dicionário tradutor.',
-    codigos: ['EF02LPO0PE', 'EF02LPO1PE', 'EF10LPO2PE', 'EF11LEI02PE'],
-  },
-])
-
-// Carregar dados ao montar o componente
 onMounted(async () => {
   await loadDataTeacher(),
   await loadDataSchools(),
@@ -159,10 +127,38 @@ async function loadDataSeries(): Promise<void> {
   try {
     const data = await seriesService.listSeriesAndSchools(schools.value)
     ocupation.value = data || []
+<<<<<<< Updated upstream
     // console.log('Dados loadDataSeries:', data)
   }
   catch (error) {
     console.error('Erro ao carregar os dados:', error)
+=======
+    console.log('Dados loadDataSeries:', data)
+  }
+  catch (error) {
+    console.error('Erro ao carregar os dados:', error)
+  }
+}
+
+async function loadDataContent(): Promise<void> {
+  try {
+    const currentDate = new Date().toISOString().split('T')[0];
+    console.log('loadDataContent currentDate: ', currentDate);
+    
+    const data = await contentService.listContentByToday(teacherid.value, currentDate);
+    
+    registros.value = data || [];
+    
+    addFirstRecord();
+    
+    console.log('loadDataContent teacherid.value: ', teacherid.value);
+    console.log('Dados loadDataContent:', data);
+  } catch (error) {
+    console.error('Erro ao carregar os dados:', error);
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
   }
 }
 
@@ -360,22 +356,22 @@ function saveTeacherContent(): void {
       </div>
     </IonCard>
 
-    <IonAccordionGroup v-if="isAccordionContent" ref="refAccordionContents" class="ion-content" expand="inset" :multiple="true" :value="[registros[0].turma]">
-      <IonAccordion style="margin-bottom: 5px;" v-for="(registro, index) in registros" :key="index" :value="registro.turma">
+    <IonAccordionGroup v-if="isAccordionContent" ref="refAccordionContents" class="ion-content" expand="inset" :multiple="true" :value="[registros[0].classroom]">
+      <IonAccordion style="margin-bottom: 5px;" v-for="(registro, index) in registros" :key="index" :value="registro.classroom">
         <IonItem slot="header" color="secondary">
-          <IonLabel>{{ registro.turma }} - {{ registro.data }}</IonLabel>
+            <IonLabel>{{ registro.classroom }} - {{ new Date(registro.date).toLocaleDateString('pt-br') }}</IonLabel>
         </IonItem>
         <div slot="content" style="margin: 10px 0 0 10px;">
-          <IonChip v-for="(disciplina, i) in registro.disciplinas" :key="i" style="margin-left: 0px; margin-right: 10px;" color="secondary">
+          <IonChip v-for="(disciplina, i) in registro.disciplines" :key="i" style="margin-left: 0px; margin-right: 10px;" color="secondary">
             {{ disciplina }}
           </IonChip>
           <div style="margin: 10px 10px 10px 5px;">
             <ion-text color="secondary" class="ion-text-justify">
-              {{ registro.descricao }}
+              {{ registro.description }}
             </ion-text>
           </div>
-          <IonChip v-for="(codigo, i) in registro.codigos" :key="i" style="margin-left: 0px;  margin-right: 10px; font-size: 12px;" color="tertiary">
-            {{ codigo }}
+          <IonChip v-for="(bncc, i) in registro.bnccs" :key="i" style="margin-left: 0px;  margin-right: 10px; font-size: 12px;" color="tertiary">
+            {{ bncc }}
           </IonChip>
           <br>
           <div class="ion-margin" style="display: flex; justify-content: right; margin-top: 20px; gap: 5px;">
@@ -414,6 +410,7 @@ function saveTeacherContent(): void {
             <ion-text color="secondary">
               Selecione uma turma referente a mesma série na qual foi criado o registro de conteúdo atual.
             </ion-text>
+<<<<<<< Updated upstream
             <IonSelect v-if="schedules?.schools.length > 1" v-model="copyContentSchool" class="custom-floating-label" label-placement="floating" justify="space-between" label="Escola" fill="outline">
               <IonSelectOption v-for="(sc, index) in schedules?.schools" :key="index" :value="sc.id">
                 {{ sc.name }}
@@ -443,6 +440,28 @@ function saveTeacherContent(): void {
               Salvar
             </IonButton>
           </div>
+=======
+            <ion-select class="custom-floating-label" label-placement="floating" justify="space-between" label="Escola" fill="outline">
+              <ion-select-option v-for="(serie, index) in filteredOcupation.school" :key="index" :value="serie">
+              {{ serie }}
+              </ion-select-option>
+            </ion-select>
+            <ion-select class="custom-floating-label" label-placement="floating" label="Turma" fill="outline">
+              <ion-select-option v-for="(serie, index) in filteredOcupation.classroom" :key="index" :value="serie">
+              {{ serie }}
+              </ion-select-option>
+            </ion-select>
+            </IonCardContent>
+
+            <div class="ion-margin" style="display: flex; justify-content: right;">
+              <IonButton color="danger" size="small" style="text-transform: capitalize;" @click="setCopyModalOpen(!isCopyModalOpen)">
+                Cancelar
+              </IonButton>
+              <IonButton color="secondary" size="small" style="text-transform: capitalize;" @click="setCopyModalOpen(!isCopyModalOpen)">
+                Salvar
+              </IonButton>
+            </div>
+>>>>>>> Stashed changes
         </div>
 
         <div v-if="false">
@@ -531,9 +550,7 @@ ion-accordion-group {
   margin-inline: 0 !important;
   margin-top: 16px;
 }
-toggle-icon {
-  color: white;
-}
+
 .ion-select-card-content {
   --border-color: var(--ion-color-secondary);
   --placeholder-color: var(--ion-color-secondary);
@@ -556,10 +573,6 @@ toggle-icon {
 .ion-select-card-content::part(icon) {
   color: var(--ion-color-secondary);
   opacity: 1;
-}
-
-ion-accordion-group.accordioncontent div[slot='content'] {
-  background: rgba(var(--ion-color-rose-rgb), 0.25);
 }
 
 ion-modal#copy-modal {
@@ -585,11 +598,19 @@ ion-modal#copy-modal ion-icon {
 
   color: var(--ion-color-lightaccent-shade);
 }
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
 /*
 .custom-floating-label::part(label) {
   transform: translateY(10%) scale(1);
 } */
  ion-select {
+=======
+ion-select {
+>>>>>>> Stashed changes
+=======
+ion-select {
+>>>>>>> Stashed changes
   --placeholder-color: var(--ion-color-primary);
   --placeholder-opacity: 1;
   --border-color: var(--ion-color-primary)
