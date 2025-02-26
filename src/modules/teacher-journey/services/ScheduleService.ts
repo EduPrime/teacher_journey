@@ -128,7 +128,7 @@ export default class ScheduleService extends BaseService<Schedule> {
     }
 
     // A estrutura de data é um array de ScheduleInfo, sendo school e classroom objetos dentro de data e series um objeto dentro de classroom
-    const { data, error }: { data: ScheduleInfo[], error: unknown | any } = await this.client
+    const { data, error }: { data: ScheduleInfo[] | any, error: unknown | any } = await this.client
       .from('schedule')
       .select(`
             classroom:classroom (id, name, series:series (id, name)),
