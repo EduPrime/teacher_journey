@@ -8,6 +8,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import ClassroomService from '../services/ClassroomService'
+import ContentService from '../services/ContentService'
 import ScheduleService from '../services/ScheduleService'
 import SeriesService from '../services/SeriesService'
 import TeacherService from '../services/TeacherService'
@@ -41,6 +42,7 @@ const teacherService = new TeacherService()
 const scheduleService = new ScheduleService()
 const seriesService = new SeriesService()
 const classroomService = new ClassroomService()
+const contentService = new ContentService()
 
 const router = useRouter()
 
@@ -89,6 +91,7 @@ onMounted(async () => {
   await loadDataSeries()
   schedules.value = await scheduleService.getSchedules(teacherid.value)
   currentClassroom.value = await classroomService.getClassroom()
+  await loadDataContent()
 })
 
 async function loadDataTeacher(): Promise<void> {
@@ -127,12 +130,7 @@ async function loadDataSeries(): Promise<void> {
   try {
     const data = await seriesService.listSeriesAndSchools(schools.value)
     ocupation.value = data || []
-<<<<<<< Updated upstream
-    // console.log('Dados loadDataSeries:', data)
-  }
-  catch (error) {
-    console.error('Erro ao carregar os dados:', error)
-=======
+
     console.log('Dados loadDataSeries:', data)
   }
   catch (error) {
@@ -142,23 +140,12 @@ async function loadDataSeries(): Promise<void> {
 
 async function loadDataContent(): Promise<void> {
   try {
-    const currentDate = new Date().toISOString().split('T')[0];
-    console.log('loadDataContent currentDate: ', currentDate);
-    
-    const data = await contentService.listContentByToday(teacherid.value, currentDate);
-    
-    registros.value = data || [];
-    
-    addFirstRecord();
-    
-    console.log('loadDataContent teacherid.value: ', teacherid.value);
-    console.log('Dados loadDataContent:', data);
+    const currentDate = '2025-02-25'
+    const data = await contentService.listContentByToday(teacherid.value, currentDate)
+    registros.value = data || []
+    addFirstRecord()
   } catch (error) {
     console.error('Erro ao carregar os dados:', error);
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
   }
 }
 
@@ -241,8 +228,9 @@ function saveTeacherContent(): void {
       </IonButton>
     </div>
     <pre>
-      schedules: {{ schedules }}
-    </pre> 
+      registros: {{ registros }}
+      <!-- schedules: {{ schedules }} -->
+    </pre>
     <h3>
       <ion-text color="secondary" class="ion-content ion-padding-bottom" style="display: flex; align-items: center;">
         <IonIcon color="secondary" style="margin-right: 1%;" aria-hidden="true" :icon="calendarOutline" />
@@ -356,10 +344,10 @@ function saveTeacherContent(): void {
       </div>
     </IonCard>
 
-    <IonAccordionGroup v-if="isAccordionContent" ref="refAccordionContents" class="ion-content" expand="inset" :multiple="true" :value="[registros[0].classroom]">
-      <IonAccordion style="margin-bottom: 5px;" v-for="(registro, index) in registros" :key="index" :value="registro.classroom">
+    <IonAccordionGroup v-if="isAccordionContent || registros.length > 0" class="ion-content" expand="inset" :multiple="true" :value="registros">
+      <IonAccordion v-for="(registro, index) in registros" :key="index" style="margin-bottom: 5px;" :value="registro.classroom">
         <IonItem slot="header" color="secondary">
-            <IonLabel>{{ registro.classroom }} - {{ new Date(registro.date).toLocaleDateString('pt-br') }}</IonLabel>
+          <IonLabel>{{ registro.classroom }} - {{ new Date(registro.date).toLocaleDateString('pt-br') }}</IonLabel>
         </IonItem>
         <div slot="content" style="margin: 10px 0 0 10px;">
           <IonChip v-for="(disciplina, i) in registro.disciplines" :key="i" style="margin-left: 0px; margin-right: 10px;" color="secondary">
@@ -410,7 +398,6 @@ function saveTeacherContent(): void {
             <ion-text color="secondary">
               Selecione uma turma referente a mesma série na qual foi criado o registro de conteúdo atual.
             </ion-text>
-<<<<<<< Updated upstream
             <IonSelect v-if="schedules?.schools.length > 1" v-model="copyContentSchool" class="custom-floating-label" label-placement="floating" justify="space-between" label="Escola" fill="outline">
               <IonSelectOption v-for="(sc, index) in schedules?.schools" :key="index" :value="sc.id">
                 {{ sc.name }}
@@ -440,28 +427,7 @@ function saveTeacherContent(): void {
               Salvar
             </IonButton>
           </div>
-=======
-            <ion-select class="custom-floating-label" label-placement="floating" justify="space-between" label="Escola" fill="outline">
-              <ion-select-option v-for="(serie, index) in filteredOcupation.school" :key="index" :value="serie">
-              {{ serie }}
-              </ion-select-option>
-            </ion-select>
-            <ion-select class="custom-floating-label" label-placement="floating" label="Turma" fill="outline">
-              <ion-select-option v-for="(serie, index) in filteredOcupation.classroom" :key="index" :value="serie">
-              {{ serie }}
-              </ion-select-option>
-            </ion-select>
-            </IonCardContent>
-
-            <div class="ion-margin" style="display: flex; justify-content: right;">
-              <IonButton color="danger" size="small" style="text-transform: capitalize;" @click="setCopyModalOpen(!isCopyModalOpen)">
-                Cancelar
-              </IonButton>
-              <IonButton color="secondary" size="small" style="text-transform: capitalize;" @click="setCopyModalOpen(!isCopyModalOpen)">
-                Salvar
-              </IonButton>
-            </div>
->>>>>>> Stashed changes
+ 
         </div>
 
         <div v-if="false">
@@ -598,19 +564,14 @@ ion-modal#copy-modal ion-icon {
 
   color: var(--ion-color-lightaccent-shade);
 }
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
+ 
 /*
 .custom-floating-label::part(label) {
   transform: translateY(10%) scale(1);
 } */
- ion-select {
-=======
+ 
 ion-select {
->>>>>>> Stashed changes
-=======
-ion-select {
->>>>>>> Stashed changes
+ 
   --placeholder-color: var(--ion-color-primary);
   --placeholder-opacity: 1;
   --border-color: var(--ion-color-primary)
