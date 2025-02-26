@@ -89,61 +89,92 @@ export default class ScheduleService extends BaseService<Schedule> {
     return data
   }
 
-
   async getSchedules(teacherId: string) {
-    const { data, error } = await this.client
+    // Criei interfaces para facilitar a leitura do código:
+    // @TODO: Mover essas interfaces para um arquivo separado e posteriormente importar aqui
+    interface ScheduleSchool {
+      id: string
+      name: string
+    }
+    interface ScheduleClassroom {
+      id: string
+      name: string
+      series: {
+        id: string
+        name: string
+      }
+    }
+    interface ScheduleInfo {
+      classroom: ScheduleClassroom
+      school: ScheduleSchool
+      discipline: {
+        name: string
+      }
+    }
+
+    interface Classerooms {
+      classroomId: string
+      classroomName: string
+      schoolId: string
+      schoolName: string
+      disciplineName: string
+      seriesId: string
+      seriesName: string
+    }
+
+    interface ClassesPerSchool {
+      schoolId: string
+      classes: Classerooms[]
+    }
+
+    // A estrutura de data é um array de ScheduleInfo, sendo school e classroom objetos dentro de data e series um objeto dentro de classroom
+    const { data, error }: { data: ScheduleInfo[], error: unknown | any } = await this.client
       .from('schedule')
       .select(`
-            classroom:classroom (name, series:series (id, name)),
-            classroomId,
-            schoolId,
-            school:school (name),
+            classroom:classroom (id, name, series:series (id, name)),
+            school:school (id, name),
             discipline:discipline (name)
-            `
-      ).eq('teacherId', teacherId)
+            `)
+      .eq('teacherId', teacherId)
 
     if (error) {
       throw new Error(`Erro ao buscar horários: ${error.message}`)
     }
     if (!data) {
       throw new Error('Nenhum horário encontrado')
-    } else {
-      const schools = ref<{ id: string, name: string }[] | [] | any>([])
-      const info = data.map((item: { classroomId: any, schoolId: any, classroom: { name: any, series: { id: any, name: any }[] }[], school: { name: any }[], discipline: { name: any }[] }) => {
-
-        if (schools.value.length === 0 || schools.value.find((school: { id: string }) => school.id !== item.schoolId)) {
-          const schoolItem: { id: string, name: string } = { id: item.schoolId, name: item.school[0].name }
+    }
+    else {
+      const schools = ref<ScheduleSchool[]>([])
+      // O map abaixo cria um novo array com as turmas
+      const info = data.map((item: ScheduleInfo) => {
+        // Aqui abaixo verificamos se a escola já está no array, se não estiver eu adiciono
+        if (schools.value.length === 0 || schools.value.find((school: ScheduleSchool) => school.id !== item.school.id)) {
+          // Aqui é criado um objeto com o id e o nome da escola e adiciono ao array de escolas
+          const schoolItem: ScheduleSchool = { id: item.school.id, name: item.school.name }
           schools.value.push(schoolItem)
         }
+        // Aqui é retornado um objeto com as informações da turma organizadas como eu preciso
         return {
-          classroomId: item.classroomId,
-          classroomName: item.classroom[0].name,
-          schoolId: item.schoolId,
-          schoolName: item.school[0].name,
-          disciplineName: item.discipline[0].name,
-          series: item.classroom[0].series[0].id,
-          seriesName: item.classroom[0].series[0].name
+          classroomId: item.classroom.id,
+          classroomName: item.classroom.name,
+          schoolId: item.school.id,
+          schoolName: item.school.name,
+          disciplineName: item.discipline.name,
+          seriesId: item.classroom.series.id,
+          seriesName: item.classroom.series.name,
         }
-      });
+      })
 
-      const classesPerSchool = schools.value.map((school: { id: string, name: string }) => {
-        const classrooms = {
+      // Aqui é criado um array de objetos com as turmas separadas por escola
+      const classesPerSchool: ClassesPerSchool[] = schools.value.map((school: ScheduleSchool) => {
+        const classrooms: ClassesPerSchool = {
           schoolId: school.id,
-          classes: info.filter((item: { schoolId: string }) => item.schoolId === school.id)
+          classes: info.filter((item: Classerooms) => item.schoolId === school.id),
         }
         return classrooms
-      }
-      )
-      // const ddd = data.reduce((acc: Record<string, Classroom[]>, item) => {
-      //   if (!acc[item.schoolId]) {
-      //     acc[item.schoolId] = [];
-      //   }
-      //   acc[item.schoolId].push(item);
-      //   return acc;
-      // }, {});
-      return { classesPerSchool, schools }
-      // return schools.value
-    }
+      })
 
+      return { classesPerSchool, schools }
+    }
   }
 }

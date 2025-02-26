@@ -244,9 +244,9 @@ function saveTeacherContent(): void {
         <IonIcon slot="icon-only" :icon="isFilterCollapse ? arrowUp : arrowDown" />
       </IonButton>
     </div>
-    <!-- <pre>
-      {{ schedules }}
-    </pre> -->
+    <pre>
+      schedules: {{ schedules }}
+    </pre> 
     <h3>
       <ion-text color="secondary" class="ion-content ion-padding-bottom" style="display: flex; align-items: center;">
         <IonIcon color="secondary" style="margin-right: 1%;" aria-hidden="true" :icon="calendarOutline" />
