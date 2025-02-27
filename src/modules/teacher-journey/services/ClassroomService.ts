@@ -1,5 +1,5 @@
-import BaseService from '@/services/BaseService'
 import type { Classroom } from '@prisma/client'
+import BaseService from '@/services/BaseService'
 
 const table = 'classroom' as const // Modifique para sua tabela
 
@@ -7,7 +7,6 @@ export default class ClassroomService extends BaseService<Classroom> {
   constructor() {
     super(table) // Passando o nome da tabela para a classe base
   }
-
 
   async getClassroom() {
     const { data, error } = await this.client

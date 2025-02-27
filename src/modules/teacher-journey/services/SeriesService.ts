@@ -1,5 +1,5 @@
-import BaseService from '@/services/BaseService'
 import type { Series } from '@prisma/client'
+import BaseService from '@/services/BaseService'
 
 const table = 'series' as const // Modifique para sua tabela
 
@@ -7,6 +7,7 @@ export default class SeriesService extends BaseService<Series> {
     constructor() {
         super(table) // Passando o nome da tabela para a classe base
     }
+
     async listSeriesAndSchools(classes: string[]) {
         const { data, error } = await this.client
             .from('classroom')
@@ -20,20 +21,20 @@ export default class SeriesService extends BaseService<Series> {
             throw new Error('Nenhuma nota encontrada')
         }
 
-        const schoolMap = new Map<string, { school: string; series: string[] }>()
+        const schoolMap = new Map<string, { school: string, series: string[] }>()
 
-        data.forEach(item => {
-            const schoolName = item.school?.name;
-            const seriesName = item.series?.name;
+        data.forEach((item) => {
+            const schoolName = item.school?.name
+            const seriesName = item.series?.name
 
             if (schoolName && seriesName) {
                 if (!schoolMap.has(schoolName)) {
                     schoolMap.set(schoolName, { school: schoolName, series: [] })
                 }
 
-                const schoolEntry = schoolMap.get(schoolName);
+                const schoolEntry = schoolMap.get(schoolName)
                 if (schoolEntry && !schoolEntry.series.includes(seriesName)) {
-                    schoolEntry.series.push(seriesName);
+                    schoolEntry.series.push(seriesName)
                 }
             }
         })

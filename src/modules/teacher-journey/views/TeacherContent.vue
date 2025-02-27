@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
 import EduCalendar from '@/components/WeekDayPicker.vue'
 import { hexToRgb } from '@/utils/hex-to-rgb'
@@ -91,7 +92,7 @@ onMounted(async () => {
   await loadDataSeries()
   schedules.value = await scheduleService.getSchedules(teacherid.value)
   currentClassroom.value = await classroomService.getClassroom()
-  await loadDataContent()
+  // await loadDataContent()
 })
 
 async function loadDataTeacher(): Promise<void> {
@@ -144,8 +145,9 @@ async function loadDataContent(): Promise<void> {
     const data = await contentService.listContentByToday(teacherid.value, currentDate)
     registros.value = data || []
     addFirstRecord()
-  } catch (error) {
-    console.error('Erro ao carregar os dados:', error);
+  }
+  catch (error) {
+    console.error('Erro ao carregar os dados:', error)
   }
 }
 
@@ -177,56 +179,8 @@ function saveTeacherContent(): void {
 
 <template>
   <ContentLayout>
-    <IonContent v-show="isFilterCollapse" class="" style="--background: rgba(249, 211, 227, 0.3); height: 235px;" :style="`box-shadow: inset 0 0 10px ${hexToRgb(colorStyle.primary, '0.2')}`">
-      <ion-text color="secondary">
-        <h4>Filtros</h4>
-        <p style="font-size: 14px;">
-          Preencha os filtros abaixo para uma mais acertiva
-        </p>
-      </ion-text>
-      <IonItem style="--min-height: 57px;" color="primary" @click="setModalSchool(true)">
-        <IonLabel>{{ filteredOcupation.school || 'Selecione uma escola' }}</IonLabel>
-        <IonIcon slot="start" :icon="businessOutline" />
-      </IonItem>
-      <IonItem style="--min-height: 57px;" color="tertiary" @click="setModalSerie(true)">
-        <IonLabel>{{ filteredOcupation.series ? filteredOcupation.series.join(', ') : 'Selecione uma série' }}</IonLabel>
-        <IonIcon slot="start" :icon="peopleOutline" />
-      </IonItem>
-    </IonContent>
-    <!-- <pre>
-      filteredOcupation: {{ filteredOcupation }}
-    </pre> -->
-    <IonModal :is-open="isModalSchool" :initial-breakpoint="0.6" :breakpoints="[0, 0.6, 0.87]" @ion-modal-did-dismiss="setModalSchool(false)">
-      <div class="block">
-        <ion-list v-for="(sch, i) in ocupation" :key="i" :value="sch.school">
-          <IonItem @click="setSchool(sch)">
-            <IonLabel>{{ sch.school }}</IonLabel>
-          </IonItem>
-        </ion-list>
-      </div>
-    </IonModal>
+    <EduFilterProfile :teacher-id="teacherid" />
 
-    <IonModal :is-open="isModalSerie" :initial-breakpoint="0.6" :breakpoints="[0, 0.6, 0.87]" @ion-modal-did-dismiss="setModalSerie(false)">
-      <div class="block">
-        <ion-list v-for="(serie, i) in ocupation" :key="i" :value="serie.series ? serie.series[i] : ''">
-          <IonItem @click="setSerie(serie)">
-            <IonLabel>{{ serie.series ? serie.series[i] : '' }}</IonLabel>
-          </IonItem>
-        </ion-list>
-      </div>
-    </IonModal>
-
-    <div :style="{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: isFilterCollapse ? '0' : '5px' }">
-      <ion-text v-show="!isFilterCollapse" color="secondary">
-        <div class="ion-margin-horizontal">
-          <span style="margin-right: 10px; color: var(--ion-color-accent)">{{ filteredOcupation.school }}</span>
-          <small style="color: var(--ion-color-accent)">{{ filteredOcupation.series ? filteredOcupation.series.join(', ') : '' }}</small>
-        </div>
-      </ion-text>
-      <IonButton color="tertiary" :style="{ marginTop: isFilterCollapse ? '-20px' : '2px', marginLeft: isFilterCollapse ? '21.9em' : 'auto', marginRight: isFilterCollapse ? '10px' : '10px' }" @click="setFilterCollapse(!isFilterCollapse)">
-        <IonIcon slot="icon-only" :icon="isFilterCollapse ? arrowUp : arrowDown" />
-      </IonButton>
-    </div>
     <pre>
       registros: {{ registros }}
       <!-- schedules: {{ schedules }} -->
@@ -376,7 +330,9 @@ function saveTeacherContent(): void {
         </div>
       </IonAccordion>
       <div style="display: flex; justify-content: flex-end;">
-        <IonButton color="tertiary" @click="setFormAvailable(!isFormAvailable)"><IonIcon slot="icon-only" :icon="add" /></IonButton>
+        <IonButton color="tertiary" @click="setFormAvailable(!isFormAvailable)">
+          <IonIcon slot="icon-only" :icon="add" />
+        </IonButton>
       </div>
     </IonAccordionGroup>
 
@@ -427,7 +383,6 @@ function saveTeacherContent(): void {
               Salvar
             </IonButton>
           </div>
- 
         </div>
 
         <div v-if="false">
@@ -564,14 +519,14 @@ ion-modal#copy-modal ion-icon {
 
   color: var(--ion-color-lightaccent-shade);
 }
- 
+
 /*
 .custom-floating-label::part(label) {
   transform: translateY(10%) scale(1);
 } */
- 
+
 ion-select {
- 
+
   --placeholder-color: var(--ion-color-primary);
   --placeholder-opacity: 1;
   --border-color: var(--ion-color-primary)
