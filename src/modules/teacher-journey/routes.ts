@@ -3,20 +3,8 @@ import { CustomRouteRecordRaw } from '@/router/RouterType';
 import TeacherJourney from './views/TeacherJourney.vue';
 import TeacherContent from './views/TeacherContent.vue';
 import TeacherView from './views/TeacherView.vue';
-import ScheduleService from './services/ScheduleService';
 
-const scheduleService = new ScheduleService();
-
-const teacherId = localStorage.getItem('teacherId');
-
-async function getCourseName(teacherId: string) {
-  if (teacherId) {
-    const courseName = await scheduleService.getCourse(teacherId)
-    return courseName;
-  }
-}
-
-const courseInfo = await getCourseName(teacherId!);
+const courseName = localStorage.getItem('courseName');
 
 const maternal = ['Parecer descritivo', 'Relatório parecer descritivo'];
 const fundamental = ['Avaliação conceitual', 'Relatório de avaliação conceitual', 'Boletim conceitual'];
@@ -241,7 +229,7 @@ const dynamicRoutes: Array<CustomRouteRecordRaw> = [
 
 let filteredroutes: Array<CustomRouteRecordRaw> = [...dynamicRoutes];
 
-switch (courseInfo) {
+switch (courseName) {
   case 'Educação Infantil':
     filteredroutes = dynamicRoutes.filter(route => maternal.includes(route.meta.name));
     break;

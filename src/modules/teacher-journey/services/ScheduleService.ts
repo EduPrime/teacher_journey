@@ -8,7 +8,7 @@ export default class ScheduleService extends BaseService<Schedule> {
   constructor() {
     super(table)
   }
-  async countSchools(teacherId: string) {
+  async countSchools(teacherId: string | null) {
     const { data, error } = await this.client
       .from('schedule')
       .select('schoolId')
@@ -29,7 +29,7 @@ export default class ScheduleService extends BaseService<Schedule> {
     return countSchools.size
   }
 
-  async countClassrooms(teacherId: string) {
+  async countClassrooms(teacherId: string | null) {
     const { data, error } = await this.client
       .from('schedule')
       .select('classroomId')
@@ -50,7 +50,7 @@ export default class ScheduleService extends BaseService<Schedule> {
     return countClassrooms.size
   }
 
-  async listClassrooms(teacherId: string) {
+  async listClassrooms(teacherId: string | null) {
     const { data, error }: { data: { classroomId: string }[] | null, error: any } = await this.client
       .from('schedule')
       .select('classroomId')
@@ -68,7 +68,7 @@ export default class ScheduleService extends BaseService<Schedule> {
     return classSet
   }
 
-  async getSchedule(teacherId: string) {
+  async getSchedule(teacherId: string | null) {
     const { data, error } = await this.client
       .from('schedule')
       .select(`
