@@ -1,12 +1,29 @@
-import { home, text, pencil, calendar, saveSharp, extensionPuzzle, shapes, create, folderOutline, clipboard, trendingUp, idCard, clipboardSharp } from 'ionicons/icons';
+import { home, text, pencil, calendar, saveSharp, extensionPuzzle, shapes, create, folderOutline, clipboard, trendingUp, idCard, clipboardSharp, star, ribbon } from 'ionicons/icons';
 import { CustomRouteRecordRaw } from '@/router/RouterType';
 import TeacherJourney from './views/TeacherJourney.vue';
 import TeacherContent from './views/TeacherContent.vue';
 import TeacherView from './views/TeacherView.vue';
+import ScheduleService from './services/ScheduleService';
 
-import { ScheduleService } from '@/services/ScheduleService'
+const scheduleService = new ScheduleService();
 
-const routes: Array<CustomRouteRecordRaw> = [
+const teacherId = localStorage.getItem('teacherId');
+
+async function getCourseName(teacherId: string) {
+  if (teacherId) {
+    const courseName = await scheduleService.getCourse(teacherId)
+    return courseName;
+  }
+}
+
+const courseInfo = await getCourseName(teacherId!);
+
+const maternal = ['Parecer descritivo', 'Relatório parecer descritivo'];
+const fundamental = ['Avaliação conceitual', 'Relatório de avaliação conceitual', 'Boletim conceitual'];
+const fundamentalII = ['Avaliação numérica', 'Relatório de avaliação numérica', 'Boletim numérico'];
+
+
+const fixedRoutes: Array<CustomRouteRecordRaw> = [
   {
     path: '',
     redirect: '/home',
@@ -19,8 +36,6 @@ const routes: Array<CustomRouteRecordRaw> = [
     name: 'TeacherJourney',
     component: TeacherView,
     meta: {
-      moduleName: 'TeacherJourney',
-      moduleIcon: home,
       requiredRole: ['PROFESSOR'],
     },
   },
@@ -34,32 +49,6 @@ const routes: Array<CustomRouteRecordRaw> = [
       icon: calendar,
       name: 'Frequência',
       order: 2,
-      requiredRole: ['PROFESSOR'],
-    },
-  },
-  {
-    path: '/teacherjourney/conceitual',
-    name: 'TeacherConceitual',
-    component: TeacherJourney,
-    meta: {
-      moduleName: 'TeacherJourney',
-      moduleIcon: pencil,
-      icon: text,
-      name: 'Avaliação conceitual',
-      order: 3,
-      requiredRole: ['PROFESSOR'],
-    },
-  },
-  {
-    path: '/teacherjourney/parecer',
-    name: 'TeacherParecer',
-    component: TeacherJourney,
-    meta: {
-      moduleName: 'TeacherJourney',
-      moduleIcon: pencil,
-      icon: shapes,
-      name: 'Parecer descritivo',
-      order: 4,
       requiredRole: ['PROFESSOR'],
     },
   },
@@ -83,23 +72,9 @@ const routes: Array<CustomRouteRecordRaw> = [
     meta: {
       moduleName: 'TeacherJourney',
       moduleIcon: pencil,
-      icon: saveSharp,
-      name: 'Registro de conteudo',
+      icon: idCard,
+      name: 'Registro de conteúdo',
       order: 6,
-      requiredRole: ['PROFESSOR'],
-    },
-  },
-  // Relatorios
-  {
-    path: '/teacher-report',
-    name: 'TeacherReport',
-    component: TeacherJourney,
-    meta: {
-      moduleName: 'TeacherReport',
-      moduleIcon: folderOutline,
-      icon: folderOutline,
-      name: 'Relatórios',
-      order: 2,
       requiredRole: ['PROFESSOR'],
     },
   },
@@ -110,74 +85,9 @@ const routes: Array<CustomRouteRecordRaw> = [
     meta: {
       moduleName: 'TeacherReport',
       moduleIcon: folderOutline,
-      icon: clipboard,
+      icon: calendar,
       name: 'Relatório de frequência',
       order: 3,
-      requiredRole: ['PROFESSOR'],
-    },
-  },
-  {
-    path: '/teacher-report/assessment/numerical',
-    name: 'TeacherNumericalAssessment',
-    component: TeacherJourney,
-    meta: {
-      moduleName: 'TeacherReport',
-      moduleIcon: folderOutline,
-      icon: clipboardSharp,
-      name: 'Relatório de avaliação numérica',
-      order: 4,
-      requiredRole: ['PROFESSOR'],
-    },
-  },
-  {
-    path: '/teacher-report/assessment/conceptual',
-    name: 'TeacherConceptualAssessment',
-    component: TeacherJourney,
-    meta: {
-      moduleName: 'TeacherReport',
-      moduleIcon: folderOutline,
-      icon: clipboardSharp,
-      name: 'Relatório de avaliação conceitual',
-      order: 5,
-      requiredRole: ['PROFESSOR'],
-    },
-  },
-  {
-    path: '/teacher-report/assessment/descriptive',
-    name: 'TeacherDescriptiveAssessment',
-    component: TeacherJourney,
-    meta: {
-      moduleName: 'TeacherReport',
-      moduleIcon: folderOutline,
-      icon: clipboard,
-      name: 'Relatório parecer descritivo',
-      order: 6,
-      requiredRole: ['PROFESSOR'],
-    },
-  },
-  {
-    path: '/teacher-report/card/numeric',
-    name: 'TeacherNumericReportCard',
-    component: TeacherJourney,
-    meta: {
-      moduleName: 'TeacherReport',
-      moduleIcon: folderOutline,
-      icon: text,
-      name: 'Boletim numérico',
-      order: 7,
-      requiredRole: ['PROFESSOR'],
-    },
-  },
-  {
-    path: '/teacher-report/card/conceptual',
-    name: 'TeacherConceptualReportCard',
-    component: TeacherJourney,
-    meta: {
-      moduleName: 'TeacherReport',
-      moduleIcon: folderOutline,
-      icon: text,
-      name: 'Boletim conceitual',
-      order: 8,
       requiredRole: ['PROFESSOR'],
     },
   },
@@ -188,7 +98,7 @@ const routes: Array<CustomRouteRecordRaw> = [
     meta: {
       moduleName: 'TeacherReport',
       moduleIcon: folderOutline,
-      icon: clipboard,
+      icon: extensionPuzzle,
       name: 'Relatório de desempenho PCD',
       order: 9,
       requiredRole: ['PROFESSOR'],
@@ -221,5 +131,129 @@ const routes: Array<CustomRouteRecordRaw> = [
     },
   },
 ]
+const dynamicRoutes: Array<CustomRouteRecordRaw> = [
+  {
+    path: '/teacherjourney/numeric',
+    name: 'TeacherNumeric',
+    component: TeacherJourney,
+    meta: {
+      moduleName: 'TeacherJourney',
+      moduleIcon: pencil,
+      icon: text,
+      name: 'Avaliação numérica',
+      order: 3,
+      requiredRole: ['PROFESSOR'],
+    },
+  },
+  {
+    path: '/teacherjourney/conceitual',
+    name: 'TeacherConceitual',
+    component: TeacherJourney,
+    meta: {
+      moduleName: 'TeacherJourney',
+      moduleIcon: pencil,
+      icon: star,
+      name: 'Avaliação conceitual',
+      order: 3,
+      requiredRole: ['PROFESSOR'],
+    },
+  },
+  {
+    path: '/teacherjourney/parecer',
+    name: 'TeacherParecer',
+    component: TeacherJourney,
+    meta: {
+      moduleName: 'TeacherJourney',
+      moduleIcon: pencil,
+      icon: shapes,
+      name: 'Parecer descritivo',
+      order: 4,
+      requiredRole: ['PROFESSOR'],
+    },
+  },
+  {
+    path: '/teacher-report/assessment/numerical',
+    name: 'TeacherNumericalAssessment',
+    component: TeacherJourney,
+    meta: {
+      moduleName: 'TeacherReport',
+      moduleIcon: folderOutline,
+      icon: clipboardSharp,
+      name: 'Relatório de avaliação numérica',
+      order: 4,
+      requiredRole: ['PROFESSOR'],
+    },
+  },
+  {
+    path: '/teacher-report/assessment/conceptual',
+    name: 'TeacherConceptualAssessment',
+    component: TeacherJourney,
+    meta: {
+      moduleName: 'TeacherReport',
+      moduleIcon: folderOutline,
+      icon: star,
+      name: 'Relatório de avaliação conceitual',
+      order: 5,
+      requiredRole: ['PROFESSOR'],
+    },
+  },
+  {
+    path: '/teacher-report/assessment/descriptive',
+    name: 'TeacherDescriptiveAssessment',
+    component: TeacherJourney,
+    meta: {
+      moduleName: 'TeacherReport',
+      moduleIcon: folderOutline,
+      icon: shapes,
+      name: 'Relatório parecer descritivo',
+      order: 6,
+      requiredRole: ['PROFESSOR'],
+    },
+  },
+  {
+    path: '/teacher-report/card/numeric',
+    name: 'TeacherNumericReportCard',
+    component: TeacherJourney,
+    meta: {
+      moduleName: 'TeacherReport',
+      moduleIcon: folderOutline,
+      icon: text,
+      name: 'Boletim numérico',
+      order: 7,
+      requiredRole: ['PROFESSOR'],
+    },
+  },
+  {
+    path: '/teacher-report/card/conceptual',
+    name: 'TeacherConceptualReportCard',
+    component: TeacherJourney,
+    meta: {
+      moduleName: 'TeacherReport',
+      moduleIcon: folderOutline,
+      icon: ribbon,
+      name: 'Boletim conceitual',
+      order: 8,
+      requiredRole: ['PROFESSOR'],
+    },
+  },
+
+]
+
+let filteredroutes: Array<CustomRouteRecordRaw> = [...dynamicRoutes];
+
+switch (courseInfo) {
+  case 'Educação Infantil':
+    filteredroutes = dynamicRoutes.filter(route => maternal.includes(route.meta.name));
+    break;
+  case 'Ensino Fundamental I':
+    filteredroutes = dynamicRoutes.filter(route => fundamental.includes(route.meta.name));
+    break;
+  case 'Ensino Fundamental II':
+    filteredroutes = dynamicRoutes.filter(route => fundamentalII.includes(route.meta.name));
+    break;
+}
+
+
+const routes = [...fixedRoutes, ...filteredroutes];
 
 export default routes;

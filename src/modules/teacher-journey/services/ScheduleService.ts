@@ -90,21 +90,40 @@ export default class ScheduleService extends BaseService<Schedule> {
   }
 
   async getCourse(teacherId: string) {
-    const { data, error } = await this.client
-      .from('schedule')
-      .select(`
-          classroom:classroom (serie:serie ( course:course (name))),
-          `
-      ).eq('teacherId', teacherId)
+    try {
+      const infoClass = await this.client
+        .from('schedule')
+        .select(`
+            classroomId
+            `
+        ).eq('teacherId', teacherId)
 
-    if (error) {
+      const infoSerie = await this.client
+        .from('classroom')
+        .select(`
+            seriesId
+            `
+        ).eq('id', infoClass.data?.[0]?.classroomId)
+
+      const infoCourse = await this.client
+        .from('series')
+        .select(`
+            courseId
+            `
+        ).eq('id', infoSerie.data?.[0]?.seriesId)
+
+      const infoCourseName = await this.client
+        .from('course')
+        .select(`
+            name
+            `
+        ).eq('id', infoCourse.data?.[0]?.courseId)
+
+      return infoCourseName.data?.[0]?.name
+
+    } catch (error: any) {
       throw new Error(`Erro ao buscar curso: ${error.message}`)
     }
-    if (!data) {
-      throw new Error('Nenhum horário encontrado')
-    }
-
-    return data
   }
 
   async getSchedules(teacherId: string) {
