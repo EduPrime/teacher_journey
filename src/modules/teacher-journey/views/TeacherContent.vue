@@ -2,11 +2,10 @@
 import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
 import EduCalendar from '@/components/WeekDayPicker.vue'
-import { hexToRgb } from '@/utils/hex-to-rgb'
-import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardSubtitle, IonCardTitle, IonChip, IonCol, IonContent, IonDatetime, IonIcon, IonItem, IonLabel, IonModal, IonRow, IonSearchbar, IonSelect, IonSelectOption, IonTextarea, IonTitle } from '@ionic/vue'
-import { add, arrowDown, arrowUp, businessOutline, calendar, calendarOutline, menu, people, peopleOutline, personOutline, save, school } from 'ionicons/icons'
-import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonIcon, IonItem, IonLabel, IonModal, IonSelect, IonSelectOption, IonTextarea } from '@ionic/vue'
+import { add, calendarOutline, save } from 'ionicons/icons'
+import { onMounted, ref, watch } from 'vue'
+import ContentCreate from '../components/content/Create.vue'
 
 import ClassroomService from '../services/ClassroomService'
 import ContentService from '../services/ContentService'
@@ -37,7 +36,6 @@ interface Registro {
 }
 
 const ocupation = ref<Occupation[]>([])
-const filteredOcupation = ref<Occupation>({})
 
 const teacherService = new TeacherService()
 const scheduleService = new ScheduleService()
@@ -45,12 +43,11 @@ const seriesService = new SeriesService()
 const classroomService = new ClassroomService()
 const contentService = new ContentService()
 
-const router = useRouter()
-
 const userid = ref<string>('')
 const teacherid = ref<string>('')
 const schools = ref<string[]>([])
-const series = ref<string[]>([])
+
+const novoRegistro = ref(false)
 
 const selectedClassroom = ref('352a5857-193f-4672-9abf-c5302afd1c37')
 const schedules = ref()
@@ -59,29 +56,14 @@ const copyContentClass = ref()
 
 const currentClassroom = ref()
 
-const isFilterCollapse = ref(true)
 const isCopyModalOpen = ref(false)
-const isModalSchool = ref(false)
-const isModalSerie = ref(false)
 const isDayNoneRecord = ref(true)
 const isFormAvailable = ref(false)
-const setModalSchool = (open: boolean) => (isModalSchool.value = open)
-const setModalSerie = (open: boolean) => (isModalSerie.value = open)
-const setFilterCollapse = (open: boolean) => (isFilterCollapse.value = open)
 const setDayNoneRecord = (open: boolean) => (isDayNoneRecord.value = open)
 const setFormAvailable = (open: boolean) => (isFormAvailable.value = open)
-const accordionGroup = ref(true)
-
-const colorStyle = ref({
-  primary: getComputedStyle(document.documentElement).getPropertyValue('--ion-color-primary').trim(),
-  secondary: getComputedStyle(document.documentElement).getPropertyValue('--ion-color-secondary').trim(),
-  tertiary: getComputedStyle(document.documentElement).getPropertyValue('--ion-color-tertiary').trim(),
-})
 
 const selectedDayInfo = ref()
 const isAccordionContent = ref(false)
-const isSaveTeacherContent = ref(false)
-const setSaveTeacherContent = (open: boolean) => (isSaveTeacherContent.value = open)
 const setCopyModalOpen = (open: boolean) => (isCopyModalOpen.value = open)
 const registros = ref<Registro[]>([])
 
@@ -92,12 +74,16 @@ onMounted(async () => {
   await loadDataSeries()
   schedules.value = await scheduleService.getSchedules(teacherid.value)
   currentClassroom.value = await classroomService.getClassroom()
-  // await loadDataContent()
+})
+
+watch(selectedDayInfo, async (newValue) => {
+  if (newValue.selectedDate) {
+    await loadDataContent(newValue.selectedDate)
+  }
 })
 
 async function loadDataTeacher(): Promise<void> {
   const storedData = localStorage.getItem('userLocal')
-  // console.log('storedData:', JSON.parse(storedData || '{}').id)
 
   if (storedData) {
     userid.value = JSON.parse(storedData).id
@@ -109,7 +95,6 @@ async function loadDataSchools(): Promise<void> {
   try {
     const data = await teacherService.listTeacherId(userid.value)
     teacherid.value = data.id || ''
-    // console.log('Dados carregados loadDataSchools:', data)
   }
   catch (error) {
     console.error('Erro ao carregar os dados:', error)
@@ -120,7 +105,6 @@ async function loadDataSchedule(): Promise<void> {
   try {
     const data = await scheduleService.listClassrooms(teacherid.value)
     schools.value = Array.from(data) || []
-    // console.log('Dados carregados loadDataSchedule:', data)
   }
   catch (error) {
     console.error('Erro ao carregar os dados:', error)
@@ -131,18 +115,17 @@ async function loadDataSeries(): Promise<void> {
   try {
     const data = await seriesService.listSeriesAndSchools(schools.value)
     ocupation.value = data || []
-
-    console.log('Dados loadDataSeries:', data)
   }
   catch (error) {
     console.error('Erro ao carregar os dados:', error)
   }
 }
 
-async function loadDataContent(): Promise<void> {
+async function loadDataContent(selectedDate: string): Promise<void> {
   try {
     const currentDate = '2025-02-25'
-    const data = await contentService.listContentByToday(teacherid.value, currentDate)
+    const classroomId = '0c086508-d50b-49b6-afce-0c146643129d'
+    const data = await contentService.listContentByToday(classroomId, selectedDate)
     registros.value = data || []
     addFirstRecord()
   }
@@ -151,29 +134,14 @@ async function loadDataContent(): Promise<void> {
   }
 }
 
-function setSchool(school: Occupation): void {
-  filteredOcupation.value.school = school.school
-  console.log('setSchool:', filteredOcupation.value.school)
-  setModalSchool(false)
-}
-
-function setSerie(serie: Occupation): void {
-  filteredOcupation.value.series = serie.series
-  console.log('setSerie:', filteredOcupation.value.series)
-  setModalSerie(false)
-}
-
 function addFirstRecord(): void {
   setDayNoneRecord(!isDayNoneRecord.value)
   setFormAvailable(true)
-  console.log('addFirstContent ', isDayNoneRecord.value, isFormAvailable.value)
 }
 
 function saveTeacherContent(): void {
-  console.log('saveTeacherContent ', isAccordionContent.value)
   setFormAvailable(false)
   isAccordionContent.value = true
-  console.log('saveTeacherContent updated ', isAccordionContent.value)
 }
 </script>
 
@@ -181,10 +149,6 @@ function saveTeacherContent(): void {
   <ContentLayout>
     <EduFilterProfile :teacher-id="teacherid" />
 
-    <pre>
-      registros: {{ registros }}
-      <!-- schedules: {{ schedules }} -->
-    </pre>
     <h3>
       <ion-text color="secondary" class="ion-content ion-padding-bottom" style="display: flex; align-items: center;">
         <IonIcon color="secondary" style="margin-right: 1%;" aria-hidden="true" :icon="calendarOutline" />
@@ -218,7 +182,48 @@ function saveTeacherContent(): void {
       </div>
     </IonCard>
 
-    <IonCard v-show="isFormAvailable" class="ion-no-padding ion-margin-top">
+    <!-- <pre>
+      {{ registros }}
+    </pre> -->
+    <IonAccordionGroup v-if="isAccordionContent || registros.length > 0" id="RegistrosExistentes" class="ion-content" expand="inset" :multiple="true" :value="registros">
+      <IonAccordion v-for="(registro, index) in registros" :key="index" style="margin-bottom: 5px;" :value="registro.classroom">
+        <IonItem slot="header" color="secondary">
+          <IonLabel>{{ registro.classroom }} - {{ new Date(registro.date).toLocaleDateString('pt-br') }}</IonLabel>
+        </IonItem>
+        <div slot="content" style="margin: 10px 0 0 10px;">
+          <!-- @TODO: Disciplina ainda precisa ser tipada -->
+          <IonChip v-for="(disciplina, i) in registro.disciplines" :key="i" style="margin-left: 0px; margin-right: 10px;" color="secondary">
+            {{ disciplina.disciplineId.name }}
+          </IonChip>
+          <div style="margin: 10px 10px 10px 5px;">
+            <ion-text color="secondary" class="ion-text-justify">
+              {{ registro.description }}
+            </ion-text>
+          </div>
+          <!-- @TODO: Bncc ainda precisa ser tipada -->
+          <IonChip v-for="(bncc, i) in registro.bnccs" :key="i" style="margin-left: 0px;  margin-right: 10px; font-size: 12px;" color="tertiary">
+            {{ bncc.bnccId.code }}
+          </IonChip>
+          <br>
+          <div class="ion-margin" style="display: flex; justify-content: right; margin-top: 20px; gap: 5px;">
+            <IonButton color="tertiary" size="small" style="text-transform: capitalize;" @click="setCopyModalOpen(!isCopyModalOpen)">
+              Copiar
+            </IonButton>
+            <IonButton color="secondary" size="small" style="text-transform: capitalize;">
+              Editar
+            </IonButton>
+            <IonButton color="danger" size="small" style="text-transform: capitalize;">
+              Excluir
+            </IonButton>
+          </div>
+        </div>
+      </IonAccordion>
+    </IonAccordionGroup>
+
+    <!-- aqui vem o registro do conteúdo -->
+    <ContentCreate :selected-day="selectedDayInfo?.selectedDate" :teacher-id="teacherid" :classroom-id="selectedClassroom" :available-disciplines="schedules?.availableDisciplines" />
+
+    <IonCard v-show="isFormAvailable" id="NovoRegistroFormulario" class="ion-no-padding ion-margin-top">
       <IonCardHeader color="secondary">
         <div style="display: flex; align-items: center; height: 10px;">
           <IonIcon :icon="save" size="small" style="margin-right: 8px;" />
@@ -228,7 +233,7 @@ function saveTeacherContent(): void {
         </div>
       </IonCardHeader>
 
-      <div v-if="true">
+      <div>
         <IonCardContent class="ion-padding-top">
           <IonSelect
             class="ion-select-card-content"
@@ -298,43 +303,11 @@ function saveTeacherContent(): void {
       </div>
     </IonCard>
 
-    <IonAccordionGroup v-if="isAccordionContent || registros.length > 0" class="ion-content" expand="inset" :multiple="true" :value="registros">
-      <IonAccordion v-for="(registro, index) in registros" :key="index" style="margin-bottom: 5px;" :value="registro.classroom">
-        <IonItem slot="header" color="secondary">
-          <IonLabel>{{ registro.classroom }} - {{ new Date(registro.date).toLocaleDateString('pt-br') }}</IonLabel>
-        </IonItem>
-        <div slot="content" style="margin: 10px 0 0 10px;">
-          <IonChip v-for="(disciplina, i) in registro.disciplines" :key="i" style="margin-left: 0px; margin-right: 10px;" color="secondary">
-            {{ disciplina }}
-          </IonChip>
-          <div style="margin: 10px 10px 10px 5px;">
-            <ion-text color="secondary" class="ion-text-justify">
-              {{ registro.description }}
-            </ion-text>
-          </div>
-          <IonChip v-for="(bncc, i) in registro.bnccs" :key="i" style="margin-left: 0px;  margin-right: 10px; font-size: 12px;" color="tertiary">
-            {{ bncc }}
-          </IonChip>
-          <br>
-          <div class="ion-margin" style="display: flex; justify-content: right; margin-top: 20px; gap: 5px;">
-            <IonButton color="tertiary" size="small" style="text-transform: capitalize;" @click="setCopyModalOpen(!isCopyModalOpen)">
-              Copiar
-            </IonButton>
-            <IonButton color="secondary" size="small" style="text-transform: capitalize;">
-              Editar
-            </IonButton>
-            <IonButton color="danger" size="small" style="text-transform: capitalize;">
-              Excluir
-            </IonButton>
-          </div>
-        </div>
-      </IonAccordion>
-      <div style="display: flex; justify-content: flex-end;">
-        <IonButton color="tertiary" @click="setFormAvailable(!isFormAvailable)">
-          <IonIcon slot="icon-only" :icon="add" />
-        </IonButton>
-      </div>
-    </IonAccordionGroup>
+    <div v-if="registros.length > 0" id="NovoRegistro" style="display: flex; justify-content: flex-end;" class="ion-content">
+      <IonButton color="tertiary" @click="novoRegistro = !novoRegistro">
+        <IonIcon slot="icon-only" :icon="add" />
+      </IonButton>
+    </div>
 
     <IonModal id="copy-modal" class="ion-content" :is-open="isCopyModalOpen" @ion-modal-did-dismiss="setCopyModalOpen(false)">
       <IonCard v-if="true" class="ion-no-padding ion-no-margin">

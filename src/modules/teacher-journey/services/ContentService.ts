@@ -1,6 +1,5 @@
 import type { Content } from '@prisma/client'
 import BaseService from '@/services/BaseService'
-import { formatISO } from 'date-fns'
 
 const table = 'content' as const
 
@@ -62,5 +61,17 @@ export default class ContentService extends BaseService<Content> {
       bnccs: item.bnccs,
     }))
     return contentMap
+  }
+
+  async postContent(content: { date: string, description: string, classroomId: string }) {
+    const { data, error } = await this.client
+      .from('content')
+      .insert([content])
+
+    if (error) {
+      throw new Error(`Erro ao inserir conteúdo: ${error.message}`)
+    }
+
+    return data
   }
 }

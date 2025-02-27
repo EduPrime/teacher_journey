@@ -1,5 +1,5 @@
-import BaseService from '@/services/BaseService'
 import type { Schedule } from '@prisma/client'
+import BaseService from '@/services/BaseService'
 import { ref } from 'vue'
 
 const table = 'Schedule' as const
@@ -8,6 +8,7 @@ export default class ScheduleService extends BaseService<Schedule> {
   constructor() {
     super(table)
   }
+
   async countSchools(teacherId: string) {
     const { data, error } = await this.client
       .from('schedule')
@@ -76,8 +77,9 @@ export default class ScheduleService extends BaseService<Schedule> {
             classroom:classroomId (name),
             school:schoolId (name),
             discipline:disciplineId (name)
-            `
-      ).eq('teacherId', teacherId)
+            `,
+      )
+      .eq('teacherId', teacherId)
 
     if (error) {
       throw new Error(`Erro ao buscar horários: ${error.message}`)
@@ -96,6 +98,16 @@ export default class ScheduleService extends BaseService<Schedule> {
       id: string
       name: string
     }
+    interface ScheduleDisciplines {
+      id: string
+      name: string
+    }
+    interface AvailableDisciplines {
+      id: string
+      name: string
+      classroomId: string
+    }
+
     interface ScheduleClassroom {
       id: string
       name: string
@@ -107,9 +119,7 @@ export default class ScheduleService extends BaseService<Schedule> {
     interface ScheduleInfo {
       classroom: ScheduleClassroom
       school: ScheduleSchool
-      discipline: {
-        name: string
-      }
+      discipline: ScheduleDisciplines
     }
 
     interface Classerooms {
@@ -133,7 +143,7 @@ export default class ScheduleService extends BaseService<Schedule> {
       .select(`
             classroom:classroom (id, name, series:series (id, name)),
             school:school (id, name),
-            discipline:discipline (name)
+            discipline:discipline (id, name)
             `)
       .eq('teacherId', teacherId)
 
@@ -145,14 +155,20 @@ export default class ScheduleService extends BaseService<Schedule> {
     }
     else {
       const schools = ref<ScheduleSchool[]>([])
+      const availableDisciplines = ref<AvailableDisciplines[]>([])
       // O map abaixo cria um novo array com as turmas
       const info = data.map((item: ScheduleInfo) => {
         // Aqui abaixo verificamos se a escola já está no array, se não estiver eu adiciono
+
         if (schools.value.length === 0 || schools.value.find((school: ScheduleSchool) => school.id !== item.school.id)) {
           // Aqui é criado um objeto com o id e o nome da escola e adiciono ao array de escolas
-          const schoolItem: ScheduleSchool = { id: item.school.id, name: item.school.name }
-          schools.value.push(schoolItem)
+          schools.value.push(item.school)
         }
+
+        if (!availableDisciplines.value.some((discipline: ScheduleDisciplines) => discipline.id === item.discipline.id)) {
+          availableDisciplines.value.push({ ...item.discipline, classroomId: item.classroom.id })
+        }
+
         // Aqui é retornado um objeto com as informações da turma organizadas como eu preciso
         return {
           classroomId: item.classroom.id,
@@ -174,7 +190,7 @@ export default class ScheduleService extends BaseService<Schedule> {
         return classrooms
       })
 
-      return { classesPerSchool, schools }
+      return { classesPerSchool, schools, availableDisciplines }
     }
   }
 }
