@@ -1,19 +1,26 @@
-import { text, pencil, calendar, saveSharp, extensionPuzzle, shapes, create, folderOutline, clipboard, trendingUp, idCard, clipboardSharp } from 'ionicons/icons';
+import { home, text, pencil, calendar, saveSharp, extensionPuzzle, shapes, create, folderOutline, clipboard, trendingUp, idCard, clipboardSharp } from 'ionicons/icons';
 import { CustomRouteRecordRaw } from '@/router/RouterType';
 import TeacherJourney from './views/TeacherJourney.vue';
 import TeacherContent from './views/TeacherContent.vue';
 import TeacherView from './views/TeacherView.vue';
+
+import { ScheduleService } from '@/services/ScheduleService'
+
 const routes: Array<CustomRouteRecordRaw> = [
   {
-    path: '/teacherjourney',
+    path: '',
+    redirect: '/home',
+    meta: {
+      requiredRole: ['PROFESSOR']
+    }
+  },
+  {
+    path: '/home',
     name: 'TeacherJourney',
     component: TeacherView,
     meta: {
       moduleName: 'TeacherJourney',
-      moduleIcon: pencil,
-      icon: create,
-      name: 'Diário',
-      order: 1,
+      moduleIcon: home,
       requiredRole: ['PROFESSOR'],
     },
   },

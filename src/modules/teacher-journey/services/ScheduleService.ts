@@ -89,6 +89,24 @@ export default class ScheduleService extends BaseService<Schedule> {
     return data
   }
 
+  async getCourse(teacherId: string) {
+    const { data, error } = await this.client
+      .from('schedule')
+      .select(`
+          classroom:classroom (serie:serie ( course:course (name))),
+          `
+      ).eq('teacherId', teacherId)
+
+    if (error) {
+      throw new Error(`Erro ao buscar curso: ${error.message}`)
+    }
+    if (!data) {
+      throw new Error('Nenhum horário encontrado')
+    }
+
+    return data
+  }
+
   async getSchedules(teacherId: string) {
     // Criei interfaces para facilitar a leitura do código:
     // @TODO: Mover essas interfaces para um arquivo separado e posteriormente importar aqui
