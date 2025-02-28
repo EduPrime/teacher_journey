@@ -47,6 +47,7 @@ const contentService = new ContentService()
 const userid = ref<string>('')
 const teacherid = ref<string>('')
 const schools = ref<string[]>([])
+const eduFProfile = ref()
 
 const novoRegistro = ref(false)
 
@@ -147,7 +148,7 @@ function saveTeacherContent(): void {
 
 <template>
   <ContentLayout>
-    <EduFilterProfile :teacher-id="teacherid" />
+    <EduFilterProfile :teacher-id="teacherid" @update:filtered-ocupation="($event) => eduFProfile = $event" />
 
     <h3>
       <ion-text color="secondary" class="ion-content ion-padding-bottom" style="display: flex; align-items: center;">
@@ -157,202 +158,211 @@ function saveTeacherContent(): void {
     </h3>
     <EduCalendar v-model="selectedDayInfo" :teacher-id="teacherid" />
 
-    <IonCard v-show="isDayNoneRecord" class="ion-no-padding ion-margin-top">
-      <IonCardHeader color="secondary">
-        <div style="display: flex; align-items: center; height: 10px;">
-          <IonIcon :icon="save" size="small" style="margin-right: 8px;" />
-          <IonCardTitle style="font-size: medium;">
-            Registro de conteúdo
-          </IonCardTitle>
-        </div>
-      </IonCardHeader>
-
-      <div>
-        <IonCardContent class="">
-          <ion-text color="secondary">
-            Notamos que você ainda não fez o registro diário, toque no botão abaixo para iniciar.
-          </ion-text>
-        </IonCardContent>
-
-        <div style="display: flex; justify-content: flex-end;">
-          <IonButton class="ion-margin" color="tertiary" @click="addFirstRecord()">
-            <IonIcon slot="icon-only" :icon="add" />
-          </IonButton>
-        </div>
-      </div>
-    </IonCard>
-
-    <!-- :value="registros" Removi de IonAccordionGroup -->
-    <IonAccordionGroup v-if="isAccordionContent || registros.length > 0" id="RegistrosExistentes" class="ion-content" expand="inset" :multiple="true">
-      <IonAccordion v-for="(registro, index) in registros" :key="index" style="margin-bottom: 5px;" :value="registro.classroom">
-        <IonItem slot="header" color="secondary">
-          <IonLabel>{{ registro.classroom }} - {{ new Date(registro.date).toLocaleDateString('pt-br') }}</IonLabel>
-        </IonItem>
-        <div slot="content" style="margin: 10px 0 0 10px;">
-          <!-- @TODO: Disciplina ainda precisa ser tipada -->
-          <IonChip v-for="(disciplina, i) in registro.disciplines" :key="i" style="margin-left: 0px; margin-right: 10px;" color="secondary">
-            {{ disciplina.disciplineId.name }}
-          </IonChip>
-          <div style="margin: 10px 10px 10px 5px;">
-            <ion-text color="secondary" class="ion-text-justify">
-              {{ registro.description }}
-            </ion-text>
-          </div>
-          <!-- @TODO: Bncc ainda precisa ser tipada -->
-          <IonChip v-for="(bncc, i) in registro.bnccs" :key="i" style="margin-left: 0px;  margin-right: 10px; font-size: 12px;" color="tertiary">
-            {{ bncc.bnccId.code }}
-          </IonChip>
-          <br>
-          <div class="ion-margin" style="display: flex; justify-content: right; margin-top: 20px; gap: 5px;">
-            <IonButton color="tertiary" size="small" style="text-transform: capitalize;" @click="setCopyModalOpen(!isCopyModalOpen)">
-              Copiar
-            </IonButton>
-            <IonButton color="secondary" size="small" style="text-transform: capitalize;">
-              Editar
-            </IonButton>
-            <IonButton color="danger" size="small" style="text-transform: capitalize;">
-              Excluir
-            </IonButton>
-          </div>
-        </div>
-      </IonAccordion>
-    </IonAccordionGroup>
-
-    <!-- aqui vem o registro do conteúdo -->
-    <ContentCreate
-      v-show="isFormAvailable"
-      id="NovoRegistroFormulario"
-      series-id="1qdasd1"
-      :selected-day="selectedDayInfo?.selectedDate"
-      :teacher-id="teacherid" :classroom-id="selectedClassroom"
-      :available-disciplines="schedules?.availableDisciplines"
-    />
-
-    <div v-if="registros.length > 0" id="NovoRegistro" style="display: flex; justify-content: flex-end;" class="ion-content">
-      <IonButton color="tertiary" @click="novoRegistro = !novoRegistro">
-        <IonIcon slot="icon-only" :icon="add" />
-      </IonButton>
-    </div>
-
-    <IonModal id="copy-modal" class="ion-content" :is-open="isCopyModalOpen" @ion-modal-did-dismiss="setCopyModalOpen(false)">
-      <IonCard v-if="true" class="ion-no-padding ion-no-margin">
+    <div v-if="eduFProfile?.classroomId && selectedDayInfo?.selectedDate">
+      <IonCard v-show="isDayNoneRecord" class="ion-no-padding ion-margin-top">
         <IonCardHeader color="secondary">
-          <div style="display: flex; align-items: center; height: 15px;">
-            <div style="font-size: 10px;">
-              <IonIcon :icon="save" />
-            </div>
+          <div style="display: flex; align-items: center; height: 10px;">
+            <IonIcon :icon="save" size="small" style="margin-right: 8px;" />
             <IonCardTitle style="font-size: medium;">
-              Copiar registro para outras turmas
+              Registro de conteúdo
             </IonCardTitle>
           </div>
         </IonCardHeader>
 
-        <div v-if="true">
-          <IonCardContent class="" style="display: flex; flex-direction: column; gap: 15px;">
+        <div>
+          <IonCardContent class="">
             <ion-text color="secondary">
-              Selecione uma turma referente a mesma série na qual foi criado o registro de conteúdo atual.
+              Notamos que você ainda não fez o registro diário, toque no botão abaixo para iniciar.
             </ion-text>
-            <IonSelect v-if="schedules?.schools.length > 1" v-model="copyContentSchool" class="custom-floating-label" label-placement="floating" justify="space-between" label="Escola" fill="outline">
-              <IonSelectOption v-for="(sc, index) in schedules?.schools" :key="index" :value="sc.id">
-                {{ sc.name }}
-              </IonSelectOption>
-            </IonSelect>
-            <IonSelect v-if="schedules" v-model="copyContentClass" class="custom-floating-label" label-placement="floating" label="Turma" fill="outline">
-              <!-- Se copyContentSchool existir é usado para encontrar o index ( escola ) no qual as turmas serão pegas e se não usa o index 0 para selecionar o primeiro item no array de turmas por escolas -->
-              <!-- todas as turmas são filtradas abaixo para garantir que estejam disponiveis para seleção apenas os items em que a seriesId seja igual a seriesId oriunda da turma selecionada no filtro principal da página ( o de escolas e turmas ) -->
-              <IonSelectOption
-                v-for="(cls, index) in copyContentSchool
-                  ? schedules.classesPerSchool.find((i: any) => i.schoolId === copyContentSchool).classes.filter((cl: any) => cl.seriesId === selectedClassroom)
-                  : schedules.classesPerSchool.at(0).classes.filter((cl: any) => cl.seriesId === selectedClassroom)"
-                :key="index"
-                :value="cls"
-              >
-                {{ cls.classroomName }}
-              </IonSelectOption>
-            </IonSelect>
           </IonCardContent>
 
-          <div class="ion-margin" style="display: flex; justify-content: right;">
-            <IonButton color="danger" size="small" style="text-transform: capitalize;" @click="setCopyModalOpen(!isCopyModalOpen)">
-              Cancelar
-            </IonButton>
-            <!-- @TODO: construir função para ao clicar em salvar inserir uma copia do registro de conteúdo atual para a turma selecionada -->
-            <IonButton color="secondary" size="small" style="text-transform: capitalize;" @click="setCopyModalOpen(!isCopyModalOpen)">
-              Salvar
+          <div style="display: flex; justify-content: flex-end;">
+            <IonButton class="ion-margin" color="tertiary" @click="addFirstRecord()">
+              <IonIcon slot="icon-only" :icon="add" />
             </IonButton>
           </div>
         </div>
+      </IonCard>
 
-        <div v-if="false">
-          <IonCardContent class="ion-padding-top">
-            <IonSelect
-              class="ion-select-card-content"
-              label="Disciplina"
-              label-placement="floating"
-              fill="outline"
-              cancel-text="Cancelar"
-              :multiple="true"
-            >
-              <IonSelectOption value="Matemática">
-                Matemática
-              </IonSelectOption>
-              <IonSelectOption value="Português">
-                Português
-              </IonSelectOption>
-              <IonSelectOption value="Ciências">
-                Ciências
-              </IonSelectOption>
-              <IonSelectOption value="História">
-                História
-              </IonSelectOption>
-              <IonSelectOption value="Geografia">
-                Geografia
-              </IonSelectOption>
-              <IonSelectOption value="Educação Física">
-                Educação Física
-              </IonSelectOption>
-              <IonSelectOption value="Artes">
-                Artes
-              </IonSelectOption>
-              <IonSelectOption value="Inglês">
-                Inglês
-              </IonSelectOption>
-            </IonSelect>
+      <!-- :value="registros" Removi de IonAccordionGroup -->
+      <IonAccordionGroup v-if="isAccordionContent || registros.length > 0" id="RegistrosExistentes" class="ion-content" expand="inset" :multiple="true">
+        <IonAccordion v-for="(registro, index) in registros" :key="index" style="margin-bottom: 5px;" :value="registro.classroom">
+          <IonItem slot="header" color="secondary">
+            <IonLabel>{{ registro.classroom }} - {{ new Date(registro.date).toLocaleDateString('pt-br') }}</IonLabel>
+          </IonItem>
+          <div slot="content" style="margin: 10px 0 0 10px;">
+            <!-- @TODO: Disciplina ainda precisa ser tipada -->
+            <IonChip v-for="(disciplina, i) in registro.disciplines" :key="i" style="margin-left: 0px; margin-right: 10px;" color="secondary">
+              {{ disciplina.disciplineId.name }}
+            </IonChip>
+            <div style="margin: 10px 10px 10px 5px;">
+              <ion-text color="secondary" class="ion-text-justify">
+                {{ registro.description }}
+              </ion-text>
+            </div>
+            <!-- @TODO: Bncc ainda precisa ser tipada -->
+            <IonChip v-for="(bncc, i) in registro.bnccs" :key="i" style="margin-left: 0px;  margin-right: 10px; font-size: 12px;" color="tertiary">
+              {{ bncc.bnccId.code }}
+            </IonChip>
             <br>
-            <IonTextarea
-              label="Conteúdo"
-              label-placement="floating"
-              fill="outline"
-              placeholder="Digite o conteúdo"
-              style="--color: var(--ion-color-secondary);"
-              :auto-grow="true"
-              value="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris tellus sem, auctor accumsan egestas sed, venenatis at ex. Nam consequat ex odio."
-            />
-            <br>
-            <IonSelect
-              class="ion-select-card-content"
-              label="Currículos"
-              label-placement="floating"
-              fill="outline"
-              cancel-text="Cancelar"
-              style="--color: var(--ion-color-secondary);"
-              :multiple="true"
-            >
-              <IonSelectOption>EF02LP00PE - Leitura e interpretação textual bas</IonSelectOption>
-              <IonSelectOption>EF02LP01PE - Uso do material didático na sala d</IonSelectOption>
-            </IonSelect>
-            <div class="ion-margin-top" style="display: flex; justify-content: right;">
+            <div class="ion-margin" style="display: flex; justify-content: right; margin-top: 20px; gap: 5px;">
+              <IonButton color="tertiary" size="small" style="text-transform: capitalize;" @click="setCopyModalOpen(!isCopyModalOpen)">
+                Copiar
+              </IonButton>
+              <IonButton color="secondary" size="small" style="text-transform: capitalize;">
+                Editar
+              </IonButton>
               <IonButton color="danger" size="small" style="text-transform: capitalize;">
+                Excluir
+              </IonButton>
+            </div>
+          </div>
+        </IonAccordion>
+      </IonAccordionGroup>
+
+      <!-- aqui vem o registro do conteúdo -->
+      <ContentCreate
+        v-show="isFormAvailable"
+        id="NovoRegistroFormulario"
+        series-id="1qdasd1"
+        :selected-day="selectedDayInfo?.selectedDate"
+        :teacher-id="eduFProfile.teacherId" :classroom-id="selectedClassroom"
+        :available-disciplines="schedules?.availableDisciplines"
+      />
+
+      <div v-if="registros.length > 0" id="NovoRegistro" style="display: flex; justify-content: flex-end;" class="ion-content">
+        <IonButton color="tertiary" @click="novoRegistro = !novoRegistro">
+          <IonIcon slot="icon-only" :icon="add" />
+        </IonButton>
+      </div>
+
+      <IonModal id="copy-modal" class="ion-content" :is-open="isCopyModalOpen" @ion-modal-did-dismiss="setCopyModalOpen(false)">
+        <IonCard v-if="true" class="ion-no-padding ion-no-margin">
+          <IonCardHeader color="secondary">
+            <div style="display: flex; align-items: center; height: 15px;">
+              <div style="font-size: 10px;">
+                <IonIcon :icon="save" />
+              </div>
+              <IonCardTitle style="font-size: medium;">
+                Copiar registro para outras turmas
+              </IonCardTitle>
+            </div>
+          </IonCardHeader>
+
+          <div v-if="true">
+            <IonCardContent class="" style="display: flex; flex-direction: column; gap: 15px;">
+              <ion-text color="secondary">
+                Selecione uma turma referente a mesma série na qual foi criado o registro de conteúdo atual.
+              </ion-text>
+              <IonSelect v-if="schedules?.schools.length > 1" v-model="copyContentSchool" class="custom-floating-label" label-placement="floating" justify="space-between" label="Escola" fill="outline">
+                <IonSelectOption v-for="(sc, index) in schedules?.schools" :key="index" :value="sc.id">
+                  {{ sc.name }}
+                </IonSelectOption>
+              </IonSelect>
+              <IonSelect v-if="schedules" v-model="copyContentClass" class="custom-floating-label" label-placement="floating" label="Turma" fill="outline">
+                <!-- Se copyContentSchool existir é usado para encontrar o index ( escola ) no qual as turmas serão pegas e se não usa o index 0 para selecionar o primeiro item no array de turmas por escolas -->
+                <!-- todas as turmas são filtradas abaixo para garantir que estejam disponiveis para seleção apenas os items em que a seriesId seja igual a seriesId oriunda da turma selecionada no filtro principal da página ( o de escolas e turmas ) -->
+                <IonSelectOption
+                  v-for="(cls, index) in copyContentSchool
+                    ? schedules.classesPerSchool.find((i: any) => i.schoolId === copyContentSchool).classes.filter((cl: any) => cl.seriesId === selectedClassroom)
+                    : schedules.classesPerSchool.at(0).classes.filter((cl: any) => cl.seriesId === selectedClassroom)"
+                  :key="index"
+                  :value="cls"
+                >
+                  {{ cls.classroomName }}
+                </IonSelectOption>
+              </IonSelect>
+            </IonCardContent>
+
+            <div class="ion-margin" style="display: flex; justify-content: right;">
+              <IonButton color="danger" size="small" style="text-transform: capitalize;" @click="setCopyModalOpen(!isCopyModalOpen)">
                 Cancelar
               </IonButton>
-              <IonButton color="secondary" size="small" style="text-transform: capitalize;" @click="saveTeacherContent()">
+              <!-- @TODO: construir função para ao clicar em salvar inserir uma copia do registro de conteúdo atual para a turma selecionada -->
+              <IonButton color="secondary" size="small" style="text-transform: capitalize;" @click="setCopyModalOpen(!isCopyModalOpen)">
                 Salvar
               </IonButton>
             </div>
-          </IonCardContent>
-        </div>
-      </IonCard>
-    </IonModal>
+          </div>
+
+          <div v-if="false">
+            <IonCardContent class="ion-padding-top">
+              <IonSelect
+                class="ion-select-card-content"
+                label="Disciplina"
+                label-placement="floating"
+                fill="outline"
+                cancel-text="Cancelar"
+                :multiple="true"
+              >
+                <IonSelectOption value="Matemática">
+                  Matemática
+                </IonSelectOption>
+                <IonSelectOption value="Português">
+                  Português
+                </IonSelectOption>
+                <IonSelectOption value="Ciências">
+                  Ciências
+                </IonSelectOption>
+                <IonSelectOption value="História">
+                  História
+                </IonSelectOption>
+                <IonSelectOption value="Geografia">
+                  Geografia
+                </IonSelectOption>
+                <IonSelectOption value="Educação Física">
+                  Educação Física
+                </IonSelectOption>
+                <IonSelectOption value="Artes">
+                  Artes
+                </IonSelectOption>
+                <IonSelectOption value="Inglês">
+                  Inglês
+                </IonSelectOption>
+              </IonSelect>
+              <br>
+              <IonTextarea
+                label="Conteúdo"
+                label-placement="floating"
+                fill="outline"
+                placeholder="Digite o conteúdo"
+                style="--color: var(--ion-color-secondary);"
+                :auto-grow="true"
+                value="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris tellus sem, auctor accumsan egestas sed, venenatis at ex. Nam consequat ex odio."
+              />
+              <br>
+              <IonSelect
+                class="ion-select-card-content"
+                label="Currículos"
+                label-placement="floating"
+                fill="outline"
+                cancel-text="Cancelar"
+                style="--color: var(--ion-color-secondary);"
+                :multiple="true"
+              >
+                <IonSelectOption>EF02LP00PE - Leitura e interpretação textual bas</IonSelectOption>
+                <IonSelectOption>EF02LP01PE - Uso do material didático na sala d</IonSelectOption>
+              </IonSelect>
+              <div class="ion-margin-top" style="display: flex; justify-content: right;">
+                <IonButton color="danger" size="small" style="text-transform: capitalize;">
+                  Cancelar
+                </IonButton>
+                <IonButton color="secondary" size="small" style="text-transform: capitalize;" @click="saveTeacherContent()">
+                  Salvar
+                </IonButton>
+              </div>
+            </IonCardContent>
+          </div>
+        </IonCard>
+      </IonModal>
+    </div>
+    <IonCard v-else color="info">
+      <IonCardHeader>
+        <IonCardTitle>Selecione a turma e dia</IonCardTitle>
+      </IonCardHeader>
+
+      <IonCardContent> Ola, porfavor selecione qual a turma e em qual dia você dejesa fazer o preenchimento </IonCardContent>
+    </IonCard>
   </ContentLayout>
 </template>
 
