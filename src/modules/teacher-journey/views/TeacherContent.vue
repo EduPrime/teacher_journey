@@ -23,16 +23,17 @@ interface Registro {
   classroom: string
   date: string
   description: string
-  disciplines: string[]
-  bnccs: string[]
-}
-
-interface Registro {
-  classroom: string
-  date: string
-  description: string
-  disciplines: string[]
-  bnccs: string[]
+  disciplines: {
+    disciplineId: {
+      id: string
+      name: string
+    }
+  }[]
+  bnccs: {
+    bnccId: {
+      code: string
+    }
+  }[]
 }
 
 const ocupation = ref<Occupation[]>([])
@@ -123,7 +124,6 @@ async function loadDataSeries(): Promise<void> {
 
 async function loadDataContent(selectedDate: string): Promise<void> {
   try {
-    const currentDate = '2025-02-25'
     const classroomId = '0c086508-d50b-49b6-afce-0c146643129d'
     const data = await contentService.listContentByToday(classroomId, selectedDate)
     registros.value = data || []
@@ -182,10 +182,8 @@ function saveTeacherContent(): void {
       </div>
     </IonCard>
 
-    <!-- <pre>
-      {{ registros }}
-    </pre> -->
-    <IonAccordionGroup v-if="isAccordionContent || registros.length > 0" id="RegistrosExistentes" class="ion-content" expand="inset" :multiple="true" :value="registros">
+    <!-- :value="registros" Removi de IonAccordionGroup -->
+    <IonAccordionGroup v-if="isAccordionContent || registros.length > 0" id="RegistrosExistentes" class="ion-content" expand="inset" :multiple="true">
       <IonAccordion v-for="(registro, index) in registros" :key="index" style="margin-bottom: 5px;" :value="registro.classroom">
         <IonItem slot="header" color="secondary">
           <IonLabel>{{ registro.classroom }} - {{ new Date(registro.date).toLocaleDateString('pt-br') }}</IonLabel>
@@ -221,87 +219,14 @@ function saveTeacherContent(): void {
     </IonAccordionGroup>
 
     <!-- aqui vem o registro do conteúdo -->
-    <ContentCreate :selected-day="selectedDayInfo?.selectedDate" :teacher-id="teacherid" :classroom-id="selectedClassroom" :available-disciplines="schedules?.availableDisciplines" />
-
-    <IonCard v-show="isFormAvailable" id="NovoRegistroFormulario" class="ion-no-padding ion-margin-top">
-      <IonCardHeader color="secondary">
-        <div style="display: flex; align-items: center; height: 10px;">
-          <IonIcon :icon="save" size="small" style="margin-right: 8px;" />
-          <IonCardTitle style="font-size: medium;">
-            Registro de conteúdo
-          </IonCardTitle>
-        </div>
-      </IonCardHeader>
-
-      <div>
-        <IonCardContent class="ion-padding-top">
-          <IonSelect
-            class="ion-select-card-content"
-            label="Disciplina"
-            label-placement="floating"
-            fill="outline"
-            cancel-text="Cancelar"
-            :multiple="true"
-          >
-            <IonSelectOption value="Matemática">
-              Matemática
-            </IonSelectOption>
-            <IonSelectOption value="Português">
-              Português
-            </IonSelectOption>
-            <IonSelectOption value="Ciências">
-              Ciências
-            </IonSelectOption>
-            <IonSelectOption value="História">
-              História
-            </IonSelectOption>
-            <IonSelectOption value="Geografia">
-              Geografia
-            </IonSelectOption>
-            <IonSelectOption value="Educação Física">
-              Educação Física
-            </IonSelectOption>
-            <IonSelectOption value="Artes">
-              Artes
-            </IonSelectOption>
-            <IonSelectOption value="Inglês">
-              Inglês
-            </IonSelectOption>
-          </IonSelect>
-          <br>
-          <IonTextarea
-            label="Conteúdo"
-            label-placement="floating"
-            fill="outline"
-            placeholder="Digite o conteúdo"
-            style="--color: var(--ion-color-secondary);"
-            :auto-grow="true"
-            value="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris tellus sem, auctor accumsan egestas sed, venenatis at ex. Nam consequat ex odio."
-          />
-          <br>
-          <IonSelect
-            class="ion-select-card-content"
-            label="Currículos"
-            label-placement="floating"
-            fill="outline"
-            cancel-text="Cancelar"
-            style="--color: var(--ion-color-secondary);"
-            :multiple="true"
-          >
-            <IonSelectOption>EF02LP00PE - Leitura e interpretação textual bas</IonSelectOption>
-            <IonSelectOption>EF02LP01PE - Uso do material didático na sala d</IonSelectOption>
-          </IonSelect>
-          <div class="ion-margin-top" style="display: flex; justify-content: right;">
-            <IonButton color="danger" size="small" style="text-transform: capitalize;">
-              Cancelar
-            </IonButton>
-            <IonButton color="secondary" size="small" style="text-transform: capitalize;" @click="saveTeacherContent()">
-              Salvar
-            </IonButton>
-          </div>
-        </IonCardContent>
-      </div>
-    </IonCard>
+    <ContentCreate
+      v-show="isFormAvailable"
+      id="NovoRegistroFormulario"
+      series-id="1qdasd1"
+      :selected-day="selectedDayInfo?.selectedDate"
+      :teacher-id="teacherid" :classroom-id="selectedClassroom"
+      :available-disciplines="schedules?.availableDisciplines"
+    />
 
     <div v-if="registros.length > 0" id="NovoRegistro" style="display: flex; justify-content: flex-end;" class="ion-content">
       <IonButton color="tertiary" @click="novoRegistro = !novoRegistro">

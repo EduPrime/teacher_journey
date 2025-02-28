@@ -2,7 +2,7 @@
 import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonIcon, IonItem, IonLabel, IonModal, IonSelect, IonSelectOption, IonTextarea } from '@ionic/vue'
 import { add, calendarOutline, save } from 'ionicons/icons'
 import { computed, defineProps, onMounted, ref, watch } from 'vue'
-import GradeService from '../../services/GradeService'
+import BNCCService from '../../services/BNCCService'
 
 interface AvailableDisciplines { id: string, name: string, classroomId: string }
 interface Props {
@@ -11,24 +11,26 @@ interface Props {
   classroomId: string
   selectedDay: string
   disciplineId?: string
-  saveFunction: () => void
+  seriesId: string
 }
 
 const props = defineProps<Props>()
 const availableDisciplineIds = ref<string[]>([])
 
-const gradeService = new GradeService()
+const bnccService = new BNCCService()
+const bnccs = ref()
 
 const filledContent = ref({
   disciplines: [],
   date: computed(() => props.selectedDay),
   description: '',
   bnccs: [],
+  classroomId: computed(() => props.classroomId),
   teacherId: computed(() => props.teacherId),
 })
 
 watch(() => props.availableDisciplines, async (newValue) => {
-  if (newValue && newValue.length > 0) {
+  if (newValue && newValue.length > 0 && filledContent.value.disciplines.length === 0) {
     availableDisciplineIds.value = []
     props.availableDisciplines.map((discipline: AvailableDisciplines) => {
       if (discipline.classroomId === props.classroomId) {
@@ -37,17 +39,17 @@ watch(() => props.availableDisciplines, async (newValue) => {
       return void 0
     })
 
-    const itemGrade = await gradeService.getGradesByDisciplines(availableDisciplineIds.value.length > 0
+    bnccs.value = await bnccService.getBNCC(availableDisciplineIds.value.length > 0
       ? availableDisciplineIds.value
-      : props.availableDisciplines.map((disciplines: AvailableDisciplines) => { return disciplines.id }))
-
-    console.log('@#@#itemGrade:', itemGrade)
+      : props.availableDisciplines.map((disciplines: AvailableDisciplines) => { return disciplines.id }), props.seriesId)
   }
 }, { immediate: true })
-onMounted(async () => {
-//   const itemGrade = await gradeService.getAllGrades([''])
-//   console.log('@#@#itemGrade:', itemGrade)
-})
+
+async function getBNCCByDisciplines(selectedDisciplines: string[]) {
+  const data = await bnccService.getBNCC(selectedDisciplines, props.seriesId)
+  bnccs.value = data
+  return data
+}
 </script>
 
 <template>
@@ -71,6 +73,7 @@ onMounted(async () => {
           fill="outline"
           cancel-text="Cancelar"
           :multiple="true"
+          @ion-change="getBNCCByDisciplines($event.detail.value)"
         >
           <IonSelectOption v-for="(discipline, index) in availableDisciplines" :key="index" :value="discipline.id">
             {{ discipline.name }}
@@ -88,6 +91,7 @@ onMounted(async () => {
         />
         <br>
         <IonSelect
+          v-model="filledContent.bnccs"
           class="ion-select-card-content"
           label="Currículos"
           label-placement="floating"
@@ -96,14 +100,15 @@ onMounted(async () => {
           style="--color: var(--ion-color-secondary);"
           :multiple="true"
         >
-          <IonSelectOption>EF02LP00PE - Leitura e interpretação textual bas</IonSelectOption>
-          <IonSelectOption>EF02LP01PE - Uso do material didático na sala d</IonSelectOption>
+          <IonSelectOption v-for="bncc in bnccs" :key="bncc" :value="bncc.id">
+            {{ bncc.code }} - {{ bncc.objective.slice(0, 32) }}...
+          </IonSelectOption>
         </IonSelect>
         <div class="ion-margin-top" style="display: flex; justify-content: right;">
           <IonButton color="danger" size="small" style="text-transform: capitalize;">
             Cancelar
           </IonButton>
-          <IonButton color="secondary" size="small" style="text-transform: capitalize;" @click="saveFunction()">
+          <IonButton color="secondary" size="small" style="text-transform: capitalize;">
             Salvar
           </IonButton>
         </div>
