@@ -79,8 +79,20 @@ onMounted(async () => {
 })
 
 watch(selectedDayInfo, async (newValue) => {
-  if (newValue.selectedDate) {
-    await loadDataContent(newValue.selectedDate)
+  if (newValue.selectedDate && eduFProfile.value) {
+    await loadDataContent(eduFProfile.value.classroomId, newValue.selectedDate)
+  }
+  else {
+    registros.value = []
+  }
+})
+
+watch(eduFProfile, async (newValue) => {
+  if (newValue.classroomId && selectedDayInfo.value.selectedDate) {
+    await loadDataContent(newValue.classroomId, selectedDayInfo.value.selectedDate)
+  }
+  else {
+    registros.value = []
   }
 })
 
@@ -123,10 +135,10 @@ async function loadDataSeries(): Promise<void> {
   }
 }
 
-async function loadDataContent(selectedDate: string): Promise<void> {
+async function loadDataContent(currentClassroomId: string, selectedDate: string): Promise<void> {
   try {
-    const classroomId = '0c086508-d50b-49b6-afce-0c146643129d'
-    const data = await contentService.listContentByToday(classroomId, selectedDate)
+    // const classroomId = '0c086508-d50b-49b6-afce-0c146643129d'
+    const data = await contentService.listContentByToday(currentClassroomId, selectedDate)
     registros.value = data || []
     addFirstRecord()
   }
@@ -148,6 +160,9 @@ function saveTeacherContent(): void {
 
 <template>
   <ContentLayout>
+    <pre>
+      eduFProfile: {{ eduFProfile }}
+    </pre>
     <EduFilterProfile :teacher-id="teacherid" @update:filtered-ocupation="($event) => eduFProfile = $event" />
 
     <h3>
