@@ -19,8 +19,8 @@ export default class BNCCService extends BaseService<any> {
     const { data, error } = await this.client
       .from(table)
       .select(fields)
-      .in('disciplineId', disciplineIds)
       .eq('seriesId', seriesId)
+      .in('disciplineId', disciplineIds)
 
     // .eq('classroomId',classroomId)
     if (error) {

@@ -160,9 +160,9 @@ function saveTeacherContent(): void {
 
 <template>
   <ContentLayout>
-    <pre>
+    <!-- <pre>
       eduFProfile: {{ eduFProfile }}
-    </pre>
+    </pre> -->
     <EduFilterProfile :teacher-id="teacherid" @update:filtered-ocupation="($event) => eduFProfile = $event" />
 
     <h3>
@@ -239,14 +239,15 @@ function saveTeacherContent(): void {
       <ContentCreate
         v-show="isFormAvailable"
         id="NovoRegistroFormulario"
-        series-id="1qdasd1"
+        v-model="isFormAvailable"
+        :series-id="eduFProfile?.seriesId"
         :selected-day="selectedDayInfo?.selectedDate"
         :teacher-id="eduFProfile.teacherId" :classroom-id="selectedClassroom"
         :available-disciplines="schedules?.availableDisciplines"
       />
 
       <div v-if="registros.length > 0" id="NovoRegistro" style="display: flex; justify-content: flex-end;" class="ion-content">
-        <IonButton color="tertiary" @click="novoRegistro = !novoRegistro">
+        <IonButton color="tertiary" @click="isFormAvailable = !isFormAvailable">
           <IonIcon slot="icon-only" :icon="add" />
         </IonButton>
       </div>

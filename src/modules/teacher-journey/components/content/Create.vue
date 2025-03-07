@@ -3,6 +3,7 @@ import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, Io
 import { add, calendarOutline, save } from 'ionicons/icons'
 import { computed, defineProps, onMounted, ref, watch } from 'vue'
 import BNCCService from '../../services/BNCCService'
+import ContentService from '../../services/ContentService'
 
 interface AvailableDisciplines { id: string, name: string, classroomId: string }
 interface Props {
@@ -15,9 +16,12 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const emits = defineEmits(['update:modelValue'])
 const availableDisciplineIds = ref<string[]>([])
 
 const bnccService = new BNCCService()
+const contentService = new ContentService()
+
 const bnccs = ref()
 
 const filledContent = ref({
@@ -50,11 +54,27 @@ async function getBNCCByDisciplines(selectedDisciplines: string[]) {
   bnccs.value = data
   return data
 }
+
+async function saveContent() {
+  try {
+    const data = await contentService.postContent(filledContent.value)
+    if (data) {
+      emits('update:modelValue', false)
+    }
+    else {
+      // @TODO: adicionar uma notificação que o registro falhou
+    }
+    return data
+  }
+  catch (error: unknown | any) {
+    console.error(`Erro ao salvar conteúdo: ${error.message}`)
+  }
+}
 </script>
 
 <template>
   <IonCard id="NovoRegistroFormulario" class="ion-no-padding ion-margin-top">
-    <IonCardHeader color="lightaccent">
+    <IonCardHeader color="secondary">
       <div style="display: flex; align-items: center; height: 10px;">
         <IonIcon :icon="save" size="small" style="margin-right: 8px;" />
         <IonCardTitle style="font-size: medium;">
@@ -108,7 +128,7 @@ async function getBNCCByDisciplines(selectedDisciplines: string[]) {
           <IonButton color="danger" size="small" style="text-transform: capitalize;">
             Cancelar
           </IonButton>
-          <IonButton color="secondary" size="small" style="text-transform: capitalize;">
+          <IonButton color="secondary" size="small" style="text-transform: capitalize;" @click="saveContent()">
             Salvar
           </IonButton>
         </div>
