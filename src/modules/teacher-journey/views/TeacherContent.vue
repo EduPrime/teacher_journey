@@ -203,7 +203,13 @@ function saveTeacherContent(): void {
       <IonAccordionGroup v-if="isAccordionContent || registros.length > 0" id="RegistrosExistentes" class="ion-content" expand="inset" :multiple="true">
         <IonAccordion v-for="(registro, index) in registros" :key="index" style="margin-bottom: 5px;" :value="registro.classroom">
           <IonItem slot="header" color="secondary">
-            <IonLabel>{{ registro.classroom }} - {{ new Date(registro.date).toLocaleDateString('pt-br') }}</IonLabel>
+            <IonLabel>
+              {{ registro.classroom }} -
+              <span v-for="(disciplina, i) in registro.disciplines" :key="i">
+                <span v-if="disciplina !== registro?.disciplines?.at(0)"><span v-if="registro?.disciplines.length > 2">, </span><span v-else> e </span></span>
+                {{ disciplina.disciplineId.name }}
+              </span>
+            </IonLabel>
           </IonItem>
           <div slot="content" style="margin: 10px 0 0 10px;">
             <!-- @TODO: Disciplina ainda precisa ser tipada -->
