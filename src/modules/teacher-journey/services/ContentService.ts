@@ -17,10 +17,6 @@ export default class ContentService extends BaseService<Content> {
     if (error) {
       throw new Error(`Erro ao encontrar conteúdo: ${error.message}`)
     }
-    if (!data) {
-      throw new Error('Nenhum conteúdo encontrado')
-    }
-
     return data
   }
 
@@ -43,8 +39,6 @@ export default class ContentService extends BaseService<Content> {
       .eq('date', date)
       .eq('classroomId', classroomId)
     // .eq('teacherId', teacherId) // @TODO: teacherId não é util para ser um parametro do filtro ( pode ser que o professor mude durante o decorrer do ano )
-
-    console.log('log ', data)
 
     if (error) {
       throw new Error(`Erro ao encontrar conteúdo: ${error.message}`)

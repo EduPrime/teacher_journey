@@ -125,7 +125,7 @@ async function saveContent() {
           </IonSelectOption>
         </IonSelect>
         <div class="ion-margin-top" style="display: flex; justify-content: right;">
-          <IonButton color="danger" size="small" style="text-transform: capitalize;">
+          <IonButton color="danger" size="small" style="text-transform: capitalize;" @click="emits('update:modelValue', false)">
             Cancelar
           </IonButton>
           <IonButton color="secondary" size="small" style="text-transform: capitalize;" @click="saveContent()">

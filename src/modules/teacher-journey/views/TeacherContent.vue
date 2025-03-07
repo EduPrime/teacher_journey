@@ -4,20 +4,10 @@ import ContentLayout from '@/components/theme/ContentLayout.vue'
 import EduCalendar from '@/components/WeekDayPicker.vue'
 import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonIcon, IonItem, IonLabel, IonModal, IonSelect, IonSelectOption, IonTextarea } from '@ionic/vue'
 import { add, calendarOutline, save } from 'ionicons/icons'
-import { onMounted, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 import ContentCreate from '../components/content/Create.vue'
 
-import ClassroomService from '../services/ClassroomService'
 import ContentService from '../services/ContentService'
-import ScheduleService from '../services/ScheduleService'
-import SeriesService from '../services/SeriesService'
-import TeacherService from '../services/TeacherService'
-
-// import Calendar from '@/components/Calendar.vue'
-interface Occupation {
-  school?: string
-  series?: string[]
-}
 
 interface Registro {
   classroom: string
@@ -36,51 +26,27 @@ interface Registro {
   }[]
 }
 
-const ocupation = ref<Occupation[]>([])
-
-const teacherService = new TeacherService()
-const scheduleService = new ScheduleService()
-const seriesService = new SeriesService()
-const classroomService = new ClassroomService()
 const contentService = new ContentService()
 
-const userid = ref<string>('')
-const teacherid = ref<string>('')
-const schools = ref<string[]>([])
 const eduFProfile = ref()
-
-const novoRegistro = ref(false)
 
 const selectedClassroom = ref('352a5857-193f-4672-9abf-c5302afd1c37')
 const schedules = ref()
 const copyContentSchool = ref()
 const copyContentClass = ref()
 
-const currentClassroom = ref()
-
 const isCopyModalOpen = ref(false)
-const isDayNoneRecord = ref(true)
 const isFormAvailable = ref(false)
-const setDayNoneRecord = (open: boolean) => (isDayNoneRecord.value = open)
-const setFormAvailable = (open: boolean) => (isFormAvailable.value = open)
 
 const selectedDayInfo = ref()
 const isAccordionContent = ref(false)
 const setCopyModalOpen = (open: boolean) => (isCopyModalOpen.value = open)
 const registros = ref<Registro[]>([])
 
-onMounted(async () => {
-  await loadDataTeacher(),
-  await loadDataSchools(),
-  await loadDataSchedule(),
-  await loadDataSeries()
-  schedules.value = await scheduleService.getSchedules(teacherid.value)
-  currentClassroom.value = await classroomService.getClassroom()
-})
-
 watch(selectedDayInfo, async (newValue) => {
   if (newValue.selectedDate && eduFProfile.value) {
     await loadDataContent(eduFProfile.value.classroomId, newValue.selectedDate)
+    isFormAvailable.value = false
   }
   else {
     registros.value = []
@@ -88,93 +54,39 @@ watch(selectedDayInfo, async (newValue) => {
 })
 
 watch(eduFProfile, async (newValue) => {
-  if (newValue.classroomId && selectedDayInfo.value.selectedDate) {
-    await loadDataContent(newValue.classroomId, selectedDayInfo.value.selectedDate)
+  if (newValue.classroomId && selectedDayInfo.value?.selectedDate) {
+    await loadDataContent(newValue.classroomId, selectedDayInfo.value?.selectedDate)
   }
   else {
     registros.value = []
   }
 })
 
-async function loadDataTeacher(): Promise<void> {
-  const storedData = localStorage.getItem('userLocal')
-
-  if (storedData) {
-    userid.value = JSON.parse(storedData).id
-  }
-}
-
-// Função para carregar os dados usando o serviço
-async function loadDataSchools(): Promise<void> {
-  try {
-    const data = await teacherService.listTeacherId(userid.value)
-    teacherid.value = data.id || ''
-  }
-  catch (error) {
-    console.error('Erro ao carregar os dados:', error)
-  }
-}
-
-async function loadDataSchedule(): Promise<void> {
-  try {
-    const data = await scheduleService.listClassrooms(teacherid.value)
-    schools.value = Array.from(data) || []
-  }
-  catch (error) {
-    console.error('Erro ao carregar os dados:', error)
-  }
-}
-
-async function loadDataSeries(): Promise<void> {
-  try {
-    const data = await seriesService.listSeriesAndSchools(schools.value)
-    ocupation.value = data || []
-  }
-  catch (error) {
-    console.error('Erro ao carregar os dados:', error)
-  }
-}
-
 async function loadDataContent(currentClassroomId: string, selectedDate: string): Promise<void> {
   try {
-    // const classroomId = '0c086508-d50b-49b6-afce-0c146643129d'
     const data = await contentService.listContentByToday(currentClassroomId, selectedDate)
     registros.value = data || []
-    addFirstRecord()
   }
-  catch (error) {
-    console.error('Erro ao carregar os dados:', error)
+  catch (error: unknown | any) {
+    registros.value = []
+    console.error('Erro ao carregar os dados:', error.message)
   }
-}
-
-function addFirstRecord(): void {
-  setDayNoneRecord(!isDayNoneRecord.value)
-  setFormAvailable(true)
-}
-
-function saveTeacherContent(): void {
-  setFormAvailable(false)
-  isAccordionContent.value = true
 }
 </script>
 
 <template>
   <ContentLayout>
-    <!-- <pre>
-      eduFProfile: {{ eduFProfile }}
-    </pre> -->
-    <EduFilterProfile :teacher-id="teacherid" @update:filtered-ocupation="($event) => eduFProfile = $event" />
-
+    <EduFilterProfile @update:filtered-ocupation="($event) => eduFProfile = $event" />
     <h3>
       <ion-text color="secondary" class="ion-content ion-padding-bottom" style="display: flex; align-items: center;">
         <IonIcon color="secondary" style="margin-right: 1%;" aria-hidden="true" :icon="calendarOutline" />
         Lançamento diário
       </ion-text>
     </h3>
-    <EduCalendar v-model="selectedDayInfo" :teacher-id="teacherid" />
+    <EduCalendar v-model="selectedDayInfo" :teacher-id="eduFProfile?.teacherId" />
 
     <div v-if="eduFProfile?.classroomId && selectedDayInfo?.selectedDate">
-      <IonCard v-show="isDayNoneRecord" class="ion-no-padding ion-margin-top">
+      <IonCard v-show="registros?.length === 0 && !isFormAvailable" class="ion-no-padding ion-margin-top">
         <IonCardHeader color="secondary">
           <div style="display: flex; align-items: center; height: 10px;">
             <IonIcon :icon="save" size="small" style="margin-right: 8px;" />
@@ -192,7 +104,7 @@ function saveTeacherContent(): void {
           </IonCardContent>
 
           <div style="display: flex; justify-content: flex-end;">
-            <IonButton class="ion-margin" color="tertiary" @click="addFirstRecord()">
+            <IonButton class="ion-margin" color="tertiary" @click="() => { isFormAvailable = true }">
               <IonIcon slot="icon-only" :icon="add" />
             </IonButton>
           </div>
@@ -305,75 +217,6 @@ function saveTeacherContent(): void {
                 Salvar
               </IonButton>
             </div>
-          </div>
-
-          <div v-if="false">
-            <IonCardContent class="ion-padding-top">
-              <IonSelect
-                class="ion-select-card-content"
-                label="Disciplina"
-                label-placement="floating"
-                fill="outline"
-                cancel-text="Cancelar"
-                :multiple="true"
-              >
-                <IonSelectOption value="Matemática">
-                  Matemática
-                </IonSelectOption>
-                <IonSelectOption value="Português">
-                  Português
-                </IonSelectOption>
-                <IonSelectOption value="Ciências">
-                  Ciências
-                </IonSelectOption>
-                <IonSelectOption value="História">
-                  História
-                </IonSelectOption>
-                <IonSelectOption value="Geografia">
-                  Geografia
-                </IonSelectOption>
-                <IonSelectOption value="Educação Física">
-                  Educação Física
-                </IonSelectOption>
-                <IonSelectOption value="Artes">
-                  Artes
-                </IonSelectOption>
-                <IonSelectOption value="Inglês">
-                  Inglês
-                </IonSelectOption>
-              </IonSelect>
-              <br>
-              <IonTextarea
-                label="Conteúdo"
-                label-placement="floating"
-                fill="outline"
-                placeholder="Digite o conteúdo"
-                style="--color: var(--ion-color-secondary);"
-                :auto-grow="true"
-                value="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris tellus sem, auctor accumsan egestas sed, venenatis at ex. Nam consequat ex odio."
-              />
-              <br>
-              <IonSelect
-                class="ion-select-card-content"
-                label="Currículos"
-                label-placement="floating"
-                fill="outline"
-                cancel-text="Cancelar"
-                style="--color: var(--ion-color-secondary);"
-                :multiple="true"
-              >
-                <IonSelectOption>EF02LP00PE - Leitura e interpretação textual bas</IonSelectOption>
-                <IonSelectOption>EF02LP01PE - Uso do material didático na sala d</IonSelectOption>
-              </IonSelect>
-              <div class="ion-margin-top" style="display: flex; justify-content: right;">
-                <IonButton color="danger" size="small" style="text-transform: capitalize;">
-                  Cancelar
-                </IonButton>
-                <IonButton color="secondary" size="small" style="text-transform: capitalize;" @click="saveTeacherContent()">
-                  Salvar
-                </IonButton>
-              </div>
-            </IonCardContent>
           </div>
         </IonCard>
       </IonModal>
