@@ -38,6 +38,7 @@ interface Registro {
 
 const ocupation = ref<Occupation[]>([])
 const filteredOcupation = ref<Occupation>({})
+const filterProfile = ref<{ schoolId: string, schoolName: string, classId: string, className: string, teacherId: string } | null>(null)
 
 const teacherService = new TeacherService()
 const scheduleService = new ScheduleService()
@@ -131,8 +132,6 @@ async function loadDataSeries(): Promise<void> {
   try {
     const data = await seriesService.listSeriesAndSchools(schools.value)
     ocupation.value = data || []
-
-    console.log('Dados loadDataSeries:', data)
   }
   catch (error) {
     console.error('Erro ao carregar os dados:', error)
@@ -175,11 +174,17 @@ function saveTeacherContent(): void {
   isAccordionContent.value = true
   console.log('saveTeacherContent updated ', isAccordionContent.value)
 }
+
+function handleFilteredOcupation(data: { schoolId: string, schoolName: string, classId: string, className: string, teacherId: string }) {
+  filterProfile.value = data
+  // console.log('Dados recebidos do componente:', filterProfile.value)
+  // Lógica para lidar com os dados recebidos
+}
 </script>
 
 <template>
   <ContentLayout>
-    <EduFilterProfile :teacher-id="teacherid" />
+    <EduFilterProfile :discipline="true" @update:filtered-ocupation="handleFilteredOcupation" />
 
     <pre>
       registros: {{ registros }}
