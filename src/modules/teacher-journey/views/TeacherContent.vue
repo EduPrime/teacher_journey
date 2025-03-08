@@ -4,10 +4,12 @@ import ContentLayout from '@/components/theme/ContentLayout.vue'
 import EduCalendar from '@/components/WeekDayPicker.vue'
 import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonIcon, IonItem, IonLabel, IonModal, IonSelect, IonSelectOption, IonTextarea } from '@ionic/vue'
 import { add, calendarOutline, save } from 'ionicons/icons'
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import ContentCreate from '../components/content/Create.vue'
+import ContentUpdate from '../components/content/Update.vue'
 
 import ContentService from '../services/ContentService'
+import ScheduleService from '../services/ScheduleService'
 
 interface Registro {
   classroom: string
@@ -27,6 +29,7 @@ interface Registro {
 }
 
 const contentService = new ContentService()
+const scheduleService = new ScheduleService()
 
 const eduFProfile = ref()
 
@@ -36,17 +39,19 @@ const copyContentSchool = ref()
 const copyContentClass = ref()
 
 const isCopyModalOpen = ref(false)
-const isFormAvailable = ref(false)
+const isUpdateModalOpen = ref(false)
+const isContentSaved = ref({ card: false, saved: undefined as any })
 
 const selectedDayInfo = ref()
 const isAccordionContent = ref(false)
 const setCopyModalOpen = (open: boolean) => (isCopyModalOpen.value = open)
+const setUpdateModalOpen = (open: boolean) => (isUpdateModalOpen.value = open)
 const registros = ref<Registro[]>([])
 
 watch(selectedDayInfo, async (newValue) => {
   if (newValue.selectedDate && eduFProfile.value) {
     await loadDataContent(eduFProfile.value.classroomId, newValue.selectedDate)
-    isFormAvailable.value = false
+    isContentSaved.value.card = false
   }
   else {
     registros.value = []
@@ -54,11 +59,20 @@ watch(selectedDayInfo, async (newValue) => {
 })
 
 watch(eduFProfile, async (newValue) => {
+  if (newValue.teacherId) {
+    schedules.value = await scheduleService.getSchedules(newValue.teacherId)
+  }
   if (newValue.classroomId && selectedDayInfo.value?.selectedDate) {
     await loadDataContent(newValue.classroomId, selectedDayInfo.value?.selectedDate)
   }
   else {
     registros.value = []
+  }
+})
+
+watch(isContentSaved, async (newValue) => {
+  if (newValue.saved) {
+    await loadDataContent(eduFProfile.value.classroomId, selectedDayInfo.value?.selectedDate)
   }
 })
 
@@ -76,7 +90,7 @@ async function loadDataContent(currentClassroomId: string, selectedDate: string)
 
 <template>
   <ContentLayout>
-    <EduFilterProfile @update:filtered-ocupation="($event) => eduFProfile = $event" />
+    <EduFilterProfile :discipline="false" @update:filtered-ocupation="($event) => eduFProfile = $event" />
     <h3>
       <ion-text color="secondary" class="ion-content ion-padding-bottom" style="display: flex; align-items: center;">
         <IonIcon color="secondary" style="margin-right: 1%;" aria-hidden="true" :icon="calendarOutline" />
@@ -86,7 +100,7 @@ async function loadDataContent(currentClassroomId: string, selectedDate: string)
     <EduCalendar v-model="selectedDayInfo" :teacher-id="eduFProfile?.teacherId" />
 
     <div v-if="eduFProfile?.classroomId && selectedDayInfo?.selectedDate">
-      <IonCard v-show="registros?.length === 0 && !isFormAvailable" class="ion-no-padding ion-margin-top">
+      <IonCard v-show="registros?.length === 0 && !isContentSaved.card" class="ion-no-padding ion-margin-top">
         <IonCardHeader color="secondary">
           <div style="display: flex; align-items: center; height: 10px;">
             <IonIcon :icon="save" size="small" style="margin-right: 8px;" />
@@ -104,18 +118,18 @@ async function loadDataContent(currentClassroomId: string, selectedDate: string)
           </IonCardContent>
 
           <div style="display: flex; justify-content: flex-end;">
-            <IonButton class="ion-margin" color="tertiary" @click="() => { isFormAvailable = true }">
+            <IonButton class="ion-margin" color="tertiary" @click="() => { isContentSaved.card = true }">
               <IonIcon slot="icon-only" :icon="add" />
             </IonButton>
           </div>
         </div>
       </IonCard>
-
+      <!-- <pre>{{registros[0]}}</pre> -->
       <!-- :value="registros" Removi de IonAccordionGroup -->
-      <IonAccordionGroup v-if="isAccordionContent || registros.length > 0" id="RegistrosExistentes" class="ion-content" expand="inset" :multiple="true">
-        <IonAccordion v-for="(registro, index) in registros" :key="index" style="margin-bottom: 5px;" :value="registro.classroom">
+      <IonAccordionGroup v-if="isAccordionContent || registros.length > 0" id="RegistrosExistentes" class="ion-content" expand="inset" :multiple="true" value="0">
+        <IonAccordion v-for="(registro, index) in registros" :key="index" style="margin-bottom: 5px;" :value="`${index}`">
           <IonItem slot="header" color="secondary">
-            <IonLabel>
+            <IonLabel class="custom-span">
               {{ registro.classroom }} -
               <span v-for="(disciplina, i) in registro.disciplines" :key="i">
                 <span v-if="disciplina !== registro?.disciplines?.at(0)"><span v-if="registro?.disciplines.length > 2">, </span><span v-else> e </span></span>
@@ -142,7 +156,7 @@ async function loadDataContent(currentClassroomId: string, selectedDate: string)
               <IonButton color="tertiary" size="small" style="text-transform: capitalize;" @click="setCopyModalOpen(!isCopyModalOpen)">
                 Copiar
               </IonButton>
-              <IonButton color="secondary" size="small" style="text-transform: capitalize;">
+              <IonButton color="secondary" size="small" style="text-transform: capitalize;" @click="setUpdateModalOpen(!isUpdateModalOpen)">
                 Editar
               </IonButton>
               <IonButton color="danger" size="small" style="text-transform: capitalize;">
@@ -155,17 +169,28 @@ async function loadDataContent(currentClassroomId: string, selectedDate: string)
 
       <!-- aqui vem o registro do conteúdo -->
       <ContentCreate
-        v-show="isFormAvailable"
+        v-show="isContentSaved.card"
         id="NovoRegistroFormulario"
-        v-model="isFormAvailable"
+        v-model="isContentSaved"
         :series-id="eduFProfile?.seriesId"
         :selected-day="selectedDayInfo?.selectedDate"
-        :teacher-id="eduFProfile.teacherId" :classroom-id="selectedClassroom"
+        :teacher-id="eduFProfile.teacherId" :classroom-id="eduFProfile?.classroomId"
+        :available-disciplines="schedules?.availableDisciplines"
+      />
+
+      <ContentUpdate
+        v-show="isUpdateModalOpen"
+        id="EditarRegistroFormulario"
+        v-model="isContentSaved"
+        :modal="isUpdateModalOpen"
+        :series-id="eduFProfile?.seriesId"
+        :selected-day="selectedDayInfo?.selectedDate"
+        :teacher-id="eduFProfile.teacherId" :classroom-id="eduFProfile?.classroomId"
         :available-disciplines="schedules?.availableDisciplines"
       />
 
       <div v-if="registros.length > 0" id="NovoRegistro" style="display: flex; justify-content: flex-end;" class="ion-content">
-        <IonButton color="tertiary" @click="isFormAvailable = !isFormAvailable">
+        <IonButton color="tertiary" @click="isContentSaved.card = !isContentSaved.card">
           <IonIcon slot="icon-only" :icon="add" />
         </IonButton>
       </div>
@@ -226,7 +251,7 @@ async function loadDataContent(currentClassroomId: string, selectedDate: string)
         <IonCardTitle>Selecione a turma e dia</IonCardTitle>
       </IonCardHeader>
 
-      <IonCardContent> Ola, porfavor selecione qual a turma e em qual dia você dejesa fazer o preenchimento </IonCardContent>
+      <IonCardContent> Olá, por favor selecione qual a turma e em qual dia você dejesa fazer o preenchimento </IonCardContent>
     </IonCard>
   </ContentLayout>
 </template>
@@ -314,5 +339,10 @@ ion-select {
   ion-select::part(label) {
     color: var(--ion-color-primary);
     opacity: 1;
+  }
+  .custom-span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 </style>

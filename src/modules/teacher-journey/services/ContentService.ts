@@ -57,15 +57,156 @@ export default class ContentService extends BaseService<Content> {
     return contentMap
   }
 
-  async postContent(content: { date: string, description: string, classroomId: string }) {
-    const { data, error } = await this.client
-      .from('content')
-      .insert([content])
+  async createContent(content: { date: string, description: string, classroomId: string, teacherId: string, disciplines: string[], bnccs: string[] }) {
+    try {
+      // Inserire primeiro o conteúdo
+      const { data: contentData, error: contentError } = await this.client
+        .from('content')
+        .insert([{
+          date: content.date,
+          description: content.description,
+          classroomId: content.classroomId,
+          teacherId: content.teacherId,
+        }])
+        .select()
+        .single()
 
-    if (error) {
-      throw new Error(`Erro ao inserir conteúdo: ${error.message}`)
+      if (contentError) {
+        throw new Error(`Erro ao inserir conteúdo: ${contentError}`)
+      }
+
+      const contentId = contentData.id
+
+      // Após inserir conteúdo inicia o insert no relacionamento many-to-many para [conteudo_disciplina]
+      const { error: disciplineError } = await this.client
+        .from('content_discipline')
+        .insert(content.disciplines.map(disciplineId => ({
+          contentId,
+          disciplineId,
+        })))
+
+      if (disciplineError) {
+        throw new Error(`Erro ao inserir disciplinas: ${disciplineError.message}`)
+      }
+
+      // Então inicia o insert no relacionamento many-to-many para [conteudo_bncc]
+      const { error: bnccError } = await this.client
+        .from('content_bncc')
+        .insert(content.bnccs.map(bnccId => ({
+          contentId,
+          bnccId,
+        })))
+
+      if (bnccError) {
+        throw new Error(`Erro ao inserir BNCCs: ${bnccError.message}`)
+      }
+
+      return contentData
     }
+    catch (contentError) {
+      throw new Error(`Erro ao inserir conteúdo: ${contentError}`)
+    }
+  }
 
-    return data
+  async updateContent(content: { date: string, description: string, classroomId: string, teacherId: string, disciplines: string[], bnccs: string[] }) {
+    try {
+      // Inserire primeiro o conteúdo
+      const { data: contentData, error: contentError } = await this.client
+        .from('content')
+        .update([{
+          date: content.date,
+          description: content.description,
+          classroomId: content.classroomId,
+          teacherId: content.teacherId,
+        }])
+        .select()
+        .single()
+
+      if (contentError) {
+        throw new Error(`Erro ao inserir conteúdo: ${contentError}`)
+      }
+
+      const contentId = contentData.id
+
+      // Após inserir conteúdo inicia o insert no relacionamento many-to-many para [conteudo_disciplina]
+      const { error: disciplineError } = await this.client
+        .from('content_discipline')
+        .insert(content.disciplines.map(disciplineId => ({
+          contentId,
+          disciplineId,
+        })))
+
+      if (disciplineError) {
+        throw new Error(`Erro ao inserir disciplinas: ${disciplineError.message}`)
+      }
+
+      // Então inicia o insert no relacionamento many-to-many para [conteudo_bncc]
+      const { error: bnccError } = await this.client
+        .from('content_bncc')
+        .insert(content.bnccs.map(bnccId => ({
+          contentId,
+          bnccId,
+        })))
+
+      if (bnccError) {
+        throw new Error(`Erro ao inserir BNCCs: ${bnccError.message}`)
+      }
+
+      // return data
+    }
+    catch (contentError) {
+      throw new Error(`Erro ao inserir conteúdo: ${contentError}`)
+    }
+  }
+
+  async softDeleteContent(content: { date: string, description: string, classroomId: string, teacherId: string, disciplines: string[], bnccs: string[] }) {
+    try {
+      // Inserire primeiro o conteúdo
+      const { data: contentData, error: contentError } = await this.client
+        .from('content')
+        .update([{
+          date: content.date,
+          description: content.description,
+          classroomId: content.classroomId,
+          teacherId: content.teacherId,
+        }])
+        .select()
+        .single()
+
+      if (contentError) {
+        throw new Error(`Erro ao inserir conteúdo: ${contentError}`)
+      }
+
+      const contentId = contentData.id
+
+      // Após inserir conteúdo inicia o insert no relacionamento many-to-many para [conteudo_disciplina]
+      const { error: disciplineError } = await this.client
+        .from('content_discipline')
+        .insert(content.disciplines.map(disciplineId => ({
+          contentId,
+          disciplineId,
+        })))
+
+      if (disciplineError) {
+        throw new Error(`Erro ao inserir disciplinas: ${disciplineError.message}`)
+      }
+
+      // Então inicia o insert no relacionamento many-to-many para [conteudo_bncc]
+      const { error: bnccError } = await this.client
+        .from('content_bncc')
+        .insert(content.bnccs.map(bnccId => ({
+          contentId,
+          bnccId,
+        })))
+
+      if (bnccError) {
+        throw new Error(`Erro ao inserir BNCCs: ${bnccError.message}`)
+      }
+
+      // return data
+    }
+    catch (contentError) {
+      throw new Error(`Erro ao inserir conteúdo: ${contentError}`)
+    }
   }
 }
