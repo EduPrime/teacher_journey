@@ -67,7 +67,7 @@ const enrollment = new EnrollmentService()
 const gradeService = new GradeService()
 const stages = ref(<Stages>{})
 const schedules = ref(<Schedules>[])
-const teacherId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+const teacherId = localStorage.getItem('teacherId')
 const institutionId = 'bd14f407-3758-4656-a299-e4cf3859dd29'
 
 // Dados mockados
@@ -199,7 +199,7 @@ async function getStudents() {
       enrollment.getClassroomStudents(classroomId).then((classroomStudents) => {
         allClasses.value.forEach((classroom) => {
           if (
-            classroom.id === classroomStudents[0].classroomId
+            classroom.id === classroomStudents[0]?.classroomId
           )
             classroom.students = classroomStudents
         })

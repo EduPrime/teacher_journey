@@ -1,6 +1,5 @@
 import type { Content } from '@prisma/client'
 import BaseService from '@/services/BaseService'
-import { formatISO } from 'date-fns'
 
 const table = 'content' as const
 
@@ -18,10 +17,6 @@ export default class ContentService extends BaseService<Content> {
     if (error) {
       throw new Error(`Erro ao encontrar conteúdo: ${error.message}`)
     }
-    if (!data) {
-      throw new Error('Nenhum conteúdo encontrado')
-    }
-
     return data
   }
 
@@ -45,8 +40,6 @@ export default class ContentService extends BaseService<Content> {
       .eq('classroomId', classroomId)
     // .eq('teacherId', teacherId) // @TODO: teacherId não é util para ser um parametro do filtro ( pode ser que o professor mude durante o decorrer do ano )
 
-    console.log('log ', data)
-
     if (error) {
       throw new Error(`Erro ao encontrar conteúdo: ${error.message}`)
     }
@@ -62,5 +55,17 @@ export default class ContentService extends BaseService<Content> {
       bnccs: item.bnccs,
     }))
     return contentMap
+  }
+
+  async postContent(content: { date: string, description: string, classroomId: string }) {
+    const { data, error } = await this.client
+      .from('content')
+      .insert([content])
+
+    if (error) {
+      throw new Error(`Erro ao inserir conteúdo: ${error.message}`)
+    }
+
+    return data
   }
 }
