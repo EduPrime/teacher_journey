@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonIcon, IonItem, IonLabel, IonModal, IonSelect, IonSelectOption, IonTextarea } from '@ionic/vue'
 import { add, calendarOutline, save } from 'ionicons/icons'
+import showToast from '@/utils/toast-alert'
 import { computed, defineProps, onMounted, ref, watch } from 'vue'
 import BNCCService from '../../services/BNCCService'
 import ContentService from '../../services/ContentService'
@@ -25,10 +26,10 @@ const contentService = new ContentService()
 const bnccs = ref()
 
 const filledContent = ref({
-  disciplines: [],
+  disciplines: [] as string[],
   date: computed(() => props.selectedDay),
   description: '',
-  bnccs: [],
+  bnccs: [] as string[],
   classroomId: computed(() => props.classroomId),
   teacherId: computed(() => props.teacherId),
 })
@@ -52,23 +53,19 @@ watch(() => props.availableDisciplines, async (newValue) => {
 async function getBNCCByDisciplines(selectedDisciplines: string[]) {
   const data = await bnccService.getBNCC(selectedDisciplines, props.seriesId)
   bnccs.value = data
+  filledContent.value.disciplines = selectedDisciplines
   return data
 }
 
+async function setBNCC(selectedBNCC: string[]) {
+  filledContent.value.bnccs = selectedBNCC
+}
+
 async function saveContent() {
-  try {
-    const data = await contentService.postContent(filledContent.value)
-    if (data) {
-      emits('update:modelValue', false)
-    }
-    else {
-      // @TODO: adicionar uma notificação que o registro falhou
-    }
-    return data
-  }
-  catch (error: unknown | any) {
-    console.error(`Erro ao salvar conteúdo: ${error.message}`)
-  }
+  const data = await contentService.createContent({ ...filledContent.value })
+  emits('update:modelValue', {card: false, saved: !!data})
+
+  showToast('Conteúdo criado com sucesso', 'top', 'success')
 }
 </script>
 
@@ -119,17 +116,19 @@ async function saveContent() {
           cancel-text="Cancelar"
           style="--color: var(--ion-color-secondary);"
           :multiple="true"
+          @ionChange="setBNCC($event.detail.value)"
         >
           <IonSelectOption v-for="bncc in bnccs" :key="bncc" :value="bncc.id">
             {{ bncc.code }} - {{ bncc.objective.slice(0, 32) }}...
           </IonSelectOption>
         </IonSelect>
         <div class="ion-margin-top" style="display: flex; justify-content: right;">
-          <IonButton color="danger" size="small" style="text-transform: capitalize;" @click="emits('update:modelValue', false)">
+          <IonButton color="danger" size="small" style="text-transform: capitalize;" @click="emits('update:modelValue', {card: false})">
             Cancelar
           </IonButton>
           <IonButton color="secondary" size="small" style="text-transform: capitalize;" @click="saveContent()">
             Salvar
+            <!-- @TODO: O botão deve aparecer mais aparente na tela -->
           </IonButton>
         </div>
       </IonCardContent>
