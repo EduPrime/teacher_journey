@@ -8,6 +8,7 @@ import { ref, watch } from 'vue'
 import ContentCreate from '../components/content/Create.vue'
 
 import ContentService from '../services/ContentService'
+import ScheduleService from '../services/ScheduleService'
 
 interface Registro {
   classroom: string
@@ -27,6 +28,7 @@ interface Registro {
 }
 
 const contentService = new ContentService()
+const scheduleService = new ScheduleService()
 
 const eduFProfile = ref()
 
@@ -54,6 +56,9 @@ watch(selectedDayInfo, async (newValue) => {
 })
 
 watch(eduFProfile, async (newValue) => {
+  if (newValue.teacherId) {
+    schedules.value = await scheduleService.getSchedules(newValue.teacherId)
+  }
   if (newValue.classroomId && selectedDayInfo.value?.selectedDate) {
     await loadDataContent(newValue.classroomId, selectedDayInfo.value?.selectedDate)
   }
