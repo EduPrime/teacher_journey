@@ -5,6 +5,7 @@ import EduCalendar from '@/components/WeekDayPicker.vue'
 import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonIcon, IonItem, IonLabel, IonModal, IonSelect, IonSelectOption, IonTextarea } from '@ionic/vue'
 import { add, calendarOutline, save } from 'ionicons/icons'
 import { computed, ref, watch } from 'vue'
+import ContentCopy from '../components/content/Copy.vue'
 import ContentCreate from '../components/content/Create.vue'
 
 import ContentService from '../services/ContentService'
@@ -32,13 +33,15 @@ const scheduleService = new ScheduleService()
 
 const eduFProfile = ref()
 
-const selectedClassroom = ref('352a5857-193f-4672-9abf-c5302afd1c37')
+const selectedToCopy = ref()
+
+// const selectedClassroom = ref('352a5857-193f-4672-9abf-c5302afd1c37')
 const schedules = ref()
-const copyContentSchool = ref()
-const copyContentClass = ref()
+// const copyContentSchool = ref()
+// const copyContentClass = ref()
 
 const isCopyModalOpen = ref(false)
-const isContentSaved = ref({card: false, saved: undefined as any})
+const isContentSaved = ref({ card: false, saved: undefined as any })
 
 const selectedDayInfo = ref()
 const isAccordionContent = ref(false)
@@ -53,7 +56,7 @@ watch(selectedDayInfo, async (newValue) => {
   else {
     registros.value = []
   }
-}) 
+})
 
 watch(eduFProfile, async (newValue) => {
   if (newValue.teacherId) {
@@ -83,11 +86,16 @@ async function loadDataContent(currentClassroomId: string, selectedDate: string)
     console.error('Erro ao carregar os dados:', error.message)
   }
 }
+
+function changeSelectedToCopy(current: any): void {
+  selectedToCopy.value = current
+  return void 0
+}
 </script>
 
 <template>
   <ContentLayout>
-    <EduFilterProfile @update:filtered-ocupation="($event) => eduFProfile = $event" :discipline="false" />
+    <EduFilterProfile :discipline="false" @update:filtered-ocupation="($event) => eduFProfile = $event" />
     <h3>
       <ion-text color="secondary" class="ion-content ion-padding-bottom" style="display: flex; align-items: center;">
         <IonIcon color="secondary" style="margin-right: 1%;" aria-hidden="true" :icon="calendarOutline" />
@@ -123,7 +131,7 @@ async function loadDataContent(currentClassroomId: string, selectedDate: string)
       </IonCard>
       <!-- <pre>{{registros[0]}}</pre> -->
       <!-- :value="registros" Removi de IonAccordionGroup -->
-      <IonAccordionGroup v-if="isAccordionContent || registros.length > 0" id="RegistrosExistentes" class="ion-content" expand="inset" :multiple="true"  value="0" >
+      <IonAccordionGroup v-if="isAccordionContent || registros.length > 0" id="RegistrosExistentes" class="ion-content" expand="inset" :multiple="true" value="0">
         <IonAccordion v-for="(registro, index) in registros" :key="index" style="margin-bottom: 5px;" :value="`${index}`">
           <IonItem slot="header" color="secondary">
             <IonLabel class="custom-span">
@@ -150,7 +158,7 @@ async function loadDataContent(currentClassroomId: string, selectedDate: string)
             </IonChip>
             <br>
             <div class="ion-margin" style="display: flex; justify-content: right; margin-top: 20px; gap: 5px;">
-              <IonButton color="tertiary" size="small" style="text-transform: capitalize;" @click="setCopyModalOpen(!isCopyModalOpen)">
+              <IonButton color="tertiary" size="small" style="text-transform: capitalize;" @click="() => { setCopyModalOpen(!isCopyModalOpen); changeSelectedToCopy(registro) }">
                 Copiar
               </IonButton>
               <IonButton color="secondary" size="small" style="text-transform: capitalize;">
@@ -163,6 +171,8 @@ async function loadDataContent(currentClassroomId: string, selectedDate: string)
           </div>
         </IonAccordion>
       </IonAccordionGroup>
+
+      <ContentCopy v-model="isCopyModalOpen" :is-copy-modal-open="isCopyModalOpen" :schedules="schedules" :registry="selectedToCopy" />
 
       <!-- aqui vem o registro do conteúdo -->
       <ContentCreate
@@ -181,7 +191,7 @@ async function loadDataContent(currentClassroomId: string, selectedDate: string)
         </IonButton>
       </div>
 
-      <IonModal id="copy-modal" class="ion-content" :is-open="isCopyModalOpen" @ion-modal-did-dismiss="setCopyModalOpen(false)">
+      <!-- <IonModal id="copy-modal" class="ion-content" :is-open="isCopyModalOpen" @ion-modal-did-dismiss="setCopyModalOpen(false)">
         <IonCard v-if="true" class="ion-no-padding ion-no-margin">
           <IonCardHeader color="secondary">
             <div style="display: flex; align-items: center; height: 15px;">
@@ -204,13 +214,12 @@ async function loadDataContent(currentClassroomId: string, selectedDate: string)
                   {{ sc.name }}
                 </IonSelectOption>
               </IonSelect>
+
               <IonSelect v-if="schedules" v-model="copyContentClass" class="custom-floating-label" label-placement="floating" label="Turma" fill="outline">
-                <!-- Se copyContentSchool existir é usado para encontrar o index ( escola ) no qual as turmas serão pegas e se não usa o index 0 para selecionar o primeiro item no array de turmas por escolas -->
-                <!-- todas as turmas são filtradas abaixo para garantir que estejam disponiveis para seleção apenas os items em que a seriesId seja igual a seriesId oriunda da turma selecionada no filtro principal da página ( o de escolas e turmas ) -->
                 <IonSelectOption
                   v-for="(cls, index) in copyContentSchool
-                    ? schedules.classesPerSchool.find((i: any) => i.schoolId === copyContentSchool).classes.filter((cl: any) => cl.seriesId === selectedClassroom)
-                    : schedules.classesPerSchool.at(0).classes.filter((cl: any) => cl.seriesId === selectedClassroom)"
+                    ? removeDuplicatas(schedules.classesPerSchool.find((i: any) => i.schoolId === copyContentSchool).classes.filter((cl: any) => cl.seriesId === selectedClassroom), 'classroomName')
+                    : removeDuplicatas(schedules.classesPerSchool.at(0).classes.filter((cl: any) => cl.seriesId === selectedClassroom), 'classroomName')"
                   :key="index"
                   :value="cls"
                 >
@@ -223,14 +232,14 @@ async function loadDataContent(currentClassroomId: string, selectedDate: string)
               <IonButton color="danger" size="small" style="text-transform: capitalize;" @click="setCopyModalOpen(!isCopyModalOpen)">
                 Cancelar
               </IonButton>
-              <!-- @TODO: construir função para ao clicar em salvar inserir uma copia do registro de conteúdo atual para a turma selecionada -->
+
               <IonButton color="secondary" size="small" style="text-transform: capitalize;" @click="setCopyModalOpen(!isCopyModalOpen)">
                 Salvar
               </IonButton>
             </div>
           </div>
         </IonCard>
-      </IonModal>
+      </IonModal> -->
     </div>
     <IonCard v-else color="info">
       <IonCardHeader>

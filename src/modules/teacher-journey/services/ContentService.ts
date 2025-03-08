@@ -32,6 +32,7 @@ export default class ContentService extends BaseService<Content> {
             id,
             date,
             description,
+            teacherId,
             classroom: classroomId (id, name),
             disciplines: content_discipline (disciplineId (id, name)),
             bnccs: content_bncc (bnccId (id, code, objective))
@@ -49,6 +50,8 @@ export default class ContentService extends BaseService<Content> {
 
     const contentMap = data.map((item: any) => ({
       classroom: item.classroom.name,
+      classroomId: item.classroom.id,
+      teacherId: item.teacherId,
       date: item.date,
       description: item.description,
       disciplines: item.disciplines,
@@ -66,7 +69,7 @@ export default class ContentService extends BaseService<Content> {
           date: content.date,
           description: content.description,
           classroomId: content.classroomId,
-          teacherId: content.teacherId
+          teacherId: content.teacherId,
         }])
         .select()
         .single()
@@ -82,7 +85,7 @@ export default class ContentService extends BaseService<Content> {
         .from('content_discipline')
         .insert(content.disciplines.map(disciplineId => ({
           contentId,
-          disciplineId
+          disciplineId,
         })))
 
       if (disciplineError) {
@@ -94,7 +97,7 @@ export default class ContentService extends BaseService<Content> {
         .from('content_bncc')
         .insert(content.bnccs.map(bnccId => ({
           contentId,
-          bnccId
+          bnccId,
         })))
 
       if (bnccError) {
@@ -102,7 +105,8 @@ export default class ContentService extends BaseService<Content> {
       }
 
       return contentData
-    } catch (contentError) {
+    }
+    catch (contentError) {
       throw new Error(`Erro ao inserir conteúdo: ${contentError}`)
     }
   }
@@ -120,7 +124,7 @@ export default class ContentService extends BaseService<Content> {
           classroomId: content.classroomId,
           teacherId: content.teacherId,
           updatedBy: content.teacherId,
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date().toISOString(),
         }])
         .select()
         .single()
@@ -136,7 +140,7 @@ export default class ContentService extends BaseService<Content> {
         .from('content_discipline')
         .update(content.disciplines.map(disciplineId => ({
           contentId,
-          disciplineId
+          disciplineId,
         })))
 
       if (disciplineError) {
@@ -148,7 +152,7 @@ export default class ContentService extends BaseService<Content> {
         .from('content_bncc')
         .update(content.bnccs.map(bnccId => ({
           contentId,
-          bnccId
+          bnccId,
         })))
 
       if (bnccError) {
@@ -156,7 +160,8 @@ export default class ContentService extends BaseService<Content> {
       }
 
       return contentData
-    } catch (contentError) {
+    }
+    catch (contentError) {
       throw new Error(`Erro ao inserir conteúdo: ${contentError}`)
     }
   }
@@ -171,7 +176,7 @@ export default class ContentService extends BaseService<Content> {
           deletedAt: new Date().toISOString(),
           updatedBy: content.userId,
         }])
-        .eq("id", content.id)
+        .eq('id', content.id)
       // .select() // checar necessidade
       // .single() // checar necessidade
 
@@ -180,7 +185,8 @@ export default class ContentService extends BaseService<Content> {
       }
 
       return data
-    } catch (error) {
+    }
+    catch (error) {
       throw new Error(`Erro ao apagar conteúdo: ${error}`)
     }
   }

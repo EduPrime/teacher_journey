@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import showToast from '@/utils/toast-alert'
 import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonIcon, IonItem, IonLabel, IonModal, IonSelect, IonSelectOption, IonTextarea } from '@ionic/vue'
 import { add, calendarOutline, save } from 'ionicons/icons'
-import showToast from '@/utils/toast-alert'
 import { computed, defineProps, onMounted, ref, watch } from 'vue'
 import BNCCService from '../../services/BNCCService'
 import ContentService from '../../services/ContentService'
@@ -63,7 +63,7 @@ async function setBNCC(selectedBNCC: string[]) {
 
 async function saveContent() {
   const data = await contentService.createContent({ ...filledContent.value })
-  emits('update:modelValue', {card: false, saved: !!data})
+  emits('update:modelValue', { card: false, saved: !!data })
 
   showToast('Conteúdo criado com sucesso', 'top', 'success')
 }
@@ -116,14 +116,14 @@ async function saveContent() {
           cancel-text="Cancelar"
           style="--color: var(--ion-color-secondary);"
           :multiple="true"
-          @ionChange="setBNCC($event.detail.value)"
+          @ion-change="setBNCC($event.detail.value)"
         >
           <IonSelectOption v-for="bncc in bnccs" :key="bncc" :value="bncc.id">
             {{ bncc.code }} - {{ bncc.objective.slice(0, 32) }}...
           </IonSelectOption>
         </IonSelect>
         <div class="ion-margin-top" style="display: flex; justify-content: right;">
-          <IonButton color="danger" size="small" style="text-transform: capitalize;" @click="emits('update:modelValue', {card: false})">
+          <IonButton color="danger" size="small" style="text-transform: capitalize;" @click="emits('update:modelValue', { card: false })">
             Cancelar
           </IonButton>
           <IonButton color="secondary" size="small" style="text-transform: capitalize;" @click="saveContent()">
