@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import showToast from '@/utils/toast-alert'
 import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonContent, IonIcon, IonItem, IonLabel, IonModal, IonSelect, IonSelectOption, IonTextarea } from '@ionic/vue'
+import { format, parseISO } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 import { add, calendarOutline, save } from 'ionicons/icons'
 import { computed, defineProps, onMounted, ref, watch } from 'vue'
 import BNCCService from '../../services/BNCCService'
@@ -9,12 +11,13 @@ import ContentService from '../../services/ContentService'
 interface AvailableDisciplines { id: string, name: string, classroomId: string }
 interface Props {
   availableDisciplines: AvailableDisciplines[]
-  teacherId: string
+  // teacherId: string
   classroomId: string
-  selectedDay: string
-  disciplineId?: string
+  // selectedDay: string
+  // disciplineId?: string
   seriesId: string
-  modal: boolean
+  registry: any
+  isUpdateModalOpen: boolean
 }
 
 const props = defineProps<Props>()
@@ -26,14 +29,35 @@ const contentService = new ContentService()
 
 const bnccs = ref()
 
+const modalOpened = ref(props.isUpdateModalOpen)
+
 const filledContent = ref({
+  // userId: '',
+  id: '',
   disciplines: [] as string[],
-  date: computed(() => props.selectedDay),
+  date: '',
   description: '',
   bnccs: [] as string[],
-  classroomId: computed(() => props.classroomId),
-  teacherId: computed(() => props.teacherId),
+  classroomId: '',
+  teacherId: '',
 })
+
+watch(() => props.registry, (value) => {
+  console.log('registry', value)
+
+  //   modalOpened.value = value
+  if (value) {
+    filledContent.value = {
+      id: value.id,
+      disciplines: value.disciplines.map((d: any) => d.disciplineId.id),
+      date: value.date,
+      description: value.description,
+      bnccs: value.bnccs.map((b: any) => b.bnccId.id),
+      classroomId: value.classroomId,
+      teacherId: value.teacherId,
+    }
+  }
+}, { immediate: true })
 
 watch(() => props.availableDisciplines, async (newValue) => {
   if (newValue && newValue.length > 0 && filledContent.value.disciplines.length === 0) {
@@ -63,81 +87,93 @@ async function setBNCC(selectedBNCC: string[]) {
 }
 
 async function saveContent() {
-  const data = await contentService.createContent({ ...filledContent.value })
+  const data = await contentService.updateContent({ ...filledContent.value })
   emits('update:modelValue', { card: false, saved: !!data })
 
   showToast('Conteúdo criado com sucesso', 'top', 'success')
 }
+
+function formatDate(dateString: string): string {
+  const date = parseISO(dateString)
+  return format(date, 'dd/MM/yyyy', { locale: ptBR })
+}
 </script>
 
 <template>
-  <IonContent>
-    <IonModal id="update-modal" :is-open="props.modal" trigger="open-custom-dialog">
-      <IonCard id="EditarRegistroFormulario" class="wrapper">
-        <IonCardHeader color="secondary">
-          <div style="display: flex; align-items: center; height: 10px;">
-            <IonCardTitle style="font-size: medium;">
-              Editando Registro de conteúdo
-            </IonCardTitle>
-          </div>
-        </IonCardHeader>
-
-        <div class="wrapper">
-          <IonCardContent class="wrapper">
-            <IonSelect
-              v-model="filledContent.disciplines"
-              class="ion-select-card-content"
-              label="Disciplina"
-              label-placement="floating"
-              fill="outline"
-              cancel-text="Cancelar"
-              :multiple="true"
-              @ion-change="getBNCCByDisciplines($event.detail.value)"
-            >
-              <IonSelectOption v-for="(discipline, index) in availableDisciplines" :key="index" :value="discipline.id">
-                {{ discipline.name }}
-              </IonSelectOption>
-            </IonSelect>
-            <br>
-            <IonTextarea
-              v-model="filledContent.description"
-              label="Conteúdo"
-              label-placement="floating"
-              fill="outline"
-              placeholder="Digite o conteúdo"
-              style="--color: var(--ion-color-secondary);"
-              :auto-grow="true"
-            />
-            <br>
-            <IonSelect
-              v-model="filledContent.bnccs"
-              class="ion-select-card-content"
-              label="Currículos"
-              label-placement="floating"
-              fill="outline"
-              cancel-text="Cancelar"
-              style="--color: var(--ion-color-secondary);"
-              :multiple="true"
-              @ion-change="setBNCC($event.detail.value)"
-            >
-              <IonSelectOption v-for="bncc in bnccs" :key="bncc" :value="bncc.id">
-                {{ bncc.code }} - {{ bncc.objective.slice(0, 32) }}...
-              </IonSelectOption>
-            </IonSelect>
-            <div class="ion-margin-top" style="display: flex; justify-content: right;">
-              <IonButton color="danger" size="small" style="text-transform: capitalize;" @click="emits('update:modelValue', { card: false })">
-                Cancelar
-              </IonButton>
-              <IonButton color="secondary" size="small" style="text-transform: capitalize;" @click="saveContent()">
-                Salvar
-              <!-- @TODO: O botão deve aparecer mais aparente na tela -->
-              </IonButton>
-            </div>
-          </IonCardContent>
+  <IonModal id="update-modal" class="ion-content" :is-open="props.isUpdateModalOpen" @ion-modal-did-dismiss="modalOpened = false">
+    <IonCard id="EditarRegistroFormulario" class="ion-no-padding ion-no-margin">
+      <IonCardHeader color="secondary">
+        <div style="display: flex; align-items: center; height: 15px;">
+          <IonIcon class="ion-padding-end" :icon="save" />
+          <IonCardTitle style="font-size: medium;">
+            Editando {{ props.registry?.classroom }} - {{ formatDate(props.registry?.date) }}
+          </IonCardTitle>
         </div>
-      </IonCard>
-    </IonModal>
-  </IonContent>
+      </IonCardHeader>
+
+      <div>
+        <IonCardContent class="" style="display: flex; flex-direction: column; gap: 15px;">
+          <IonSelect
+            v-model="filledContent.disciplines"
+            class="ion-select-card-content"
+            label="Disciplina"
+            label-placement="floating"
+            fill="outline"
+            cancel-text="Cancelar"
+            :multiple="true"
+            @ion-change="getBNCCByDisciplines($event.detail.value)"
+          >
+            <IonSelectOption v-for="(discipline, index) in availableDisciplines" :key="index" :value="discipline.id">
+              {{ discipline.name }}
+            </IonSelectOption>
+          </IonSelect>
+          <br>
+          <IonTextarea
+            v-model="filledContent.description"
+            label="Conteúdo"
+            label-placement="floating"
+            fill="outline"
+            placeholder="Digite o conteúdo"
+            style="--color: var(--ion-color-secondary);"
+            :auto-grow="true"
+          />
+          <br>
+          <IonSelect
+            v-model="filledContent.bnccs"
+            class="ion-select-card-content"
+            label="Currículos"
+            label-placement="floating"
+            fill="outline"
+            cancel-text="Cancelar"
+            style="--color: var(--ion-color-secondary);"
+            :multiple="true"
+            @ion-change="setBNCC($event.detail.value)"
+          >
+            <IonSelectOption v-for="(bncc, index) in bnccs" :key="index" :value="bncc.id">
+              {{ bncc.code }} - {{ bncc.objective.slice(0, 32) }}...
+            </IonSelectOption>
+          </IonSelect>
+
+          <pre>{{ filledContent }}</pre>
+          <div class="ion-margin-top" style="display: flex; justify-content: right;">
+            <IonButton color="danger" size="small" style="text-transform: capitalize;" @click="emits('update:modelValue', false)">
+              Cancelar
+            </IonButton>
+            <IonButton
+              color="secondary" size="small" style="text-transform: capitalize;" @click="
+                () => {
+                  saveContent()
+                  emits('update:modelValue', false)
+                }"
+            >
+              Salvar
+              <!-- @TODO: O botão deve aparecer mais aparente na tela -->
+            </IonButton>
+          </div>
+        </IonCardContent>
+      </div>
+    </IonCard>
+  </IonModal>
 </template>
 
 <style>
