@@ -34,8 +34,8 @@ export default class ContentService extends BaseService<Content> {
             description,
             teacherId,
             classroom: classroomId (id, name),
-            disciplines: content_discipline (disciplineId (id, name)),
-            bnccs: content_bncc (bnccId (id, code, objective))
+            disciplines: contentdiscipline (disciplineId (id, name)),
+            bnccs: contentbncc (bnccId (id, code, objective))
             `)
       .eq('date', date)
       .eq('classroomId', classroomId)
@@ -83,7 +83,7 @@ export default class ContentService extends BaseService<Content> {
 
       // Após inserir conteúdo inicia o insert no relacionamento many-to-many para [conteudo_disciplina]
       const { error: disciplineError } = await this.client
-        .from('content_discipline')
+        .from('contentdiscipline')
         .insert(content.disciplines.map(disciplineId => ({
           contentId,
           disciplineId,
@@ -95,7 +95,7 @@ export default class ContentService extends BaseService<Content> {
 
       // Então inicia o insert no relacionamento many-to-many para [conteudo_bncc]
       const { error: bnccError } = await this.client
-        .from('content_bncc')
+        .from('contentbncc')
         .insert(content.bnccs.map(bnccId => ({
           contentId,
           bnccId,
@@ -138,7 +138,7 @@ export default class ContentService extends BaseService<Content> {
 
   //     // Após atualizar conteúdo inicia o update no relacionamento many-to-many para [conteudo_disciplina]
   //     const { error: disciplineError } = await this.client
-  //       .from('content_discipline')
+  //       .from('contentdiscipline')
   //       .update(content.disciplines.map(disciplineId => ({
   //         contentId,
   //         disciplineId,
@@ -150,7 +150,7 @@ export default class ContentService extends BaseService<Content> {
 
   //     // Então inicia o update no relacionamento many-to-many para [conteudo_bncc]
   //     const { error: bnccError } = await this.client
-  //       .from('content_bncc')
+  //       .from('contentbncc')
   //       .update(content.bnccs.map(bnccId => ({
   //         contentId,
   //         bnccId,
@@ -175,8 +175,8 @@ export default class ContentService extends BaseService<Content> {
         .from('content')
         .select(`
           *,
-          content_discipline (disciplineId),
-          content_bncc (bnccId)
+          contentdiscipline (disciplineId),
+          contentbncc (bnccId)
         `)
         .eq('id', content.id)
         .single()
@@ -223,13 +223,13 @@ export default class ContentService extends BaseService<Content> {
       const contentId = contentData.id
 
       // Verificar se houve mudanças nas disciplines
-      const currentDisciplines = currentContent.content_discipline.map((d: any) => d.disciplineId)
+      const currentDisciplines = currentContent.contentdiscipline.map((d: any) => d.disciplineId)
       const disciplinesChanged = JSON.stringify(currentDisciplines.sort()) !== JSON.stringify(content.disciplines.sort())
 
       if (disciplinesChanged) {
         // Atualizar o relacionamento many-to-many para [conteudo_disciplina]
         const { error: disciplineError } = await this.client
-          .from('content_discipline')
+          .from('contentdiscipline')
           .update({
             deletedAt: new Date().toISOString(),
             // updatedBy: content.userId,
@@ -242,7 +242,7 @@ export default class ContentService extends BaseService<Content> {
         }
 
         const { error: newDisciplineError } = await this.client
-          .from('content_discipline')
+          .from('contentdiscipline')
           .insert(content.disciplines.map(disciplineId => ({
             contentId,
             disciplineId,
@@ -254,13 +254,13 @@ export default class ContentService extends BaseService<Content> {
       }
 
       // Verificar se houve mudanças nas bnccs
-      const currentBnccs = currentContent.content_bncc.map((b: any) => b.bnccId)
+      const currentBnccs = currentContent.contentbncc.map((b: any) => b.bnccId)
       const bnccsChanged = JSON.stringify(currentBnccs.sort()) !== JSON.stringify(content.bnccs.sort())
 
       if (bnccsChanged) {
         // Atualizar o relacionamento many-to-many para [conteudo_bncc]
         const { error: bnccError } = await this.client
-          .from('content_bncc')
+          .from('contentbncc')
           .update({ deletedAt: new Date().toISOString() })
           .eq('contentId', contentId)
           .is('deletedAt', null)
@@ -270,7 +270,7 @@ export default class ContentService extends BaseService<Content> {
         }
 
         const { error: newBnccError } = await this.client
-          .from('content_bncc')
+          .from('contentbncc')
           .insert(content.bnccs.map(bnccId => ({
             contentId,
             bnccId,
