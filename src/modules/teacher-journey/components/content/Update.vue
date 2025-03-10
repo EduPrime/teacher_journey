@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import showToast from '@/utils/toast-alert'
 import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonContent, IonIcon, IonItem, IonLabel, IonModal, IonSelect, IonSelectOption, IonTextarea } from '@ionic/vue'
-import { format, parseISO } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
 import { add, calendarOutline, save } from 'ionicons/icons'
 import { computed, defineProps, onMounted, ref, watch } from 'vue'
 import BNCCService from '../../services/BNCCService'
@@ -92,11 +90,6 @@ async function saveContent() {
 
   showToast('Conteúdo criado com sucesso', 'top', 'success')
 }
-
-function formatDate(dateString: string): string {
-  const date = parseISO(dateString)
-  return format(date, 'dd/MM/yyyy', { locale: ptBR })
-}
 </script>
 
 <template>
@@ -106,7 +99,7 @@ function formatDate(dateString: string): string {
         <div style="display: flex; align-items: center; height: 15px;">
           <IonIcon class="ion-padding-end" :icon="save" />
           <IonCardTitle style="font-size: medium;">
-            Editando {{ props.registry?.classroom }} - {{ formatDate(props.registry?.date) }}
+            Editando {{ props.registry?.classroom }} - {{ props.registry?.date }}
           </IonCardTitle>
         </div>
       </IonCardHeader>
