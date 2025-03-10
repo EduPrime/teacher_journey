@@ -14,6 +14,8 @@ import ScheduleService from '../services/ScheduleService'
 
 interface Registro {
   classroom: string
+  classroomId: string
+  teacherId: string
   date: string
   description: string
   disciplines: {
