@@ -6,6 +6,7 @@ import { computed, ref, watch } from 'vue'
 import ContentService from '../../services/ContentService'
 
 interface Props {
+  currentClassroomId: string
   isCopyModalOpen: boolean
   schedules: any
   registry: any
@@ -110,8 +111,8 @@ async function saveContent() {
 
             <IonSelectOption
               v-for="(cls, index) in copyContentSchool
-                ? removeDuplicatas(props.schedules.classesPerSchool.find((i: any) => i.schoolId === copyContentSchool).classes.filter((cl: any) => cl.seriesId === selectedClassroom), 'classroomName')
-                : removeDuplicatas(props.schedules.classesPerSchool.at(0).classes.filter((cl: any) => cl.seriesId === selectedClassroom), 'classroomName')"
+                ? removeDuplicatas(props.schedules.classesPerSchool.find((i: any) => i.schoolId === copyContentSchool).classes.filter((cl: any) => cl.seriesId === selectedClassroom && cl.classroomId !== props.currentClassroomId), 'classroomName')
+                : removeDuplicatas(props.schedules.classesPerSchool.at(0).classes.filter((cl: any) => cl.seriesId === selectedClassroom && cl.classroomId !== props.currentClassroomId), 'classroomName')"
               :key="index"
               :value="cls.classroomId"
             >

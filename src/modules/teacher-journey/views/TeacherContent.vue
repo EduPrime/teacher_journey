@@ -183,7 +183,7 @@ function changeSelectedToUpdate(current: any): void {
         </IonAccordion>
       </IonAccordionGroup>
 
-      <ContentCopy v-model="isCopyModalOpen" :is-copy-modal-open="isCopyModalOpen" :schedules="schedules" :registry="selectedToCopy" />
+      <ContentCopy v-model="isCopyModalOpen" :is-copy-modal-open="isCopyModalOpen" :schedules="schedules" :registry="selectedToCopy" :current-classroom-id="eduFProfile?.classroomId" />
 
       <!-- aqui vem o registro do conteúdo -->
       <ContentCreate
