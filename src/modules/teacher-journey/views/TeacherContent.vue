@@ -210,56 +210,6 @@ function changeSelectedToUpdate(current: any): void {
           <IonIcon slot="icon-only" :icon="add" />
         </IonButton>
       </div>
-
-      <!-- <IonModal id="copy-modal" class="ion-content" :is-open="isCopyModalOpen" @ion-modal-did-dismiss="setCopyModalOpen(false)">
-        <IonCard v-if="true" class="ion-no-padding ion-no-margin">
-          <IonCardHeader color="secondary">
-            <div style="display: flex; align-items: center; height: 15px;">
-              <div style="font-size: 10px;">
-                <IonIcon :icon="save" />
-              </div>
-              <IonCardTitle style="font-size: medium;">
-                Copiar registro para outras turmas
-              </IonCardTitle>
-            </div>
-          </IonCardHeader>
-
-          <div v-if="true">
-            <IonCardContent class="" style="display: flex; flex-direction: column; gap: 15px;">
-              <ion-text color="secondary">
-                Selecione uma turma referente a mesma série na qual foi criado o registro de conteúdo atual.
-              </ion-text>
-              <IonSelect v-if="schedules?.schools.length > 1" v-model="copyContentSchool" class="custom-floating-label" label-placement="floating" justify="space-between" label="Escola" fill="outline">
-                <IonSelectOption v-for="(sc, index) in schedules?.schools" :key="index" :value="sc.id">
-                  {{ sc.name }}
-                </IonSelectOption>
-              </IonSelect>
-
-              <IonSelect v-if="schedules" v-model="copyContentClass" class="custom-floating-label" label-placement="floating" label="Turma" fill="outline">
-                <IonSelectOption
-                  v-for="(cls, index) in copyContentSchool
-                    ? removeDuplicatas(schedules.classesPerSchool.find((i: any) => i.schoolId === copyContentSchool).classes.filter((cl: any) => cl.seriesId === selectedClassroom), 'classroomName')
-                    : removeDuplicatas(schedules.classesPerSchool.at(0).classes.filter((cl: any) => cl.seriesId === selectedClassroom), 'classroomName')"
-                  :key="index"
-                  :value="cls"
-                >
-                  {{ cls.classroomName }}
-                </IonSelectOption>
-              </IonSelect>
-            </IonCardContent>
-
-            <div class="ion-margin" style="display: flex; justify-content: right;">
-              <IonButton color="danger" size="small" style="text-transform: capitalize;" @click="setCopyModalOpen(!isCopyModalOpen)">
-                Cancelar
-              </IonButton>
-
-              <IonButton color="secondary" size="small" style="text-transform: capitalize;" @click="setCopyModalOpen(!isCopyModalOpen)">
-                Salvar
-              </IonButton>
-            </div>
-          </div>
-        </IonCard>
-      </IonModal> -->
     </div>
     <IonCard v-else color="info">
       <IonCardHeader>
