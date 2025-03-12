@@ -58,7 +58,7 @@ watch(() => props.registry, (value) => {
       date: value.date,
       description: value.description,
       bnccs: value.bnccs.map((b: any) => b.bnccId.id),
-      classroomId: value.classroomId,
+      classroomId: '',
       teacherId: value.teacherId,
     }
   }
@@ -66,10 +66,15 @@ watch(() => props.registry, (value) => {
 
 async function saveContent() {
   try {
-    const data = await contentService.createContent({ ...filledContent.value })
-    emits('update:modelValue', { card: false, saved: !!data })
-
-    showToast(`Conteúdo copiado com sucesso`, 'top', 'success')
+    if (filledContent?.value.classroomId.length > 3) {
+      const data = await contentService.createContent({ ...filledContent.value })
+      emits('update:modelValue', { card: false, saved: !!data })
+      emits('update:modelValue', false)
+      showToast(`Conteúdo copiado com sucesso`, 'top', 'success')
+    }
+    else {
+      showToast(`Você precisa selecionar para qual turma deseja salvar.`, 'top', 'danger')
+    }
   }
   catch (error: unknown | any) {
     showToast(`Erro ao copiar`, 'top', 'danger')
@@ -130,7 +135,6 @@ async function saveContent() {
             color="secondary" size="small" style="text-transform: capitalize;" @click="
               () => {
                 saveContent()
-                emits('update:modelValue', false)
               }"
           >
             Salvar
