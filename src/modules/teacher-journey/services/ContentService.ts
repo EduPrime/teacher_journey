@@ -8,17 +8,17 @@ export default class ContentService extends BaseService<Content> {
     super(table)
   }
 
-  async listContentTeacherId(teacherId: string) {
-    const { data, error } = await this.client
-      .from('content')
-      .select('*')
-      .eq('teacherId', teacherId)
+  // async listContentTeacherId(teacherId: string) {
+  //   const { data, error } = await this.client
+  //     .from('content')
+  //     .select('*')
+  //     .eq('teacherId', teacherId)
 
-    if (error) {
-      throw new Error(`Erro ao encontrar conteúdo: ${error.message}`)
-    }
-    return data
-  }
+  //   if (error) {
+  //     throw new Error(`Erro ao encontrar conteúdo: ${error.message}`)
+  //   }
+  //   return data
+  // }
 
   async listContentByToday(classroomId: string, date: string) {
     const startOfDay = new Date(date)
@@ -29,16 +29,17 @@ export default class ContentService extends BaseService<Content> {
     const { data, error } = await this.client
       .from('content')
       .select(`
-            id,
-            date,
-            description,
-            teacherId,
-            classroom: classroomId (id, name),
-            disciplines: contentdiscipline (disciplineId (id, name)),
-            bnccs: contentbncc (bnccId (id, code, objective))
-            `)
+        id,
+        date,
+        description,
+        teacherId,
+        classroom: classroomId (id, name),
+        disciplines: contentdiscipline (disciplineId (id, name)),
+        bnccs: contentbncc (bnccId (id, code, objective))
+        `)
       .eq('date', date)
       .eq('classroomId', classroomId)
+      .is('deletedAt', null)
     // .eq('teacherId', teacherId) // @TODO: teacherId não é util para ser um parametro do filtro ( pode ser que o professor mude durante o decorrer do ano )
 
     if (error) {
@@ -179,6 +180,7 @@ export default class ContentService extends BaseService<Content> {
           contentbncc (bnccId)
         `)
         .eq('id', content.id)
+        .is('deletedAt', null)
         .single()
 
       if (currentContentError) {
@@ -230,12 +232,9 @@ export default class ContentService extends BaseService<Content> {
         // Atualizar o relacionamento many-to-many para [conteudo_disciplina]
         const { error: disciplineError } = await this.client
           .from('contentdiscipline')
-          .update({
-            deletedAt: new Date().toISOString(),
-            // updatedBy: content.userId,
-          })
+          .delete()
           .eq('contentId', contentId)
-          .is('deletedAt', null)
+          .in('disciplineId', currentDisciplines)
 
         if (disciplineError) {
           throw new Error(`Erro ao remover disciplinas antigas: ${disciplineError.message}`)
@@ -261,9 +260,9 @@ export default class ContentService extends BaseService<Content> {
         // Atualizar o relacionamento many-to-many para [conteudo_bncc]
         const { error: bnccError } = await this.client
           .from('contentbncc')
-          .update({ deletedAt: new Date().toISOString() })
+          .delete()
           .eq('contentId', contentId)
-          .is('deletedAt', null)
+          .in('bnccId', currentBnccs)
 
         if (bnccError) {
           throw new Error(`Erro ao remover BNCCs antigas: ${bnccError.message}`)
@@ -291,16 +290,14 @@ export default class ContentService extends BaseService<Content> {
   // WIP: Soft delete baseado no BaseService.ts
   async softDeleteContent(content: { id: string, userId: string }) {
     try {
-      // "Apaga" somente o conteúdo, ignora os relacionamentos many-to-many cpm soft delete
+      // Exclusão rasa de conteúdo
       const { data, error } = await this.client
         .from('content')
-        .update([{
+        .update({
           deletedAt: new Date().toISOString(),
           updatedBy: content.userId,
-        }])
+        })
         .eq('id', content.id)
-      // .select() // checar necessidade
-      // .single() // checar necessidade
 
       if (error) {
         throw new Error(`Erro ao apagar conteúdo: ${error.message}`)

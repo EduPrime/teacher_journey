@@ -13,6 +13,7 @@ import ContentService from '../services/ContentService'
 import ScheduleService from '../services/ScheduleService'
 
 interface Registro {
+  id: string
   classroom: string
   classroomId: string
   teacherId: string
@@ -39,19 +40,16 @@ const eduFProfile = ref()
 const selectedToCopy = ref()
 const selectedToUpdate = ref()
 
-// const selectedClassroom = ref('352a5857-193f-4672-9abf-c5302afd1c37')
 const schedules = ref()
-// const copyContentSchool = ref()
-// const copyContentClass = ref()
 
 const isCopyModalOpen = ref(false)
-const isUpdateModalOpen = ref(false)
+const isUpdateModalOpen = ref({ card: false, saved: undefined as any })
 const isContentSaved = ref({ card: false, saved: undefined as any })
 
 const selectedDayInfo = ref()
 const isAccordionContent = ref(false)
 const setCopyModalOpen = (open: boolean) => (isCopyModalOpen.value = open)
-const setUpdateModalOpen = (open: boolean) => (isUpdateModalOpen.value = open)
+const setUpdateModalOpen = (open: boolean) => (isUpdateModalOpen.value.card = open)
 const registros = ref<Registro[]>([])
 
 watch(selectedDayInfo, async (newValue) => {
@@ -82,6 +80,12 @@ watch(isContentSaved, async (newValue) => {
   }
 })
 
+watch(isUpdateModalOpen, async (newValue) => {
+  if (newValue.saved) {
+    await loadDataContent(eduFProfile.value.classroomId, selectedDayInfo.value?.selectedDate)
+  }
+})
+
 async function loadDataContent(currentClassroomId: string, selectedDate: string): Promise<void> {
   try {
     const data = await contentService.listContentByToday(currentClassroomId, selectedDate)
@@ -91,6 +95,18 @@ async function loadDataContent(currentClassroomId: string, selectedDate: string)
     registros.value = []
     console.error('Erro ao carregar os dados:', error.message)
   }
+}
+
+async function softDeleteDataContent(id: string): Promise<void> {
+  try {
+    const userId = JSON.parse(localStorage.getItem('userLocal') || '{}').id || ''
+    await contentService.softDeleteContent({id, userId})
+    await loadDataContent(eduFProfile.value.classroomId, selectedDayInfo.value?.selectedDate)
+  }
+  catch (error: unknown | any) {
+    console.error('Erro ao deletar os dados:', error.message)
+  }
+  
 }
 
 function changeSelectedToCopy(current: any): void {
@@ -172,10 +188,10 @@ function changeSelectedToUpdate(current: any): void {
               <IonButton color="tertiary" size="small" style="text-transform: capitalize;" @click="() => { setCopyModalOpen(!isCopyModalOpen); changeSelectedToCopy(registro) }">
                 Copiar
               </IonButton>
-              <IonButton color="secondary" size="small" style="text-transform: capitalize;" @click="() => { setUpdateModalOpen(!isUpdateModalOpen); changeSelectedToUpdate(registro) }">
+              <IonButton color="secondary" size="small" style="text-transform: capitalize;" @click="() => { setUpdateModalOpen(!isUpdateModalOpen.card); changeSelectedToUpdate(registro) }">
                 Editar
               </IonButton>
-              <IonButton color="danger" size="small" style="text-transform: capitalize;">
+              <IonButton color="danger" size="small" style="text-transform: capitalize;" @click="() => { softDeleteDataContent(registro.id) }">
                 Excluir
               </IonButton>
             </div>
@@ -198,7 +214,7 @@ function changeSelectedToUpdate(current: any): void {
 
       <ContentUpdate
         v-model="isUpdateModalOpen"
-        :is-update-modal-open="isUpdateModalOpen"
+        :is-update-modal-open="isUpdateModalOpen.card"
         :registry="selectedToUpdate"
         :series-id="eduFProfile?.seriesId"
         :classroom-id="eduFProfile?.classroomId"

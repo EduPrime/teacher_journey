@@ -2,6 +2,7 @@
 import showToast from '@/utils/toast-alert'
 import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonContent, IonIcon, IonItem, IonLabel, IonModal, IonSelect, IonSelectOption, IonTextarea } from '@ionic/vue'
 import { add, calendarOutline, save } from 'ionicons/icons'
+import { DateTime } from 'luxon'
 import { computed, defineProps, onMounted, ref, watch } from 'vue'
 import BNCCService from '../../services/BNCCService'
 import ContentService from '../../services/ContentService'
@@ -41,7 +42,6 @@ const filledContent = ref({
 })
 
 watch(() => props.registry, (value) => {
-  console.log('registry', value)
 
   //   modalOpened.value = value
   if (value) {
@@ -90,6 +90,11 @@ async function saveContent() {
 
   showToast('Conteúdo criado com sucesso', 'top', 'success')
 }
+
+function luxonFormatDate(dateString: string) {
+  const date = DateTime.fromISO(dateString)
+  return date.setLocale('pt-BR').toFormat('dd/MM/yyyy')
+}
 </script>
 
 <template>
@@ -97,10 +102,10 @@ async function saveContent() {
     <IonCard id="EditarRegistroFormulario" class="ion-no-padding ion-no-margin">
       <IonCardHeader color="secondary">
         <div style="display: flex; align-items: center; height: 15px;">
-          <IonIcon class="ion-padding-end" :icon="save" />
-          <IonCardTitle style="font-size: medium;">
-            Editando {{ props.registry?.classroom }} - {{ props.registry?.date }}
-          </IonCardTitle>
+            <IonIcon class="ion-padding-end" :icon="save" />
+            <IonCardTitle style="font-size: medium;">
+            Editando {{ props.registry?.classroom }} - {{ luxonFormatDate(props.registry?.date) }}
+            </IonCardTitle>
         </div>
       </IonCardHeader>
 
@@ -147,7 +152,6 @@ async function saveContent() {
             </IonSelectOption>
           </IonSelect>
 
-          <pre>{{ filledContent }}</pre>
           <div class="ion-margin-top" style="display: flex; justify-content: right;">
             <IonButton color="danger" size="small" style="text-transform: capitalize;" @click="emits('update:modelValue', false)">
               Cancelar
