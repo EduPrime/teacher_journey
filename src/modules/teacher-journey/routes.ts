@@ -1,23 +1,23 @@
-import { home, text, pencil, calendar, saveSharp, extensionPuzzle, shapes, create, folderOutline, clipboard, trendingUp, idCard, clipboardSharp, star, ribbon } from 'ionicons/icons';
-import { CustomRouteRecordRaw } from '@/router/RouterType';
-import TeacherJourney from './views/TeacherJourney.vue';
-import TeacherContent from './views/TeacherContent.vue';
-import TeacherView from './views/TeacherView.vue';
+import type { CustomRouteRecordRaw } from '@/router/RouterType'
+import { calendar, clipboard, clipboardSharp, create, extensionPuzzle, folderOutline, home, idCard, pencil, ribbon, saveSharp, shapes, star, text, trendingUp } from 'ionicons/icons'
+import TeacherContent from './views/TeacherContent.vue'
+import TeacherFrequency from './views/TeacherFequency.vue'
+import TeacherJourney from './views/TeacherJourney.vue'
+import TeacherView from './views/TeacherView.vue'
 
-const courseName = localStorage.getItem('courseName');
+const courseName = localStorage.getItem('courseName')
 
-const maternal = ['Parecer descritivo', 'Relatório parecer descritivo'];
-const fundamental = ['Avaliação conceitual', 'Relatório de avaliação conceitual', 'Boletim conceitual'];
-const fundamentalII = ['Avaliação numérica', 'Relatório de avaliação numérica', 'Boletim numérico'];
-
+const maternal = ['Parecer descritivo', 'Relatório parecer descritivo']
+const fundamental = ['Avaliação conceitual', 'Relatório de avaliação conceitual', 'Boletim conceitual']
+const fundamentalII = ['Avaliação numérica', 'Relatório de avaliação numérica', 'Boletim numérico']
 
 const fixedRoutes: Array<CustomRouteRecordRaw> = [
   {
     path: '',
     redirect: '/home',
     meta: {
-      requiredRole: ['PROFESSOR']
-    }
+      requiredRole: ['PROFESSOR'],
+    },
   },
   {
     path: '/home',
@@ -63,6 +63,19 @@ const fixedRoutes: Array<CustomRouteRecordRaw> = [
       icon: idCard,
       name: 'Registro de conteúdo',
       order: 6,
+      requiredRole: ['PROFESSOR'],
+    },
+  },
+  {
+    path: '/teacherjourney/frequency',
+    name: 'teacherFrequency',
+    component: TeacherFrequency,
+    meta: {
+      moduleName: 'TeacherJourney',
+      moduleIcon: pencil,
+      icon: idCard,
+      name: 'Registro de frequência',
+      order: 7,
       requiredRole: ['PROFESSOR'],
     },
   },
@@ -227,21 +240,20 @@ const dynamicRoutes: Array<CustomRouteRecordRaw> = [
 
 ]
 
-let filteredroutes: Array<CustomRouteRecordRaw> = [...dynamicRoutes];
+let filteredroutes: Array<CustomRouteRecordRaw> = [...dynamicRoutes]
 
 switch (courseName) {
   case 'Educação Infantil':
-    filteredroutes = dynamicRoutes.filter(route => maternal.includes(route.meta.name));
-    break;
+    filteredroutes = dynamicRoutes.filter(route => maternal.includes(route.meta.name))
+    break
   case 'Ensino Fundamental I':
-    filteredroutes = dynamicRoutes.filter(route => fundamental.includes(route.meta.name));
-    break;
+    filteredroutes = dynamicRoutes.filter(route => fundamental.includes(route.meta.name))
+    break
   case 'Ensino Fundamental II':
-    filteredroutes = dynamicRoutes.filter(route => fundamentalII.includes(route.meta.name));
-    break;
+    filteredroutes = dynamicRoutes.filter(route => fundamentalII.includes(route.meta.name))
+    break
 }
 
+const routes = [...fixedRoutes, ...filteredroutes]
 
-const routes = [...fixedRoutes, ...filteredroutes];
-
-export default routes;
+export default routes
