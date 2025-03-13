@@ -72,7 +72,8 @@ watch(eduFProfile, async (newValue) => {
         </IonText>
       </IonCardContent>
     </IonCard>
-    <IonAccordionGroup v-if="selectedDayInfo?.selectedDate" class="ion-content" expand="inset">
+
+    <IonAccordionGroup v-if="selectedDayInfo?.selectedDate && Array.isArray(students) && students.length > 0" class="ion-content" expand="inset">
       <IonAccordion v-for="(s, i) in students" :key="i" :value="`${i}`" class="no-border-accordion">
         <IonItem slot="header">
           <IonLabel>
@@ -95,6 +96,17 @@ watch(eduFProfile, async (newValue) => {
         </div>
       </IonAccordion>
     </IonAccordionGroup>
+    <IonCard v-else-if="Array.isArray(students) && students.length === 0" color="warning">
+      <IonCardHeader>
+        <IonCardTitle>Alunos não encontrados</IonCardTitle>
+      </IonCardHeader>
+
+      <IonCardContent>
+        <IonText>
+          Nenhum aluno encontrado. Por favor entre em contato com a secretaria de sua escola para verificar se sua turma foi cadastrada corretamente.
+        </IonText>
+      </IonCardContent>
+    </IonCard>
     <IonCard v-else color="info">
       <IonCardHeader>
         <IonCardTitle>Selecione a turma e dia</IonCardTitle>

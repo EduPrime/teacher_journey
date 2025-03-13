@@ -16,7 +16,7 @@ export default class EnrollmentService extends BaseService<Enrollment> {
             student:student (disability)
             `,
       )
-    //   .eq('classroomId', classroomId)
+      .eq('classroomId', classroomId)
 
     if (error) {
       throw new Error(`Erro ao buscar matrículas com dados dos alunos: ${error.message}`)
