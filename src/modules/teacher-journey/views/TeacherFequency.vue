@@ -2,7 +2,7 @@
 import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
 import EduCalendar from '@/components/WeekDayPicker.vue'
-import { IonAccordion, IonAccordionGroup, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCheckbox, IonCol, IonGrid, IonIcon, IonItem, IonLabel } from '@ionic/vue'
+import { IonAccordion, IonAccordionGroup, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCheckbox, IonIcon, IonItem, IonLabel, IonRadio, IonRadioGroup } from '@ionic/vue'
 import { calendarOutline } from 'ionicons/icons'
 import { ref, watch } from 'vue'
 
@@ -13,6 +13,8 @@ const scheduleService = new ScheduleService()
 const eduFProfile = ref()
 
 const schedules = ref()
+
+const radioBtn = ref(true)
 
 const isContentSaved = ref({ card: false, saved: undefined as any })
 
@@ -59,13 +61,18 @@ watch(eduFProfile, async (newValue) => {
           <IonLabel>Aluno Fulando da Silva - {{ n }}</IonLabel>
         </IonItem>
         <div slot="content" class="ion-padding">
+          <pre>
+            radioBtn: {{ radioBtn }}
+          </pre>
           <ion-row>
-            <IonCheckbox style="padding-right: 24px;" justify="start">
-              Presente
-            </IonCheckbox>
-            <IonCheckbox justify="start">
-              Ausente
-            </IonCheckbox>
+            <IonRadioGroup v-model="radioBtn">
+              <IonRadio style="padding-right: 24px;" :value="true">
+                Presente
+              </IonRadio>
+              <IonRadio :value="false">
+                Ausente
+              </IonRadio>
+            </IonRadioGroup>
           </ion-row>
         </div>
       </IonAccordion>
