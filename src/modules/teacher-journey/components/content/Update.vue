@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import showToast from '@/utils/toast-alert'
-import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonContent, IonIcon, IonItem, IonLabel, IonModal, IonSelect, IonSelectOption, IonTextarea } from '@ionic/vue'
-import { add, calendarOutline, save } from 'ionicons/icons'
+import { IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonIcon, IonModal, IonSelect, IonSelectOption, IonTextarea } from '@ionic/vue'
+import { save } from 'ionicons/icons'
 import { DateTime } from 'luxon'
-import { computed, defineProps, onMounted, ref, watch } from 'vue'
+import { defineProps,  onUpdated, ref, watch } from 'vue'
 import BNCCService from '../../services/BNCCService'
 import ContentService from '../../services/ContentService'
 
@@ -31,7 +31,6 @@ const bnccs = ref()
 const modalOpened = ref(props.isUpdateModalOpen)
 
 const filledContent = ref({
-  // userId: '',
   id: '',
   disciplines: [] as string[],
   date: '',
@@ -41,9 +40,11 @@ const filledContent = ref({
   teacherId: '',
 })
 
-watch(() => props.registry, (value) => {
+onUpdated(() => {
+  getBNCCByDisciplines(filledContent.value.disciplines)
+})
 
-  //   modalOpened.value = value
+watch(() => props.registry, (value) => {
   if (value) {
     filledContent.value = {
       id: value.id,
@@ -54,6 +55,7 @@ watch(() => props.registry, (value) => {
       classroomId: value.classroomId,
       teacherId: value.teacherId,
     }
+    bnccs.value = bnccService.getBNCC(filledContent.value.bnccs, props.seriesId)
   }
 }, { immediate: true })
 
@@ -73,6 +75,12 @@ watch(() => props.availableDisciplines, async (newValue) => {
   }
 }, { immediate: true })
 
+// watch(filledContent, async (newValue) => {
+//   if (newValue.bnccs.length > 0) {
+//     bnccs.value = await bnccService.getBNCC(newValue.bnccs, props.seriesId)
+//   }
+// }, { immediate: true })
+
 async function getBNCCByDisciplines(selectedDisciplines: string[]) {
   const data = await bnccService.getBNCC(selectedDisciplines, props.seriesId)
   bnccs.value = data
@@ -86,7 +94,7 @@ async function setBNCC(selectedBNCC: string[]) {
 
 async function saveContent() {
   const data = await contentService.updateContent({ ...filledContent.value })
-  emits('update:modelValue', { card: false, saved: !!data })
+  emits('update:modelValue', false)
 
   showToast('Conteúdo criado com sucesso', 'top', 'success')
 }
@@ -95,10 +103,11 @@ function luxonFormatDate(dateString: string) {
   const date = DateTime.fromISO(dateString)
   return date.setLocale('pt-BR').toFormat('dd/MM/yyyy')
 }
+
 </script>
 
 <template>
-  <IonModal id="update-modal" class="ion-content" :is-open="props.isUpdateModalOpen" @ion-modal-did-dismiss="modalOpened = false">
+  <IonModal id="update-modal" class="ion-content" :is-open="props.isUpdateModalOpen" @ion-modal-did-dismiss="() => { modalOpened = false; emits('update:modelValue', false) }"> 
     <IonCard id="EditarRegistroFormulario" class="ion-no-padding ion-no-margin">
       <IonCardHeader color="secondary">
         <div style="display: flex; align-items: center; height: 15px;">
@@ -148,7 +157,7 @@ function luxonFormatDate(dateString: string) {
             @ion-change="setBNCC($event.detail.value)"
           >
             <IonSelectOption v-for="(bncc, index) in bnccs" :key="index" :value="bncc.id">
-              {{ bncc.code }} - {{ bncc.objective.slice(0, 32) }}...
+              {{ bncc.code }} - {{ bncc.objective.slice(0, 58) }}...
             </IonSelectOption>
           </IonSelect>
 
@@ -156,13 +165,7 @@ function luxonFormatDate(dateString: string) {
             <IonButton color="danger" size="small" style="text-transform: capitalize;" @click="emits('update:modelValue', false)">
               Cancelar
             </IonButton>
-            <IonButton
-              color="secondary" size="small" style="text-transform: capitalize;" @click="
-                () => {
-                  saveContent()
-                  emits('update:modelValue', false)
-                }"
-            >
+            <IonButton color="secondary" size="small" style="text-transform: capitalize;" @click="saveContent">
               Salvar
               <!-- @TODO: O botão deve aparecer mais aparente na tela -->
             </IonButton>
@@ -183,7 +186,8 @@ function luxonFormatDate(dateString: string) {
     padding-right: 10px;
   }
   ion-modal#update-modal {
-    --width: fit-content;
+    --width: 400px;
+    --min-width: 400px;
     --min-width: 250px;
     --height: fit-content;
     --border-radius: 6px;

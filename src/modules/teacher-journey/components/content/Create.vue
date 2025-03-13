@@ -119,7 +119,7 @@ async function saveContent() {
           @ion-change="setBNCC($event.detail.value)"
         >
           <IonSelectOption v-for="bncc in bnccs" :key="bncc" :value="bncc.id">
-            {{ bncc.code }} - {{ bncc.objective.slice(0, 32) }}...
+            {{ bncc.code }} - {{ bncc.objective.slice(0, 58) }}...
           </IonSelectOption>
         </IonSelect>
         <div class="ion-margin-top" style="display: flex; justify-content: right;">

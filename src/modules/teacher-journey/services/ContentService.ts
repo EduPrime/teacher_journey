@@ -40,6 +40,7 @@ export default class ContentService extends BaseService<Content> {
       .eq('date', date)
       .eq('classroomId', classroomId)
       .is('deletedAt', null)
+      .order('createdAt', { ascending: true })
     // .eq('teacherId', teacherId) // @TODO: teacherId não é util para ser um parametro do filtro ( pode ser que o professor mude durante o decorrer do ano )
 
     if (error) {
