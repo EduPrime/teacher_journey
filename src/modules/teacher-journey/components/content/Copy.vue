@@ -6,6 +6,7 @@ import { computed, ref, watch } from 'vue'
 import ContentService from '../../services/ContentService'
 
 interface Props {
+  currentClassroomId: string
   isCopyModalOpen: boolean
   schedules: any
   registry: any
@@ -57,7 +58,7 @@ watch(() => props.registry, (value) => {
       date: value.date,
       description: value.description,
       bnccs: value.bnccs.map((b: any) => b.bnccId.id),
-      classroomId: value.classroomId,
+      classroomId: '',
       teacherId: value.teacherId,
     }
   }
@@ -65,10 +66,15 @@ watch(() => props.registry, (value) => {
 
 async function saveContent() {
   try {
-    const data = await contentService.createContent({ ...filledContent.value })
-    emits('update:modelValue', { card: false, saved: !!data })
-
-    showToast(`Conteúdo copiado com sucesso`, 'top', 'success')
+    if (filledContent?.value.classroomId.length > 3) {
+      const data = await contentService.createContent({ ...filledContent.value })
+      emits('update:modelValue', { card: false, saved: !!data })
+      emits('update:modelValue', false)
+      showToast(`Conteúdo copiado com sucesso`, 'top', 'success')
+    }
+    else {
+      showToast(`Você precisa selecionar para qual turma deseja salvar.`, 'top', 'danger')
+    }
   }
   catch (error: unknown | any) {
     showToast(`Erro ao copiar`, 'top', 'danger')
@@ -110,8 +116,8 @@ async function saveContent() {
 
             <IonSelectOption
               v-for="(cls, index) in copyContentSchool
-                ? removeDuplicatas(props.schedules.classesPerSchool.find((i: any) => i.schoolId === copyContentSchool).classes.filter((cl: any) => cl.seriesId === selectedClassroom), 'classroomName')
-                : removeDuplicatas(props.schedules.classesPerSchool.at(0).classes.filter((cl: any) => cl.seriesId === selectedClassroom), 'classroomName')"
+                ? removeDuplicatas(props.schedules.classesPerSchool.find((i: any) => i.schoolId === copyContentSchool).classes.filter((cl: any) => cl.seriesId === selectedClassroom && cl.classroomId !== props.currentClassroomId), 'classroomName')
+                : removeDuplicatas(props.schedules.classesPerSchool.at(0).classes.filter((cl: any) => cl.seriesId === selectedClassroom && cl.classroomId !== props.currentClassroomId), 'classroomName')"
               :key="index"
               :value="cls.classroomId"
             >
@@ -129,7 +135,6 @@ async function saveContent() {
             color="secondary" size="small" style="text-transform: capitalize;" @click="
               () => {
                 saveContent()
-                emits('update:modelValue', false)
               }"
           >
             Salvar

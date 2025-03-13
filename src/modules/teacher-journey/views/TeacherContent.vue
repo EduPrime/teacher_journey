@@ -2,9 +2,9 @@
 import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
 import EduCalendar from '@/components/WeekDayPicker.vue'
-import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonIcon, IonItem, IonLabel, IonModal, IonSelect, IonSelectOption, IonTextarea } from '@ionic/vue'
+import { IonAccordion, IonAccordionGroup, IonAlert, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonIcon, IonItem, IonLabel } from '@ionic/vue'
 import { add, calendarOutline, save } from 'ionicons/icons'
-import { computed, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 import ContentCopy from '../components/content/Copy.vue'
 import ContentCreate from '../components/content/Create.vue'
 import ContentUpdate from '../components/content/Update.vue'
@@ -13,6 +13,7 @@ import ContentService from '../services/ContentService'
 import ScheduleService from '../services/ScheduleService'
 
 interface Registro {
+  id: string
   classroom: string
   classroomId: string
   teacherId: string
@@ -39,10 +40,7 @@ const eduFProfile = ref()
 const selectedToCopy = ref()
 const selectedToUpdate = ref()
 
-// const selectedClassroom = ref('352a5857-193f-4672-9abf-c5302afd1c37')
 const schedules = ref()
-// const copyContentSchool = ref()
-// const copyContentClass = ref()
 
 const isCopyModalOpen = ref(false)
 const isUpdateModalOpen = ref(false)
@@ -50,6 +48,8 @@ const isContentSaved = ref({ card: false, saved: undefined as any })
 
 const selectedDayInfo = ref()
 const isAccordionContent = ref(false)
+const showAlert = ref(false)
+const registroToDelete = ref<string | null>(null)
 const setCopyModalOpen = (open: boolean) => (isCopyModalOpen.value = open)
 const setUpdateModalOpen = (open: boolean) => (isUpdateModalOpen.value = open)
 const registros = ref<Registro[]>([])
@@ -82,6 +82,12 @@ watch(isContentSaved, async (newValue) => {
   }
 })
 
+watch(isUpdateModalOpen, async (newValue) => {
+  if (!newValue) {
+    await loadDataContent(eduFProfile.value.classroomId, selectedDayInfo.value?.selectedDate)
+  }
+})
+
 async function loadDataContent(currentClassroomId: string, selectedDate: string): Promise<void> {
   try {
     const data = await contentService.listContentByToday(currentClassroomId, selectedDate)
@@ -90,6 +96,28 @@ async function loadDataContent(currentClassroomId: string, selectedDate: string)
   catch (error: unknown | any) {
     registros.value = []
     console.error('Erro ao carregar os dados:', error.message)
+  }
+}
+
+async function softDeleteDataContent(id: string): Promise<void> {
+  registroToDelete.value = id
+  showAlert.value = true
+}
+
+async function confirmDeleteContent() {
+  if (registroToDelete.value) {
+    try {
+      const userId = JSON.parse(localStorage.getItem('userLocal') || '{}').id || ''
+      await contentService.softDeleteContent({ id: registroToDelete.value, userId })
+      await loadDataContent(eduFProfile.value.classroomId, selectedDayInfo.value?.selectedDate)
+    }
+    catch (error: unknown | any) {
+      console.error('Erro ao deletar os dados:', error.message)
+    }
+    finally {
+      registroToDelete.value = null
+      showAlert.value = false
+    }
   }
 }
 
@@ -174,7 +202,7 @@ function changeSelectedToUpdate(current: any): void {
               <IonButton color="secondary" size="small" style="text-transform: capitalize;" @click="() => { setUpdateModalOpen(!isUpdateModalOpen); changeSelectedToUpdate(registro) }">
                 Editar
               </IonButton>
-              <IonButton color="danger" size="small" style="text-transform: capitalize;">
+              <IonButton color="danger" size="small" style="text-transform: capitalize;" @click="() => { softDeleteDataContent(registro.id) }">
                 Excluir
               </IonButton>
             </div>
@@ -182,11 +210,11 @@ function changeSelectedToUpdate(current: any): void {
         </IonAccordion>
       </IonAccordionGroup>
 
-      <ContentCopy v-model="isCopyModalOpen" :is-copy-modal-open="isCopyModalOpen" :schedules="schedules" :registry="selectedToCopy" />
+      <ContentCopy v-model="isCopyModalOpen" :is-copy-modal-open="isCopyModalOpen" :schedules="schedules" :registry="selectedToCopy" :current-classroom-id="eduFProfile?.classroomId" />
 
       <!-- aqui vem o registro do conteúdo -->
       <ContentCreate
-        v-show="isContentSaved.card"
+        v-if="isContentSaved.card"
         id="NovoRegistroFormulario"
         v-model="isContentSaved"
         :series-id="eduFProfile?.seriesId"
@@ -217,6 +245,22 @@ function changeSelectedToUpdate(current: any): void {
 
       <IonCardContent> Olá, por favor selecione qual a turma e em qual dia você dejesa fazer o preenchimento </IonCardContent>
     </IonCard>
+
+    <IonAlert
+      :is-open="showAlert"
+      header="Deseja apagar o conteúdo?"
+      :buttons="[
+        {
+          text: 'Não',
+          role: 'cancel',
+          handler: () => { showAlert = false },
+        },
+        {
+          text: 'Sim',
+          handler: confirmDeleteContent,
+        },
+      ]"
+    />
   </ContentLayout>
 </template>
 
