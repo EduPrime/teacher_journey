@@ -2,17 +2,21 @@
 import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
 import EduCalendar from '@/components/WeekDayPicker.vue'
-import { IonAccordion, IonAccordionGroup, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCheckbox, IonIcon, IonItem, IonLabel, IonRadio, IonRadioGroup } from '@ionic/vue'
-import { calendarOutline } from 'ionicons/icons'
+import { IonAccordion, IonAccordionGroup, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonIcon, IonItem, IonLabel, IonRadio, IonRadioGroup, IonRow, IonText, IonToolbar } from '@ionic/vue'
+import { calendarOutline, checkmarkCircleOutline } from 'ionicons/icons'
 import { ref, watch } from 'vue'
 
+import EnrollmentService from '../services/EnrollmentService'
 import ScheduleService from '../services/ScheduleService'
 
 const scheduleService = new ScheduleService()
+const enrollmentService = new EnrollmentService()
 
 const eduFProfile = ref()
 
 const schedules = ref()
+
+const students = ref()
 
 const radioBtn = ref(true)
 
@@ -23,10 +27,12 @@ const selectedDayInfo = ref()
 watch(selectedDayInfo, async (newValue) => {
   if (newValue.selectedDate && eduFProfile.value) {
     // @TODO: função para carregar a listagem de alunos
+    students.value = await enrollmentService.getClassroomStudents(eduFProfile.value.classroomId)
     isContentSaved.value.card = false
   }
   else {
     // @TODO: metodo para limpar a listagem
+    students.value = undefined
   }
 })
 
@@ -36,10 +42,11 @@ watch(eduFProfile, async (newValue) => {
   }
   if (newValue.classroomId && selectedDayInfo.value?.selectedDate) {
     // @TODO: Função para carregar a listagem dos alunos
+    students.value = await enrollmentService.getClassroomStudents(newValue.classroomId)
   }
   else {
     // @TODO: metodo para limpar a listagem
-
+    students.value = undefined
   }
 })
 </script>
@@ -48,44 +55,55 @@ watch(eduFProfile, async (newValue) => {
   <ContentLayout>
     <EduFilterProfile :discipline="false" @update:filtered-ocupation="($event) => eduFProfile = $event" />
     <h3>
-      <ion-text color="secondary" class="ion-content ion-padding-bottom" style="display: flex; align-items: center;">
+      <IonText color="secondary" class="ion-content ion-padding-bottom" style="display: flex; align-items: center;">
         <IonIcon color="secondary" style="margin-right: 1%;" aria-hidden="true" :icon="calendarOutline" />
         Frequência diária
-      </ion-text>
+      </IonText>
     </h3>
     <EduCalendar v-model="selectedDayInfo" :teacher-id="eduFProfile?.teacherId" />
 
+    <IonCard v-if="false" color="success">
+      <IonCardContent>
+        <IonText style="display: flex;">
+          <IonIcon size="small" style="margin-top: auto; margin-bottom: auto;" :icon="checkmarkCircleOutline" />
+          <span style="margin-top: auto; margin-bottom: auto; margin-left: 5px;">
+            Frequência do dia já foi registrada
+          </span>
+        </IonText>
+      </IonCardContent>
+    </IonCard>
     <IonAccordionGroup v-if="selectedDayInfo?.selectedDate" class="ion-content" expand="inset">
-      <IonAccordion v-for="(n, i) in 4" :key="i" :value="`${i}`">
-        <IonItem slot="header" color="light">
-          <IonLabel>Aluno Fulando da Silva - {{ n }}</IonLabel>
+      <IonAccordion v-for="(s, i) in students" :key="i" :value="`${i}`" class="no-border-accordion">
+        <IonItem slot="header">
+          <IonLabel>
+            <IonText color="secondary">
+              {{ s.name }}
+            </IonText>
+          </IonLabel>
         </IonItem>
         <div slot="content" class="ion-padding">
-          <pre>
-            radioBtn: {{ radioBtn }}
-          </pre>
-          <ion-row>
-            <IonRadioGroup v-model="radioBtn">
-              <IonRadio style="padding-right: 24px;" :value="true">
+          <IonRow>
+            <IonRadioGroup v-model="radioBtn" style="color: var(--ion-color-secondary);">
+              <IonRadio label-placement="end" color="secondary" style="padding-right: 24px;" :value="true">
                 Presente
               </IonRadio>
-              <IonRadio :value="false">
+              <IonRadio label-placement="end" color="secondary" :value="false">
                 Ausente
               </IonRadio>
             </IonRadioGroup>
-          </ion-row>
+          </IonRow>
         </div>
       </IonAccordion>
     </IonAccordionGroup>
-    <IonCard v-else>
+    <IonCard v-else color="info">
       <IonCardHeader>
         <IonCardTitle>Selecione a turma e dia</IonCardTitle>
       </IonCardHeader>
 
       <IonCardContent>
-        <ion-text color="primary">
+        <IonText>
           Olá, por favor selecione qual a <b>turma</b> e em qual <b>dia</b> você dejesa fazer o lançamento de frequência
-        </ion-text>
+        </IonText>
       </IonCardContent>
     </IonCard>
   </ContentLayout>
@@ -103,5 +121,13 @@ ion-content {
 ion-accordion-group {
   margin-inline: 0 !important;
   margin-top: 16px;
+}
+
+.no-border-accordion::part(content) {
+  border: none;
+}
+
+.no-border-accordion::part(header) {
+  border: none;
 }
 </style>
