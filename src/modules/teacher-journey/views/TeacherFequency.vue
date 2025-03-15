@@ -25,10 +25,8 @@ const frequencyToSave = ref()
 const checkboxModal = ref({ modal: false, quantifiedPresence: undefined as any })
 const selectedStudent = ref()
 
-const radioBtn = ref(true)
-
 const justifyOptions = ref([{ name: 'Gravidês', id: 1 }, { name: 'Atestado médico', id: 2 }, { name: 'Transporte escolar ausente', id: 2 }])
-
+const cleanChecks = ref(false)
 const isContentSaved = ref({ card: false, saved: undefined as any })
 
 const selectedDayInfo = ref()
@@ -92,6 +90,8 @@ watch(eduFProfile, async (newValue) => {
 
 watch(selectedStudent, () => {
   checkboxModal.value.quantifiedPresence = undefined
+  cleanChecks.value = true
+  frequencyToSave.value.quantifiedPresence = undefined
 })
 
 watch(checkboxModal, (newValue) => {
@@ -136,10 +136,10 @@ watch(checkboxModal, (newValue) => {
 
     <pre>
       <!-- dados a serem enviados -->
-      frequencyToSave: {{ frequencyToSave?.at(0) }}
+      frequencyToSave: {{ frequencyToSave?.slice(0, 2) }}
     </pre>
 
-    <FrequencyMultiSelect v-model="checkboxModal" :checkbox-modal="checkboxModal?.modal" />
+    <FrequencyMultiSelect v-model="checkboxModal" :checkbox-modal="checkboxModal?.modal" :clean-checks="cleanChecks" @update:clean="($event) => cleanChecks = $event" />
 
     <IonAccordionGroup v-if="selectedDayInfo?.selectedDate && Array.isArray(frequencyToSave) && frequencyToSave.length > 0" class="ion-content" expand="inset">
       <IonAccordion v-for="(s, i) in frequencyToSave" :key="i" :value="`${i}`" class="no-border-accordion">

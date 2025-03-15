@@ -6,28 +6,29 @@ import { computed, ref, watch } from 'vue'
 
 interface Props {
   checkboxModal: boolean
+  cleanChecks: boolean
 }
 
 const props = defineProps<Props>()
 
-const emits = defineEmits(['update:modelValue'])
-
-const startValue = ref(false)
+const emits = defineEmits(['update:modelValue', 'update:clean'])
 
 const classesPerDay = ref([{
   name: '1º aula',
-  absence: startValue.value,
+  absence: false,
 }, {
   name: '2º aula',
-  absence: startValue.value,
+  absence: false,
 }, {
   name: '3º aula',
-  absence: startValue.value,
+  absence: false,
 }])
 
-watch(() => props.checkboxModal, (newValue) => {
-  if (newValue === true) {
-    classesPerDay.value.map((i: any) => {
+watch(() => props.cleanChecks, (newValue) => {
+  emits('update:clean', false)
+
+  if (newValue) {
+    classesPerDay.value = classesPerDay.value.map((i: any) => {
       return { ...i, absence: false }
     })
   }
