@@ -80,6 +80,7 @@ export default class ScheduleService extends BaseService<Schedule> {
             `,
       )
       .eq('teacherId', teacherId)
+      .order('start')
 
     if (error) {
       throw new Error(`Erro ao buscar horários: ${error.message}`)
