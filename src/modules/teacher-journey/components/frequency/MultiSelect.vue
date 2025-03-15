@@ -9,11 +9,33 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+
 const emits = defineEmits(['update:modelValue'])
+
+const startValue = ref(false)
+
+const classesPerDay = ref([{
+  name: '1º aula',
+  absence: startValue.value,
+}, {
+  name: '2º aula',
+  absence: startValue.value,
+}, {
+  name: '3º aula',
+  absence: startValue.value,
+}])
+
+watch(() => props.checkboxModal, (newValue) => {
+  if (newValue === true) {
+    classesPerDay.value.map((i: any) => {
+      return { ...i, absence: false }
+    })
+  }
+})
 </script>
 
 <template>
-  <IonModal id="quantify-modal" class="ion-padding" :is-open="props.checkboxModal" @ion-modal-did-dismiss="emits('update:modelValue', false)">
+  <IonModal id="quantify-modal" class="ion-padding" :is-open="props.checkboxModal" @ion-modal-did-dismiss="emits('update:modelValue', { modal: false, quantifiedPresence: classesPerDay })">
     <IonCard v-if="true" class="ion-no-padding ion-no-margin">
       <IonCardHeader color="secondary">
         <div style="display: flex; align-items: center; height: 15px;">
@@ -23,9 +45,9 @@ const emits = defineEmits(['update:modelValue'])
         </div>
       </IonCardHeader>
       <div class="ion-padding-top ion-padding-horizontal">
-        <IonCheckbox v-for="x in 3" :key="x" class="ion-margin-end ion-margin-bottom" label-placement="end">
+        <IonCheckbox v-for="(x, index) in classesPerDay" :key="index" v-model="x.absence" class="ion-margin-end ion-margin-bottom" label-placement="end">
           <IonText color="secondary">
-            {{ x }}º aula
+            {{ x.name }}
           </IonText>
         </IonCheckbox>
       </div>
@@ -33,11 +55,12 @@ const emits = defineEmits(['update:modelValue'])
         <div class="ion-margin" style="display: flex; justify-content: right;">
           <!-- @TODO: construir função para ao clicar em salvar inserir uma copia do registro de conteúdo atual para a turma selecionada -->
           <IonButton
-            color="secondary" size="small" style="text-transform: capitalize;"
+            color="secondary"
+            size="small" style="text-transform: capitalize;" @click="emits('update:modelValue', { modal: false, quantifiedPresence: classesPerDay })"
           >
             Salvar
           </IonButton>
-          <IonButton fill="clear" color="danger" size="small" style="text-transform: capitalize;" @click="emits('update:modelValue', false)">
+          <IonButton fill="clear" color="danger" size="small" style="text-transform: capitalize;" @click="emits('update:modelValue', { modal: false })">
             Cancelar
           </IonButton>
         </div>

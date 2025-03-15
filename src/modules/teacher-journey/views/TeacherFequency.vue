@@ -22,7 +22,8 @@ const students = ref()
 
 const frequencyToSave = ref()
 
-const checkboxModal = ref(false)
+const checkboxModal = ref({ modal: false, quantifiedPresence: undefined as any })
+const selectedStudent = ref()
 
 const radioBtn = ref(true)
 
@@ -89,11 +90,26 @@ watch(eduFProfile, async (newValue) => {
   }
 })
 
-async function saveFrequency(stdnt: any[]) {
-  stdnt.forEach((element) => {
+watch(selectedStudent, () => {
+  checkboxModal.value.quantifiedPresence = undefined
+})
 
-  })
-}
+watch(checkboxModal, (newValue) => {
+  if (newValue.quantifiedPresence) {
+    frequencyToSave.value = frequencyToSave.value.map((i: any) => {
+      if (i.studentId === selectedStudent.value) {
+        return { ...i, frequencies: checkboxModal.value.quantifiedPresence }
+      }
+      else {
+        return i
+      }
+    })
+  }
+})
+
+// async function saveFrequency() {
+//   return void 0
+// }
 </script>
 
 <template>
@@ -118,7 +134,12 @@ async function saveFrequency(stdnt: any[]) {
       </IonCardContent>
     </IonCard>
 
-    <FrequencyMultiSelect v-model="checkboxModal" :checkbox-modal="checkboxModal" />
+    <pre>
+      <!-- dados a serem enviados -->
+      frequencyToSave: {{ frequencyToSave?.at(0) }}
+    </pre>
+
+    <FrequencyMultiSelect v-model="checkboxModal" :checkbox-modal="checkboxModal?.modal" />
 
     <IonAccordionGroup v-if="selectedDayInfo?.selectedDate && Array.isArray(frequencyToSave) && frequencyToSave.length > 0" class="ion-content" expand="inset">
       <IonAccordion v-for="(s, i) in frequencyToSave" :key="i" :value="`${i}`" class="no-border-accordion">
@@ -139,7 +160,7 @@ async function saveFrequency(stdnt: any[]) {
                 Ausente
               </IonRadio>
             </IonRadioGroup>
-            <IonButton v-if="!s.presence" size="small" style="margin-top: auto; margin-bottom: auto; margin-left: auto;" shape="round" @click="checkboxModal = true">
+            <IonButton v-if="!s.presence" size="small" style="margin-top: auto; margin-bottom: auto; margin-left: auto;" shape="round" @click="() => { selectedStudent = s.studentId; checkboxModal.modal = true }">
               <IonIcon slot="icon-only" :icon="layers" />
             </IonButton>
 
