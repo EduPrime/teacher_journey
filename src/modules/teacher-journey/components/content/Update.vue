@@ -3,20 +3,19 @@ import showToast from '@/utils/toast-alert'
 import { IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonIcon, IonModal, IonSelect, IonSelectOption, IonTextarea } from '@ionic/vue'
 import { save } from 'ionicons/icons'
 import { DateTime } from 'luxon'
-import { defineProps,  onUpdated, ref, watch } from 'vue'
+import { defineProps, onUpdated, ref, watch } from 'vue'
 import BNCCService from '../../services/BNCCService'
 import ContentService from '../../services/ContentService'
 
 interface AvailableDisciplines { id: string, name: string, classroomId: string }
 interface Props {
   availableDisciplines: AvailableDisciplines[]
-  // teacherId: string
   classroomId: string
-  // selectedDay: string
   // disciplineId?: string
   seriesId: string
   registry: any
   isUpdateModalOpen: boolean
+  frequency: string
 }
 
 const props = defineProps<Props>()
@@ -96,25 +95,24 @@ async function saveContent() {
   const data = await contentService.updateContent({ ...filledContent.value })
   emits('update:modelValue', false)
 
-  showToast('Conteúdo criado com sucesso', 'top', 'success')
+  showToast('Conteúdo editado com sucesso', 'top', 'success')
 }
 
 function luxonFormatDate(dateString: string) {
   const date = DateTime.fromISO(dateString)
   return date.setLocale('pt-BR').toFormat('dd/MM/yyyy')
 }
-
 </script>
 
 <template>
-  <IonModal id="update-modal" class="ion-content" :is-open="props.isUpdateModalOpen" @ion-modal-did-dismiss="() => { modalOpened = false; emits('update:modelValue', false) }"> 
+  <IonModal id="update-modal" class="ion-content" :is-open="props.isUpdateModalOpen" @ion-modal-did-dismiss="() => { modalOpened = false; emits('update:modelValue', false) }">
     <IonCard id="EditarRegistroFormulario" class="ion-no-padding ion-no-margin">
       <IonCardHeader color="secondary">
         <div style="display: flex; align-items: center; height: 15px;">
-            <IonIcon class="ion-padding-end" :icon="save" />
-            <IonCardTitle style="font-size: medium;">
+          <IonIcon class="ion-padding-end" :icon="save" />
+          <IonCardTitle style="font-size: medium;">
             Editando {{ props.registry?.classroom }} - {{ luxonFormatDate(props.registry?.date) }}
-            </IonCardTitle>
+          </IonCardTitle>
         </div>
       </IonCardHeader>
 
@@ -127,6 +125,7 @@ function luxonFormatDate(dateString: string) {
             label-placement="floating"
             fill="outline"
             cancel-text="Cancelar"
+            :disabled="props.frequency === 'disciplina'"
             :multiple="true"
             @ion-change="getBNCCByDisciplines($event.detail.value)"
           >

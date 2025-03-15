@@ -221,6 +221,8 @@ function changeSelectedToUpdate(current: any): void {
         :selected-day="selectedDayInfo?.selectedDate"
         :teacher-id="eduFProfile.teacherId" :classroom-id="eduFProfile?.classroomId"
         :available-disciplines="schedules?.availableDisciplines"
+        :frequency="eduFProfile.frequency"
+        :discipline-id="eduFProfile.disciplineId"
       />
 
       <ContentUpdate
@@ -230,6 +232,7 @@ function changeSelectedToUpdate(current: any): void {
         :series-id="eduFProfile?.seriesId"
         :classroom-id="eduFProfile?.classroomId"
         :available-disciplines="schedules?.availableDisciplines"
+        :frequency="eduFProfile.frequency"
       />
 
       <div v-if="registros.length > 0" id="NovoRegistro" style="display: flex; justify-content: flex-end;" class="ion-content">

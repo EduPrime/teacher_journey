@@ -8,6 +8,7 @@ export default class ScheduleService extends BaseService<Schedule> {
   constructor() {
     super(table)
   }
+
   async countSchools(teacherId: string | null) {
     const { data, error } = await this.client
       .from('schedule')
@@ -96,33 +97,37 @@ export default class ScheduleService extends BaseService<Schedule> {
         .from('schedule')
         .select(`
             classroomId
-            `
-        ).eq('teacherId', teacherId)
+            `,
+        )
+        .eq('teacherId', teacherId)
 
       const infoSerie = await this.client
         .from('classroom')
         .select(`
             seriesId
-            `
-        ).eq('id', infoClass.data?.[0]?.classroomId)
+            `,
+        )
+        .eq('id', infoClass.data?.[0]?.classroomId)
 
       const infoCourse = await this.client
         .from('series')
         .select(`
             courseId
-            `
-        ).eq('id', infoSerie.data?.[0]?.seriesId)
+            `,
+        )
+        .eq('id', infoSerie.data?.[0]?.seriesId)
 
       const infoCourseName = await this.client
         .from('course')
         .select(`
             name
-            `
-        ).eq('id', infoCourse.data?.[0]?.courseId)
+            `,
+        )
+        .eq('id', infoCourse.data?.[0]?.courseId)
 
       return infoCourseName.data?.[0]?.name
-
-    } catch (error: any) {
+    }
+    catch (error: any) {
       throw new Error(`Erro ao buscar curso: ${error.message}`)
     }
   }
