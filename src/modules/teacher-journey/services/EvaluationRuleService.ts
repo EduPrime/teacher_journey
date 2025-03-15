@@ -12,7 +12,7 @@ export default class EvaluationRuleService extends BaseService<EvaluationRule> {
     const { data, error } = await this.client
       .from(table)
       .select('*')
-      .eq('courseId',courseId)
+      .eq('courseId', courseId)
 
     if (error) {
       throw new Error(`Erro ao trazer as regras: ${error.message}`)

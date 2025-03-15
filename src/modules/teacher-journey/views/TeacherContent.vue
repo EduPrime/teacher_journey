@@ -2,7 +2,7 @@
 import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
 import EduCalendar from '@/components/WeekDayPicker.vue'
-import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonIcon, IonItem, IonLabel, IonAlert } from '@ionic/vue'
+import { IonAccordion, IonAccordionGroup, IonAlert, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonIcon, IonItem, IonLabel } from '@ionic/vue'
 import { add, calendarOutline, save } from 'ionicons/icons'
 import { ref, watch } from 'vue'
 import ContentCopy from '../components/content/Copy.vue'
@@ -53,7 +53,6 @@ const registroToDelete = ref<string | null>(null)
 const setCopyModalOpen = (open: boolean) => (isCopyModalOpen.value = open)
 const setUpdateModalOpen = (open: boolean) => (isUpdateModalOpen.value = open)
 const registros = ref<Registro[]>([])
-
 
 watch(selectedDayInfo, async (newValue) => {
   if (newValue.selectedDate && eduFProfile.value) {
@@ -135,7 +134,7 @@ function changeSelectedToUpdate(current: any): void {
 
 <template>
   <ContentLayout>
-    <EduFilterProfile :discipline="false" @update:filtered-ocupation="($event) => eduFProfile = $event" />
+    <EduFilterProfile @update:filtered-ocupation="($event) => eduFProfile = $event" />
     <h3>
       <ion-text color="secondary" class="ion-content ion-padding-bottom" style="display: flex; align-items: center;">
         <IonIcon color="secondary" style="margin-right: 1%;" aria-hidden="true" :icon="calendarOutline" />
@@ -246,7 +245,7 @@ function changeSelectedToUpdate(current: any): void {
 
       <IonCardContent> Olá, por favor selecione qual a turma e em qual dia você dejesa fazer o preenchimento </IonCardContent>
     </IonCard>
-    
+
     <IonAlert
       :is-open="showAlert"
       header="Deseja apagar o conteúdo?"
@@ -254,12 +253,12 @@ function changeSelectedToUpdate(current: any): void {
         {
           text: 'Não',
           role: 'cancel',
-          handler: () => { showAlert = false }
+          handler: () => { showAlert = false },
         },
         {
           text: 'Sim',
-          handler: confirmDeleteContent
-        }
+          handler: confirmDeleteContent,
+        },
       ]"
     />
   </ContentLayout>
