@@ -1,5 +1,6 @@
 import type { Attendance } from '@prisma/client'
 import BaseService from '@/services/BaseService'
+import type { Frequency, AttendanceWithFrequencies } from '../types/types'
 
 const table = 'attendance' as const
 
@@ -8,7 +9,7 @@ export default class EnrollmentService extends BaseService<Attendance> {
     super(table)
   }
 
-  async createAttendance(frequencies: Attendance[]) {
+  async createAttendance(frequencies: AttendanceWithFrequencies[]) {
     try {
       const attendanceRecords = []
 
@@ -19,6 +20,7 @@ export default class EnrollmentService extends BaseService<Attendance> {
           .insert([{
             date: frequency.date,
             studentId: frequency.studentId,
+            classroomId: frequency.classroomId,
             presence: frequency.presence,
             enrollmentId: frequency.enrollmentId,
             disciplineId: frequency.disciplineId,
@@ -38,14 +40,13 @@ export default class EnrollmentService extends BaseService<Attendance> {
         const attendanceId = attendanceData.id
 
         // Insere os registros relacionados na tabela numMissed
-        const numMissedRecords = frequency.numMissed.map(frequency => ({
+        const numMissedRecords = frequency.frequencies.map((f: Frequency) => ({
           attendanceId,
-          name: frequency.name,
-          absent: frequency.absence,
+          name: f.name,
+          absent: f.absence,
         }))
-
         const { error: numMissedError } = await this.client
-          .from('numMissed')
+          .from('nummissed')
           .insert(numMissedRecords)
 
         if (numMissedError) {
@@ -58,7 +59,7 @@ export default class EnrollmentService extends BaseService<Attendance> {
       return attendanceRecords
     }
     catch (error) {
-      throw new Error(`Erro ao inserir frequência: ${error.message}`)
+      throw new Error(`Erro ao inserir frequência: ${error}`)
     }
   }
 

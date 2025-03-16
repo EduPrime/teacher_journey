@@ -4,15 +4,19 @@ import ContentLayout from '@/components/theme/ContentLayout.vue'
 import EduCalendar from '@/components/WeekDayPicker.vue'
 import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonIcon, IonItem, IonLabel, IonRadio, IonRadioGroup, IonRow, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
 import { calendarOutline, checkmarkCircleOutline, layers } from 'ionicons/icons'
-import { ref, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 
 import FrequencyMultiSelect from '../components/frequency/MultiSelect.vue'
 
 import EnrollmentService from '../services/EnrollmentService'
 import ScheduleService from '../services/ScheduleService'
+import AttendanceService from '../services/AttendanceService'
 
 const scheduleService = new ScheduleService()
 const enrollmentService = new EnrollmentService()
+const attendanceService = new AttendanceService()
+
+import type { FrequencyToSave } from '../types/types'
 
 const eduFProfile = ref()
 
@@ -20,12 +24,12 @@ const schedules = ref()
 
 const students = ref()
 
-const frequencyToSave = ref()
+const frequencyToSave = ref(<FrequencyToSave[]>[])
 
 const checkboxModal = ref({ modal: false, quantifiedPresence: undefined as any })
 const selectedStudent = ref()
 
-const justifyOptions = ref([{ name: 'Gravidês', id: 1 }, { name: 'Atestado médico', id: 2 }, { name: 'Transporte escolar ausente', id: 2 }])
+const justifyOptions = ref([{ name: 'Gravidez', id: 1 }, { name: 'Atestado médico', id: 2 }, { name: 'Transporte escolar ausente', id: 2 }])
 const cleanChecks = ref(false)
 const isContentSaved = ref({ card: false, saved: undefined as any })
 
@@ -48,13 +52,13 @@ watch(selectedDayInfo, async (newValue) => {
         date: selectedDayInfo.value?.selectedDate,
         presence: true,
         frequencies: [],
-      }
+      } as FrequencyToSave
     })
   }
   else {
     // @TODO: metodo para limpar a listagem
     students.value = undefined
-    frequencyToSave.value = undefined
+    frequencyToSave.value = []
   }
 })
 
@@ -78,20 +82,20 @@ watch(eduFProfile, async (newValue) => {
         presence: true,
         justification: undefined as string | undefined,
         frequencies: [],
-      }
+      } as FrequencyToSave
     })
   }
   else {
     // @TODO: metodo para limpar a listagem
     students.value = undefined
-    frequencyToSave.value = undefined
+    frequencyToSave.value = []
   }
 })
 
 watch(selectedStudent, () => {
   checkboxModal.value.quantifiedPresence = undefined
   cleanChecks.value = true
-  frequencyToSave.value.quantifiedPresence = undefined
+  // frequencyToSave.value.quantifiedPresence = undefined
 })
 
 watch(checkboxModal, (newValue) => {
@@ -110,6 +114,38 @@ watch(checkboxModal, (newValue) => {
 // async function saveFrequency() {
 //   return void 0
 // }
+
+// Benhur até agora vejo que devemos mandar neste formato
+onMounted(async () => {
+  const data = attendanceService.createAttendance(
+    [{
+      id: 'some-id',
+      date: new Date('2025-03-17'),
+      presence: false,
+      studentId: '03f22c85-729a-4916-a500-992616003bc1', // João da Silva
+      classroomId: '0c086508-d50b-49b6-afce-0c146643129d', // 1º Ano A
+      enrollmentId: 'fc10830c-bd72-41fe-b1ab-c23aa6c67731', // João da Silva
+      justificationId: '1e222b35-25da-430e-8bbf-03218baccbd7', // Doença
+      stageId: '149665ec-a230-439e-aeb2-4cb7bfc8ebb4', // etapa 1
+      schoolId: 'd488e90e-327b-4ca7-ad45-888c65d2a3ab', // Escola Municipal de Araripina
+      frequencies: [
+        {
+          name: '1º aula',
+          absence: true,
+        },
+        {
+          name: '2º aula',
+          absence: true,
+        },
+        {
+          name: '3º aula',
+          absence: true,
+        }
+      ]
+    }]
+  )
+  console.log('onMounted insert Attendance ',data)
+})
 </script>
 
 <template>
