@@ -144,7 +144,7 @@ onMounted(async () => {
       ],
     }],
   )
-  // console.log('onMounted insert Attendance ', data)
+  console.log('onMounted insert Attendance ', data)
 })
 </script>
 
