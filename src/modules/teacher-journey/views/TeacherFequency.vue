@@ -22,7 +22,7 @@ const justificationService = new JustificationService()
 
 const eduFProfile = ref()
 
-const schedules = ref()
+const schedules = ref({ data: [], count: 0 })
 
 const students = ref()
 
@@ -70,7 +70,7 @@ watch(selectedDayInfo, async (newValue) => {
 
 watch(eduFProfile, async (newValue) => {
   if (newValue.teacherId) {
-    schedules.value = await scheduleService.getSchedules(newValue.teacherId)
+    // schedules.value = await scheduleService.getSchedules(newValue.teacherId)
   }
   if (newValue.classroomId && selectedDayInfo.value?.selectedDate) {
     // @TODO: Função para carregar a listagem dos alunos
@@ -100,7 +100,8 @@ watch(eduFProfile, async (newValue) => {
 // Watcher para atualizar schedules quando eduFProfile ou selectedDayInfo mudarem
 watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo]) => {
   if (newEduFProfile?.teacherId && newSelectedDayInfo?.selectedDate) {
-    schedules.value = await scheduleService.getScheduleTeacherDay(newEduFProfile.teacherId, newSelectedDayInfo.selectedDate, newEduFProfile.classroomId, newEduFProfile.disciplineId)
+    const fullWeekday = getFullWeekday(newSelectedDayInfo.weekday)
+    schedules.value = await scheduleService.getScheduleTeacherDay(newEduFProfile.teacherId, fullWeekday, newEduFProfile.classroomId, newEduFProfile.disciplineId)
 
     console.log('schedules', schedules.value)
   }
@@ -125,40 +126,61 @@ watch(checkboxModal, (newValue) => {
   }
 })
 
+function getFullWeekday(abbreviatedWeekday: string): string {
+  switch (abbreviatedWeekday) {
+    case 'MON':
+      return 'MONDAY'
+    case 'TUE':
+      return 'TUESDAY'
+    case 'WED':
+      return 'WEDNESDAY'
+    case 'THU':
+      return 'THURSDAY'
+    case 'FRI':
+      return 'FRIDAY'
+    case 'SAT':
+      return 'SATURDAY'
+    case 'SUN':
+      return 'SUNDAY'
+    default:
+      return abbreviatedWeekday
+  }
+}
+
 // async function saveFrequency() {
 //   return void 0
 // }
 
 // Benhur até agora vejo que devemos mandar neste formato
-onMounted(async () => {
-  const data = attendanceService.createAttendance(
-    [{
-      id: 'some-id',
-      date: new Date('2025-03-17'),
-      presence: false,
-      studentId: '03f22c85-729a-4916-a500-992616003bc1', // João da Silva
-      classroomId: '0c086508-d50b-49b6-afce-0c146643129d', // 1º Ano A
-      enrollmentId: 'fc10830c-bd72-41fe-b1ab-c23aa6c67731', // João da Silva
-      justificationId: '1e222b35-25da-430e-8bbf-03218baccbd7', // Doença
-      stageId: '149665ec-a230-439e-aeb2-4cb7bfc8ebb4', // etapa 1
-      schoolId: 'd488e90e-327b-4ca7-ad45-888c65d2a3ab', // Escola Municipal de Araripina
-      frequencies: [
-        {
-          name: '1º aula',
-          absence: true,
-        },
-        {
-          name: '2º aula',
-          absence: true,
-        },
-        {
-          name: '3º aula',
-          absence: true,
-        },
-      ],
-    }],
-  )
-})
+// onMounted(async () => {
+//   const data = attendanceService.createAttendance(
+//     [{
+//       id: 'some-id',
+//       date: new Date('2025-03-17'),
+//       presence: false,
+//       studentId: '03f22c85-729a-4916-a500-992616003bc1', // João da Silva
+//       classroomId: '0c086508-d50b-49b6-afce-0c146643129d', // 1º Ano A
+//       enrollmentId: 'fc10830c-bd72-41fe-b1ab-c23aa6c67731', // João da Silva
+//       justificationId: '1e222b35-25da-430e-8bbf-03218baccbd7', // Doença
+//       stageId: '149665ec-a230-439e-aeb2-4cb7bfc8ebb4', // etapa 1
+//       schoolId: 'd488e90e-327b-4ca7-ad45-888c65d2a3ab', // Escola Municipal de Araripina
+//       frequencies: [
+//         {
+//           name: '1º aula',
+//           absence: true,
+//         },
+//         {
+//           name: '2º aula',
+//           absence: true,
+//         },
+//         {
+//           name: '3º aula',
+//           absence: true,
+//         },
+//       ],
+//     }],
+//   )
+// })
 </script>
 
 <template>
@@ -188,7 +210,7 @@ onMounted(async () => {
     <!-- frequencyToSave: {{ frequencyToSave?.slice(0, 2) }}
     </pre> -->
 
-    <FrequencyMultiSelect v-model="checkboxModal" :checkbox-modal="checkboxModal?.modal" :clean-checks="cleanChecks" @update:clean="($event) => cleanChecks = $event" />
+    <FrequencyMultiSelect v-model="checkboxModal" :checkbox-modal="checkboxModal?.modal" :clean-checks="cleanChecks" :num-classes="schedules.count" @update:clean="($event) => cleanChecks = $event" />
 
     <IonAccordionGroup v-if="selectedDayInfo?.selectedDate && Array.isArray(frequencyToSave) && frequencyToSave.length > 0" class="ion-content" expand="inset">
       <IonAccordion v-for="(s, i) in frequencyToSave" :key="i" :value="`${i}`" class="no-border-accordion">

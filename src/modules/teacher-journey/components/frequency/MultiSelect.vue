@@ -14,16 +14,19 @@ const props = defineProps<Props>()
 
 const emits = defineEmits(['update:modelValue', 'update:clean'])
 
-const classesPerDay = ref([{
-  name: '1º aula',
-  absence: false,
-}, {
-  name: '2º aula',
-  absence: false,
-}, {
-  name: '3º aula',
-  absence: false,
-}])
+interface ClassPerDay {
+  name: string
+  absence: boolean
+}
+
+const classesPerDay = ref<ClassPerDay[]>([])
+
+watch(() => props.numClasses, (newValue) => {
+  classesPerDay.value = Array.from({ length: newValue }, (_, i) => ({
+    name: `${i + 1}º aula`,
+    absence: false,
+  }))
+})
 
 watch(() => props.cleanChecks, (newValue) => {
   emits('update:clean', false)
