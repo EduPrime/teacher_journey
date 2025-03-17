@@ -1,22 +1,22 @@
 <script setup lang="ts">
+import type { FrequencyToSave } from '../types/types'
 import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
 import EduCalendar from '@/components/WeekDayPicker.vue'
 import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonIcon, IonItem, IonLabel, IonRadio, IonRadioGroup, IonRow, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
 import { calendarOutline, checkmarkCircleOutline, layers } from 'ionicons/icons'
+
 import { onMounted, ref, watch } from 'vue'
 
 import FrequencyMultiSelect from '../components/frequency/MultiSelect.vue'
-
-import EnrollmentService from '../services/EnrollmentService'
-import ScheduleService from '../services/ScheduleService'
 import AttendanceService from '../services/AttendanceService'
+import EnrollmentService from '../services/EnrollmentService'
+
+import ScheduleService from '../services/ScheduleService'
 
 const scheduleService = new ScheduleService()
 const enrollmentService = new EnrollmentService()
 const attendanceService = new AttendanceService()
-
-import type { FrequencyToSave } from '../types/types'
 
 const eduFProfile = ref()
 
@@ -24,7 +24,7 @@ const schedules = ref()
 
 const students = ref()
 
-const frequencyToSave = ref(<FrequencyToSave[]>[])
+const frequencyToSave = ref<FrequencyToSave[]>()
 
 const checkboxModal = ref({ modal: false, quantifiedPresence: undefined as any })
 const selectedStudent = ref()
@@ -58,7 +58,7 @@ watch(selectedDayInfo, async (newValue) => {
   else {
     // @TODO: metodo para limpar a listagem
     students.value = undefined
-    frequencyToSave.value = []
+    frequencyToSave.value = undefined
   }
 })
 
@@ -88,14 +88,14 @@ watch(eduFProfile, async (newValue) => {
   else {
     // @TODO: metodo para limpar a listagem
     students.value = undefined
-    frequencyToSave.value = []
+    frequencyToSave.value = undefined
   }
 })
 
 watch(selectedStudent, () => {
+  frequencyToSave.value.quantifiedPresence = undefined
   checkboxModal.value.quantifiedPresence = undefined
   cleanChecks.value = true
-  // frequencyToSave.value.quantifiedPresence = undefined
 })
 
 watch(checkboxModal, (newValue) => {
@@ -140,11 +140,11 @@ onMounted(async () => {
         {
           name: '3º aula',
           absence: true,
-        }
-      ]
-    }]
+        },
+      ],
+    }],
   )
-  console.log('onMounted insert Attendance ',data)
+  // console.log('onMounted insert Attendance ', data)
 })
 </script>
 
