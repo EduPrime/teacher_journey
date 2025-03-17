@@ -92,6 +92,33 @@ export default class ScheduleService extends BaseService<Schedule> {
     return data
   }
 
+  async getScheduleTeacherDay(teacherId: string, weekday: string, classroomId: string, disciplineId: string) {
+    const { data, error } = await this.client
+      .from('schedule')
+      .select(`
+            *,
+            classroom:classroomId (id, name),
+            school:schoolId (name),
+            discipline:disciplineId (name)
+            `,
+      )
+      .eq('teacherId', teacherId)
+      .eq('weekday', weekday)
+      .eq('classroomId', classroomId)
+      .eq('disciplineId', disciplineId)
+      .order('start')
+
+    if (error) {
+      throw new Error(`Erro ao buscar total de aulas: ${error.message}`)
+    }
+    if (!data) {
+      throw new Error('Nenhuma aula encontrado')
+    }
+
+    const count = data.length
+    return { data, count }
+  }
+
   async getCourse(teacherId: string) {
     try {
       const infoClass = await this.client

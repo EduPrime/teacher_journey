@@ -97,6 +97,14 @@ watch(eduFProfile, async (newValue) => {
     frequencyToSave.value = undefined
   }
 })
+// Watcher para atualizar schedules quando eduFProfile ou selectedDayInfo mudarem
+watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo]) => {
+  if (newEduFProfile?.teacherId && newSelectedDayInfo?.selectedDate) {
+    schedules.value = await scheduleService.getScheduleTeacherDay(newEduFProfile.teacherId, newSelectedDayInfo.selectedDate, newEduFProfile.classroomId, newEduFProfile.disciplineId)
+
+    console.log('schedules', schedules.value)
+  }
+})
 
 watch(selectedStudent, () => {
   frequencyToSave.value.quantifiedPresence = undefined

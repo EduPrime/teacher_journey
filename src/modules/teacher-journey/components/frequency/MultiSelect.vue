@@ -7,6 +7,7 @@ import { computed, ref, watch } from 'vue'
 interface Props {
   checkboxModal: boolean
   cleanChecks: boolean
+  numClasses: number
 }
 
 const props = defineProps<Props>()
