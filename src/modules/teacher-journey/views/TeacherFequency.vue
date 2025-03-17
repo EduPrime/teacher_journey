@@ -150,7 +150,6 @@ onMounted(async () => {
       ],
     }],
   )
-  console.log('onMounted insert Attendance ', data)
 })
 </script>
 
@@ -163,7 +162,7 @@ onMounted(async () => {
         Frequência diária
       </IonText>
     </h3>
-    <EduCalendar v-model="selectedDayInfo" :teacher-id="eduFProfile?.teacherId" />
+    <EduCalendar v-model="selectedDayInfo" :teacher-id="eduFProfile?.teacherId" :current-classroom="eduFProfile?.classroomId" :current-discipline="eduFProfile?.disciplineId" />
 
     <IonCard v-if="false" color="success">
       <IonCardContent>
