@@ -11,12 +11,14 @@ import { onMounted, ref, watch } from 'vue'
 import FrequencyMultiSelect from '../components/frequency/MultiSelect.vue'
 import AttendanceService from '../services/AttendanceService'
 import EnrollmentService from '../services/EnrollmentService'
+import JustificationService from '../services/JustificationService'
 
 import ScheduleService from '../services/ScheduleService'
 
 const scheduleService = new ScheduleService()
 const enrollmentService = new EnrollmentService()
 const attendanceService = new AttendanceService()
+const justificationService = new JustificationService()
 
 const eduFProfile = ref()
 
@@ -30,7 +32,8 @@ const cancelModal = ref(false)
 const checkboxModal = ref({ modal: false, quantifiedPresence: undefined as any })
 const selectedStudent = ref()
 
-const justifyOptions = ref([{ name: 'Gravidez', id: 1 }, { name: 'Atestado médico', id: 2 }, { name: 'Transporte escolar ausente', id: 2 }])
+// const justification = ref([{ name: 'Gravidez', id: 1 }, { name: 'Atestado médico', id: 2 }, { name: 'Transporte escolar ausente', id: 2 }])
+const justifyOptions = ref()
 const cleanChecks = ref(false)
 const isContentSaved = ref({ card: false, saved: undefined as any })
 
@@ -38,6 +41,8 @@ const selectedDayInfo = ref()
 
 watch(selectedDayInfo, async (newValue) => {
   if (newValue.selectedDate && eduFProfile.value) {
+    justifyOptions.value = await justificationService.getJustifications()
+
     // @TODO: função para carregar a listagem de alunos
     students.value = await enrollmentService.getClassroomStudents(eduFProfile.value.classroomId)
     isContentSaved.value.card = false

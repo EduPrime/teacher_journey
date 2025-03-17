@@ -1,6 +1,6 @@
 import type { Attendance } from '@prisma/client'
+import type { AttendanceWithFrequencies, Frequency } from '../types/types'
 import BaseService from '@/services/BaseService'
-import type { Frequency, AttendanceWithFrequencies } from '../types/types'
 
 const table = 'attendance' as const
 
@@ -46,7 +46,7 @@ export default class EnrollmentService extends BaseService<Attendance> {
           absent: f.absence,
         }))
         const { error: numMissedError } = await this.client
-          .from('nummissed')
+          .from('numMissed')
           .insert(numMissedRecords)
 
         if (numMissedError) {
