@@ -3,7 +3,7 @@ import type { FrequencyToSave } from '../types/types'
 import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
 import EduCalendar from '@/components/WeekDayPicker.vue'
-import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonIcon, IonItem, IonLabel, IonRadio, IonRadioGroup, IonRow, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
+import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCol, IonGrid, IonIcon, IonItem, IonLabel, IonRadio, IonRadioGroup, IonRow, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
 import { calendarOutline, checkmarkCircleOutline, layers } from 'ionicons/icons'
 
 import { onMounted, ref, watch } from 'vue'
@@ -25,6 +25,7 @@ const schedules = ref()
 const students = ref()
 
 const frequencyToSave = ref<FrequencyToSave[]>()
+const cancelModal = ref(false)
 
 const checkboxModal = ref({ modal: false, quantifiedPresence: undefined as any })
 const selectedStudent = ref()
@@ -170,10 +171,10 @@ onMounted(async () => {
       </IonCardContent>
     </IonCard>
 
-    <pre>
-      <!-- dados a serem enviados -->
-      frequencyToSave: {{ frequencyToSave?.slice(0, 2) }}
-    </pre>
+    <!-- <pre> -->
+    <!-- dados a serem enviados -->
+    <!-- frequencyToSave: {{ frequencyToSave?.slice(0, 2) }}
+    </pre> -->
 
     <FrequencyMultiSelect v-model="checkboxModal" :checkbox-modal="checkboxModal?.modal" :clean-checks="cleanChecks" @update:clean="($event) => cleanChecks = $event" />
 
@@ -232,6 +233,50 @@ onMounted(async () => {
         </IonText>
       </IonCardContent>
     </IonCard>
+
+    <ion-modal id="cancel-modal" :is-open="cancelModal" trigger="open-cancel-dialog" class="ion-content" @ion-modal-did-dismiss="cancelModal = false">
+      <div class="wrapper">
+        <h1>Cancelar registro</h1>
+
+        <ion-list lines="none">
+          <IonItem :button="true" :detail="false" @click="dismiss()">
+            <IonLabel>Atenção ao confirmar todas as informações não salvas serão <b>excluidas</b> permanentemente. Deseja continuar?</IonLabel>
+          </IonItem>
+        </ion-list>
+        <div v-if="true">
+          <div class="ion-margin" style="display: flex; justify-content: right;">
+            <!-- @TODO: construir função para ao clicar em salvar inserir uma copia do registro de conteúdo atual para a turma selecionada -->
+            <IonButton
+              color="secondary"
+              style="text-transform: capitalize;" @click="cancelModal = false"
+            >
+              Confirmar
+            </IonButton>
+            <IonButton color="tertiary" size="small" style="text-transform: capitalize; margin-left: 10px;" @click="cancelModal = false">
+              Cancelar
+            </IonButton>
+          </div>
+        </div>
+      </div>
+    </ion-modal>
+    <template #footer>
+      <IonToolbar>
+        <IonGrid>
+          <IonRow>
+            <IonCol size="6">
+              <IonButton :disabled="false" color="danger" expand="full" @click="cancelModal = !cancelModal">
+                Cancelar
+              </IonButton>
+            </IonCol>
+            <IonCol size="6">
+              <IonButton :disabled="true" color="secondary" expand="full">
+                Salvar
+              </IonButton>
+            </IonCol>
+          </IonRow>
+        </IonGrid>
+      </IonToolbar>
+    </template>
   </ContentLayout>
 </template>
 
@@ -256,4 +301,21 @@ ion-accordion-group {
 .no-border-accordion::part(header) {
   border: none;
 }
+
+ion-modal#cancel-modal {
+    --width: 400px;
+    --min-width: 400px;
+    --min-width: 250px;
+    --height: fit-content;
+    --border-radius: 6px;
+    --box-shadow: 0 28px 48px rgba(0, 0, 0, 0.4);
+  }
+
+  ion-modal#cancel-modal h1 {
+    margin: 20px 20px 10px 20px;
+  }
+
+  ion-modal#cancel-modal .wrapper {
+    margin-bottom: 10px;
+  }
 </style>

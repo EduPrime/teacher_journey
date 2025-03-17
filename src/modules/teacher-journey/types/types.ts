@@ -19,20 +19,38 @@ export interface FrequencyToSave {
 }
 
 export interface AttendanceWithFrequencies {
+    id?: string;
     date: Date;
     presence: boolean;
+    teacherId: string;
     studentId: string;
     classroomId: string;
     enrollmentId: string;
+    disciplineId?: string;
     justificationId: string;
     stageId: string;
     schoolId: string;
-    frequencies: Frequency[];
-    id?: string;
     createdAt?: Date;
     updatedAt?: Date;
     deletedAt?: Date | null;
     updatedBy?: string;
     tenantId?: string;
+    frequencies: Frequency[];
+}
+
+export interface teacherAttendance {
+    id?: string;
+    date: Date;
+    totalClasses: number;
+    AttendanceType: string;
+    teacherId: string;
+    classroomId: string;
     disciplineId?: string;
+    stageId: string;
+    schoolId: string;
+    updatedAt?: Date;
+    updatedBy?: string;
+    createdAt?: Date;
+    deletedAt?: Date | null;
+    tenantId?: string;
 }
