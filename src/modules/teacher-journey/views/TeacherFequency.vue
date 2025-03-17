@@ -264,12 +264,12 @@ onMounted(async () => {
         <IonGrid>
           <IonRow>
             <IonCol size="6">
-              <IonButton :disabled="false" color="danger" expand="full" @click="cancelModal = !cancelModal">
+              <IonButton :disabled="justification?.length === 0" color="danger" expand="full" @click="cancelModal = !cancelModal">
                 Cancelar
               </IonButton>
             </IonCol>
             <IonCol size="6">
-              <IonButton :disabled="true" color="secondary" expand="full">
+              <IonButton :disabled="justification?.length === 0 || justification" color="secondary" expand="full">
                 Salvar
               </IonButton>
             </IonCol>
