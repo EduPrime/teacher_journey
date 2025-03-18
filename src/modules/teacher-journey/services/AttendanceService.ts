@@ -1,5 +1,5 @@
 import type { Attendance } from '@prisma/client'
-import type { AttendanceWithFrequencies, Frequency, TeacherFrequency } from '../types/types'
+import type { AttendanceWithFrequencies, Frequency, TeacherFrequency, WarningFrequency } from '../types/types'
 import BaseService from '@/services/BaseService'
 
 const table = 'attendance' as const
@@ -7,6 +7,32 @@ const table = 'attendance' as const
 export default class EnrollmentService extends BaseService<Attendance> {
   constructor() {
     super(table)
+  }
+
+  async listWarningAttendance(warningInfo: WarningFrequency): Promise<{ data: any; info: boolean }> {
+    let query = this.client
+      .from(table)
+      .select(`
+        id, date, classroom:classroom (name), discipline:discipline (name)
+      `)
+      .eq('teacherId', warningInfo.teacherId)
+      .eq('date', warningInfo.date)
+      .eq('classroomId', warningInfo.classroomId)
+
+    if (warningInfo.disciplineId) {
+      query = query.eq('disciplineId', warningInfo.disciplineId)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      throw new Error(`Erro ao listar aviso de alerta de frequência: ${error}`)
+    }
+
+    return {
+      data,
+      info: data && data.length > 0 ? true : false,
+    }
   }
 
   async getAttendanceByToday(selectedDate: string, classroomId: string) {
