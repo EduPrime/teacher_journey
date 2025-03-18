@@ -12,21 +12,22 @@ import FrequencyMultiSelect from '../components/frequency/MultiSelect.vue'
 import AttendanceService from '../services/AttendanceService'
 import EnrollmentService from '../services/EnrollmentService'
 import JustificationService from '../services/JustificationService'
-
 import ScheduleService from '../services/ScheduleService'
+import StageService from '../services/StageService'
 
 const scheduleService = new ScheduleService()
 const enrollmentService = new EnrollmentService()
 const attendanceService = new AttendanceService()
 const justificationService = new JustificationService()
+const stageService = new StageService()
 
 const eduFProfile = ref()
 
 const schedules = ref(0)
-
+const stage = ref()
 const students = ref()
 
-const todayFrequency = ref([])
+const todayFrequency = ref()
 
 const frequencyToSave = ref<FrequencyToSave[]>()
 const cancelModal = ref(false)
@@ -41,75 +42,47 @@ const isContentSaved = ref({ card: false, saved: undefined as any })
 
 const selectedDayInfo = ref()
 
-watch(selectedDayInfo, async (newValue) => {
-  if (newValue.selectedDate && eduFProfile.value) {
-    justifyOptions.value = await justificationService.getJustifications()
-    // @TODO: pegando as frequencias salvas por dia e turma
-    todayFrequency.value = await attendanceService.getAttendanceByToday(newValue.selectedDate, eduFProfile.value.classroomId)
-
-    // @TODO: função para carregar a listagem de alunos
-    students.value = await enrollmentService.getClassroomStudents(eduFProfile.value.classroomId)
-    isContentSaved.value.card = false
-    frequencyToSave.value = students.value.map((i: any) => {
-      return {
-        name: i.name,
-        classroomId: eduFProfile.value?.classroomId,
-        studentId: i.id,
-        status: i.status,
-        situation: i.situation,
-        enrollmentCode: i.enrollmentCode,
-        disability: i.student.disability,
-        date: selectedDayInfo.value?.selectedDate,
-        presence: true,
-        frequencies: [],
-      } as FrequencyToSave
-    })
-  }
-  else {
-    // @TODO: metodo para limpar a listagem
-    students.value = undefined
-    frequencyToSave.value = undefined
-  }
-})
-
-watch(eduFProfile, async (newValue) => {
-  if (newValue.teacherId) {
-    // schedules.value = await scheduleService.getSchedules(newValue.teacherId)
-  }
-  if (newValue.classroomId && selectedDayInfo.value?.selectedDate) {
-    // @TODO: pegando as frequencias salvas por dia e turma
-    todayFrequency.value = await attendanceService.getAttendanceByToday(selectedDayInfo.value.selectedDate, newValue.classroomId)
-
-    // @TODO: Função para carregar a listagem dos alunos
-    students.value = await enrollmentService.getClassroomStudents(newValue.classroomId)
-    frequencyToSave.value = students.value.map((i: any) => {
-      return {
-        name: i.name,
-        classroomId: eduFProfile.value?.classroomId,
-        studentId: i.id,
-        status: i.status,
-        situation: i.situation,
-        enrollmentCode: i.enrollmentCode,
-        disability: i.student.disability,
-        date: selectedDayInfo.value?.selectedDate,
-        presence: true,
-        justification: undefined as string | undefined,
-        frequencies: [],
-      } as FrequencyToSave
-    })
-  }
-  else {
-    // @TODO: metodo para limpar a listagem
-    students.value = undefined
-    frequencyToSave.value = undefined
-  }
-})
 // Watcher para atualizar schedules quando eduFProfile ou selectedDayInfo mudarem
 watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo]) => {
+  todayFrequency.value = undefined
   if (newEduFProfile?.teacherId && newSelectedDayInfo?.selectedDate) {
+    todayFrequency.value = await attendanceService.getAttendanceByToday(newSelectedDayInfo.selectedDate, newEduFProfile.classroomId)
+    stage.value = await stageService.getCurrentStageWeekday(newSelectedDayInfo.selectedDate)
+    justifyOptions.value = await justificationService.getJustifications()
+
+    //
+
+    students.value = await enrollmentService.getClassroomStudents(newEduFProfile.classroomId)
+    frequencyToSave.value = students.value.map((i: any) => {
+      return {
+        name: i.name,
+        enrollmentId: i.id,
+        classroomId: newEduFProfile.classroomId,
+        disciplineId: newEduFProfile.disciplineId,
+        studentId: i.studentId,
+        schoolId: i.schoolId,
+        stageId: stage.value?.stageId,
+        status: i.status,
+        situation: i.situation,
+        disability: i.student.disability,
+        teacherId: newEduFProfile.teacherId,
+        date: newSelectedDayInfo.selectedDate,
+        presence: true,
+        justificationId: undefined as string | undefined,
+        frequencies: [],
+      } as FrequencyToSave
+    })
+    //
+
+    isContentSaved.value.card = false
+
     const fullWeekday = getFullWeekday(newSelectedDayInfo.weekday)
     const scheduleResult = await scheduleService.getScheduleTeacherDay(newEduFProfile.teacherId, fullWeekday, newEduFProfile.classroomId, newEduFProfile.disciplineId)
     schedules.value = scheduleResult !== undefined ? scheduleResult : 0
+  }
+  else {
+    students.value = undefined
+    frequencyToSave.value = undefined
   }
 })
 
@@ -153,9 +126,20 @@ function getFullWeekday(abbreviatedWeekday: string): string {
   }
 }
 
-// async function saveFrequency() {
-//   return void 0
-// }
+async function saveFrequency() {
+  if (frequencyToSave.value && frequencyToSave.value.length > 0) {
+    try {
+      await attendanceService.createAttendance(frequencyToSave.value)
+      console.log('Frequência salva com sucesso')
+    }
+    catch (error) {
+      console.error('Erro ao salvar frequência', error)
+    }
+  }
+  else {
+    console.error('Nenhuma frequência para salvar')
+  }
+}
 
 // Benhur até agora vejo que devemos mandar neste formato
 onMounted(async () => {
@@ -247,17 +231,14 @@ onMounted(async () => {
         </IonText>
       </IonCardContent>
     </IonCard>
+    <FrequencyMultiSelect v-if="eduFProfile?.frequency === 'disciplina'" v-model="checkboxModal" :checkbox-modal="checkboxModal?.modal" :clean-checks="cleanChecks" :num-classes="schedules" @update:clean="($event) => cleanChecks = $event" />
 
     <pre>
-      todayFrequency: {{ todayFrequency }}
+    dados a serem enviados
+    studentId de frequencyToSave: {{ frequencyToSave?.slice(0, 2) }}
+    studentId de todayFrequency: {{ todayFrequency?.find(i => i.studentId === frequencyToSave?.slice(0, 2).at(0)?.studentId) }}
+
     </pre>
-
-    <!-- <pre> -->
-    <!-- dados a serem enviados -->
-    <!-- frequencyToSave: {{ frequencyToSave?.slice(0, 2) }}
-    </pre> -->
-
-    <FrequencyMultiSelect v-if="eduFProfile?.frequency === 'disciplina'" v-model="checkboxModal" :checkbox-modal="checkboxModal?.modal" :clean-checks="cleanChecks" :num-classes="schedules" @update:clean="($event) => cleanChecks = $event" />
 
     <IonAccordionGroup v-if="selectedDayInfo?.selectedDate && Array.isArray(frequencyToSave) && frequencyToSave.length > 0" class="ion-content" expand="inset">
       <IonAccordion v-for="(s, i) in frequencyToSave" :key="i" :value="`${i}`" class="no-border-accordion">
@@ -282,13 +263,13 @@ onMounted(async () => {
               <IonIcon slot="icon-only" :icon="layers" />
             </IonButton>
 
-            <IonSelect v-if="!s.presence" v-model="s.justification" class="custom-floating-label ion-margin-vertical" label-placement="floating" justify="space-between" label="Justificativa de falta" fill="outline">
+            <IonSelect v-if="!s.presence" v-model="s.justificationId" class="custom-floating-label ion-margin-vertical" label-placement="floating" justify="space-between" label="Justificativa de falta" fill="outline">
               <!-- @TODO: As justificativas disponiveis ainda estão estáticas, é necessário consultar e receber estas informações de forma dinâmica -->
               <IonSelectOption v-for="(j, index) in justifyOptions" :key="index" :value="j.id">
                 {{ j.name }}
               </IonSelectOption>
             </IonSelect>
-          </ionrow>
+          </IonRow>
         </div>
       </IonAccordion>
     </IonAccordionGroup>
@@ -345,12 +326,12 @@ onMounted(async () => {
         <IonGrid>
           <IonRow>
             <IonCol size="6">
-              <IonButton :disabled="justification?.length === 0" color="danger" expand="full" @click="cancelModal = !cancelModal">
+              <IonButton :disabled="false" color="danger" expand="full" @click="cancelModal = !cancelModal">
                 Cancelar
               </IonButton>
             </IonCol>
             <IonCol size="6">
-              <IonButton :disabled="justification?.length === 0 || justification" color="secondary" expand="full">
+              <IonButton :disabled="false" color="secondary" expand="full" @click="saveFrequency">
                 Salvar
               </IonButton>
             </IonCol>

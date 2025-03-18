@@ -30,6 +30,26 @@ export default class EnrollmentService extends BaseService<Attendance> {
       const attendanceRecords = []
 
       for (const frequency of frequencies) {
+        // Verifica se o registro de frequência já existe
+        const { data: existingAttendance, error: existingError } = await this.client
+          .from(table)
+          .select('id')
+          .eq('studentId', frequency.studentId)
+          .eq('classroomId', frequency.classroomId)
+          .eq('enrollmentId', frequency.enrollmentId)
+          .eq('date', frequency.date)
+          .eq('disciplineId', frequency.disciplineId)
+          .single()
+
+        if (existingError) {
+          throw new Error(`Erro ao verificar frequência existente: ${existingError.message}`)
+        }
+
+        if (existingAttendance) {
+          console.log(`Frequência já existe para studentId: ${frequency.studentId}, enrollmentId: ${frequency.enrollmentId}, date: ${frequency.date}, disciplineId: ${frequency.disciplineId}`)
+          continue // Ignora a inserção se o registro já existir
+        }
+
         // Insere o registro de frequência
         const { data: attendanceData, error: attendanceError } = await this.client
           .from(table)
@@ -45,6 +65,7 @@ export default class EnrollmentService extends BaseService<Attendance> {
             schoolId: frequency.schoolId,
             updatedBy: frequency.updatedBy,
             tenantId: frequency.tenantId,
+            teacherId: frequency.teacherId,
           }])
           .select()
           .single()
@@ -55,18 +76,37 @@ export default class EnrollmentService extends BaseService<Attendance> {
 
         const attendanceId = attendanceData.id
 
-        // Insere os registros relacionados na tabela numMissed
-        const numMissedRecords = frequency.frequencies.map((f: Frequency) => ({
-          attendanceId,
-          name: f.name,
-          absent: f.absence,
-        }))
-        const { error: numMissedError } = await this.client
-          .from('numMissed')
-          .insert(numMissedRecords)
+        // Verifica se os registros relacionados na tabela numMissed já existem
+        for (const f of frequency.frequencies) {
+          const { data: existingNumMissed, error: existingNumMissedError } = await this.client
+            .from('numMissed')
+            .select('id')
+            .eq('attendanceId', attendanceId)
+            .eq('name', f.name)
+            .single()
 
-        if (numMissedError) {
-          throw new Error(`Erro ao inserir registros de ausência: ${numMissedError.message}`)
+          if (existingNumMissedError) {
+            throw new Error(`Erro ao verificar registros de ausência existentes: ${existingNumMissedError.message}`)
+          }
+
+          if (existingNumMissed) {
+            console.log(`Registro de ausência já existe para attendanceId: ${attendanceId}, name: ${f.name}`)
+            continue // Ignora a inserção se o registro já existir
+          }
+
+          // Insere os registros relacionados na tabela numMissed
+          const numMissedRecords = frequency.frequencies.map((f: Frequency) => ({
+            attendanceId,
+            name: f.name,
+            absent: f.absence,
+          }))
+          const { error: numMissedError } = await this.client
+            .from('numMissed')
+            .insert(numMissedRecords)
+
+          if (numMissedError) {
+            throw new Error(`Erro ao inserir registros de ausência: ${numMissedError.message}`)
+          }
         }
 
         attendanceRecords.push(attendanceData)
