@@ -27,6 +27,7 @@ const eduFProfile = ref()
 const schedules = ref(0)
 const stage = ref()
 const students = ref()
+const teacherAttendance = ref()
 
 const todayFrequency = ref()
 
@@ -40,6 +41,7 @@ const selectedStudent = ref()
 const justifyOptions = ref()
 const cleanChecks = ref(false)
 const isContentSaved = ref({ card: false, saved: undefined as any })
+const isLoading = ref(false)
 
 const selectedDayInfo = ref()
 
@@ -127,28 +129,40 @@ function getFullWeekday(abbreviatedWeekday: string): string {
   }
 }
 
+function getFullType(capitalLetter: string): string {
+  switch (capitalLetter) {
+    case 'DIARIA':
+      return 'diaria'
+    case 'DISCIPLINA':
+      return 'disciplina'
+    default:
+      return capitalLetter
+  }
+}
+
 async function saveFrequency() {
   if (frequencyToSave.value && frequencyToSave.value.length > 0) {
+    isLoading.value = true
     try {
       const createdRecords = await attendanceService.createAttendance(frequencyToSave.value)
       if (createdRecords.length > 0) {
         showToast('Frequência salva com sucesso', 'top', 'success')
-        // Exibir mensagem de sucesso
       }
       else {
         showToast('Nenhuma nova frequência foi criada', 'top', 'warning')
-        // Exibir mensagem de que nenhuma nova frequência foi criada
       }
     }
     catch (error) {
       showToast('Erro ao salvar frequência', 'top', 'warning')
       console.error('Erro ao salvar frequência', error)
-      // Exibir mensagem de erro
+    }
+    finally {
+      isLoading.value = false
     }
   }
   else {
     console.error('Nenhuma frequência para salvar')
-    // Exibir mensagem de que não há frequência para salvar
+    showToast('Nenhuma frequência para salvar', 'top', 'warning')
   }
 }
 
@@ -342,7 +356,7 @@ onMounted(async () => {
               </IonButton>
             </IonCol>
             <IonCol size="6">
-              <IonButton :disabled="false" color="secondary" expand="full" @click="saveFrequency">
+              <IonButton :disabled="isLoading" color="secondary" expand="full" @click="saveFrequency">
                 Salvar
               </IonButton>
             </IonCol>
