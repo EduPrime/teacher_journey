@@ -28,6 +28,8 @@ const schedules = ref(0)
 const stage = ref()
 const students = ref()
 
+const todayFrequency = ref()
+
 const frequencyToSave = ref<FrequencyToSave[]>()
 const cancelModal = ref(false)
 
@@ -41,82 +43,47 @@ const isContentSaved = ref({ card: false, saved: undefined as any })
 
 const selectedDayInfo = ref()
 
-watch(selectedDayInfo, async (newValue) => {
-  if (newValue.selectedDate && eduFProfile.value) {
-    justifyOptions.value = await justificationService.getJustifications()
-    stage.value = await stageService.getCurrentStageWeekday(selectedDayInfo.value.selectedDate)
-
-    // @TODO: função para carregar a listagem de alunos
-    students.value = await enrollmentService.getClassroomStudents(eduFProfile.value.classroomId)
-    isContentSaved.value.card = false
-    frequencyToSave.value = students.value.map((i: any) => {
-      return {
-        name: i.name,
-        enrollmentId: i.id,
-        classroomId: eduFProfile.value?.classroomId,
-        disciplineId: eduFProfile.value?.disciplineId,
-        studentId: i.studentId,
-        schoolId: i.schoolId,
-        stageId: stage.value?.stageId,
-        status: i.status,
-        situation: i.situation,
-        disability: i.student.disability,
-        teacherId: eduFProfile.value?.teacherId,
-        date: selectedDayInfo.value?.selectedDate,
-        presence: true,
-        justificationId: undefined as string | undefined,
-        frequencies: [],
-      } as FrequencyToSave
-    })
-  }
-  else {
-    // @TODO: metodo para limpar a listagem
-    students.value = undefined
-    frequencyToSave.value = undefined
-  }
-})
-
-watch(eduFProfile, async (newValue) => {
-  if (newValue.teacherId) {
-    // schedules.value = await scheduleService.getSchedules(newValue.teacherId)
-  }
-  if (newValue.classroomId && selectedDayInfo.value?.selectedDate) {
-    // @TODO: Função para carregar a listagem dos alunos
-    students.value = await enrollmentService.getClassroomStudents(newValue.classroomId)
-
-    frequencyToSave.value = students.value.map((i: any) => {
-      return {
-        name: i.name,
-        enrollmentId: i.id,
-        classroomId: eduFProfile.value?.classroomId,
-        disciplineId: eduFProfile.value?.disciplineId,
-        studentId: i.studentId,
-        schoolId: i.schoolId,
-        stageId: stage.value?.stageId,
-        status: i.status,
-        situation: i.situation,
-        disability: i.student.disability,
-        teacherId: eduFProfile.value?.teacherId,
-        date: selectedDayInfo.value?.selectedDate,
-        presence: true,
-        justificationId: undefined as string | undefined,
-        frequencies: [],
-      } as FrequencyToSave
-    })
-  }
-  else {
-    // @TODO: metodo para limpar a listagem
-    students.value = undefined
-    frequencyToSave.value = undefined
-  }
-})
-
 // Watcher para atualizar schedules quando eduFProfile ou selectedDayInfo mudarem
 watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo]) => {
+  todayFrequency.value = undefined
   if (newEduFProfile?.teacherId && newSelectedDayInfo?.selectedDate) {
+    todayFrequency.value = await attendanceService.getAttendanceByToday(newSelectedDayInfo.selectedDate, newEduFProfile.classroomId)
+    stage.value = await stageService.getCurrentStageWeekday(newSelectedDayInfo.selectedDate)
+    justifyOptions.value = await justificationService.getJustifications()
+
+    //
+
+    students.value = await enrollmentService.getClassroomStudents(newEduFProfile.classroomId)
+    frequencyToSave.value = students.value.map((i: any) => {
+      return {
+        name: i.name,
+        enrollmentId: i.id,
+        classroomId: newEduFProfile.classroomId,
+        disciplineId: newEduFProfile.disciplineId,
+        studentId: i.studentId,
+        schoolId: i.schoolId,
+        stageId: stage.value?.stageId,
+        status: i.status,
+        situation: i.situation,
+        disability: i.student.disability,
+        teacherId: newEduFProfile.teacherId,
+        date: newSelectedDayInfo.selectedDate,
+        presence: true,
+        justificationId: undefined as string | undefined,
+        frequencies: [],
+      } as FrequencyToSave
+    })
+    //
+
+    isContentSaved.value.card = false
+
     const fullWeekday = getFullWeekday(newSelectedDayInfo.weekday)
     const scheduleResult = await scheduleService.getScheduleTeacherDay(newEduFProfile.teacherId, fullWeekday, newEduFProfile.classroomId, newEduFProfile.disciplineId)
     schedules.value = scheduleResult !== undefined ? scheduleResult : 0
+  }
+  else {
+    students.value = undefined
+    frequencyToSave.value = undefined
   }
 })
 
@@ -214,17 +181,17 @@ onMounted(async () => {
   //     ],
   //   }],
   // )
-//   const teacherAttendance: TeacherFrequency = {
-//     date: new Date('2025-03-18'),
-//     totalClasses: 5,
-//     type: 'DISCIPLINA',
-//     teacherId: '45973489-ab5c-4d36-b5c0-842dff919a65', // Yohan Professor
-//     classroomId: '29cf9857-0fe4-45f4-8b00-fc10e626eba8', // 7º Ano A
-//     disciplineId: 'c030869a-3b07-4f7d-b11d-69765af91f9a', // Geometria
-//     stageId: '149665ec-a230-439e-aeb2-4cb7bfc8ebb4', // etapa 1
-//     schoolId: 'd488e90e-327b-4ca7-ad45-888c65d2a3ab', // Escola Municipal de Araripina
-//   }
-//   await attendanceService.createTeacherAttendance(teacherAttendance)
+  //   const teacherAttendance: TeacherFrequency = {
+  //     date: new Date('2025-03-18'),
+  //     totalClasses: 5,
+  //     type: 'DISCIPLINA',
+  //     teacherId: '45973489-ab5c-4d36-b5c0-842dff919a65', // Yohan Professor
+  //     classroomId: '29cf9857-0fe4-45f4-8b00-fc10e626eba8', // 7º Ano A
+  //     disciplineId: 'c030869a-3b07-4f7d-b11d-69765af91f9a', // Geometria
+  //     stageId: '149665ec-a230-439e-aeb2-4cb7bfc8ebb4', // etapa 1
+  //     schoolId: 'd488e90e-327b-4ca7-ad45-888c65d2a3ab', // Escola Municipal de Araripina
+  //   }
+  //   await attendanceService.createTeacherAttendance(teacherAttendance)
 
   // })
   //   const teacherAttendance: TeacherFrequency = {
@@ -279,7 +246,8 @@ onMounted(async () => {
 
     <pre>
     dados a serem enviados
-    frequencyToSave: {{ frequencyToSave?.slice(0, 1) }}
+    studentId de frequencyToSave: {{ frequencyToSave?.slice(0, 2) }}
+    studentId de todayFrequency: {{ todayFrequency?.find(i => i.studentId === frequencyToSave?.slice(0, 2).at(0)?.studentId) }}
 
     </pre>
 
