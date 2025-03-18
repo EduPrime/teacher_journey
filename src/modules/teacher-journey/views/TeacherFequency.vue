@@ -26,6 +26,8 @@ const schedules = ref(0)
 
 const students = ref()
 
+const todayFrequency = ref([])
+
 const frequencyToSave = ref<FrequencyToSave[]>()
 const cancelModal = ref(false)
 
@@ -42,6 +44,8 @@ const selectedDayInfo = ref()
 watch(selectedDayInfo, async (newValue) => {
   if (newValue.selectedDate && eduFProfile.value) {
     justifyOptions.value = await justificationService.getJustifications()
+    // @TODO: pegando as frequencias salvas por dia e turma
+    todayFrequency.value = await attendanceService.getAttendanceByToday(newValue.selectedDate, eduFProfile.value.classroomId)
 
     // @TODO: função para carregar a listagem de alunos
     students.value = await enrollmentService.getClassroomStudents(eduFProfile.value.classroomId)
@@ -73,6 +77,9 @@ watch(eduFProfile, async (newValue) => {
     // schedules.value = await scheduleService.getSchedules(newValue.teacherId)
   }
   if (newValue.classroomId && selectedDayInfo.value?.selectedDate) {
+    // @TODO: pegando as frequencias salvas por dia e turma
+    todayFrequency.value = await attendanceService.getAttendanceByToday(selectedDayInfo.value.selectedDate, newValue.classroomId)
+
     // @TODO: Função para carregar a listagem dos alunos
     students.value = await enrollmentService.getClassroomStudents(newValue.classroomId)
     frequencyToSave.value = students.value.map((i: any) => {
@@ -179,17 +186,17 @@ onMounted(async () => {
   //     ],
   //   }],
   // )
-//   const teacherAttendance: TeacherFrequency = {
-//     date: new Date('2025-03-18'),
-//     totalClasses: 5,
-//     type: 'DISCIPLINA',
-//     teacherId: '45973489-ab5c-4d36-b5c0-842dff919a65', // Yohan Professor
-//     classroomId: '29cf9857-0fe4-45f4-8b00-fc10e626eba8', // 7º Ano A
-//     disciplineId: 'c030869a-3b07-4f7d-b11d-69765af91f9a', // Geometria
-//     stageId: '149665ec-a230-439e-aeb2-4cb7bfc8ebb4', // etapa 1
-//     schoolId: 'd488e90e-327b-4ca7-ad45-888c65d2a3ab', // Escola Municipal de Araripina
-//   }
-//   await attendanceService.createTeacherAttendance(teacherAttendance)
+  //   const teacherAttendance: TeacherFrequency = {
+  //     date: new Date('2025-03-18'),
+  //     totalClasses: 5,
+  //     type: 'DISCIPLINA',
+  //     teacherId: '45973489-ab5c-4d36-b5c0-842dff919a65', // Yohan Professor
+  //     classroomId: '29cf9857-0fe4-45f4-8b00-fc10e626eba8', // 7º Ano A
+  //     disciplineId: 'c030869a-3b07-4f7d-b11d-69765af91f9a', // Geometria
+  //     stageId: '149665ec-a230-439e-aeb2-4cb7bfc8ebb4', // etapa 1
+  //     schoolId: 'd488e90e-327b-4ca7-ad45-888c65d2a3ab', // Escola Municipal de Araripina
+  //   }
+  //   await attendanceService.createTeacherAttendance(teacherAttendance)
 
   // })
   //   const teacherAttendance: TeacherFrequency = {
@@ -226,9 +233,6 @@ onMounted(async () => {
       <IonText color="secondary" class="ion-content ion-padding-bottom" style="display: flex; align-items: center;">
         <IonIcon color="secondary" style="margin-right: 1%;" aria-hidden="true" :icon="calendarOutline" />
         Frequência diária
-        <pre>
-          frequencyToSave: {{ frequencyToSave }}
-        </pre>
       </IonText>
     </h3>
     <EduCalendar v-model="selectedDayInfo" :teacher-id="eduFProfile?.teacherId" :current-classroom="eduFProfile?.classroomId" :current-discipline="eduFProfile?.disciplineId" />
@@ -243,6 +247,10 @@ onMounted(async () => {
         </IonText>
       </IonCardContent>
     </IonCard>
+
+    <pre>
+      todayFrequency: {{ todayFrequency }}
+    </pre>
 
     <!-- <pre> -->
     <!-- dados a serem enviados -->

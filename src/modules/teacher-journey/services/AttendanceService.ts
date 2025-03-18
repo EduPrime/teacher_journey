@@ -9,6 +9,22 @@ export default class EnrollmentService extends BaseService<Attendance> {
     super(table)
   }
 
+  async getAttendanceByToday(selectedDate: string, classroomId: string) {
+    const { data, error } = await this.client
+      .from(table)
+      .select('*')
+      .eq('date', selectedDate)
+      .eq('classroomId', classroomId)
+
+    if (error) {
+      throw new Error(`Erro listar todas as frequencias do dia ${selectedDate}: ${error.message}`)
+    }
+    if (!data) {
+      throw new Error('Nenhuma frequencia encontrada')
+    }
+    return data
+  }
+
   async createAttendance(frequencies: AttendanceWithFrequencies[]) {
     try {
       const attendanceRecords = []
@@ -109,6 +125,7 @@ export default class EnrollmentService extends BaseService<Attendance> {
 
     return data
   }
+
   async createTeacherAttendance(teacherFrequency: TeacherFrequency) {
     console.log('createTeacherAttendance', teacherFrequency)
     const { data: dataAttendance, error: errorAttendance } = await this.client
