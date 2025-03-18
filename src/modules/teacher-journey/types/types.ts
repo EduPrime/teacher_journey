@@ -38,11 +38,11 @@ export interface AttendanceWithFrequencies {
     frequencies: Frequency[];
 }
 
-export interface teacherAttendance {
+export interface TeacherFrequency {
     id?: string;
     date: Date;
     totalClasses: number;
-    AttendanceType: string;
+    type: string;
     teacherId: string;
     classroomId: string;
     disciplineId?: string;

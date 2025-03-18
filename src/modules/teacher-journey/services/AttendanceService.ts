@@ -1,5 +1,5 @@
 import type { Attendance } from '@prisma/client'
-import type { AttendanceWithFrequencies, Frequency } from '../types/types'
+import type { AttendanceWithFrequencies, Frequency, TeacherFrequency } from '../types/types'
 import BaseService from '@/services/BaseService'
 
 const table = 'attendance' as const
@@ -108,5 +108,49 @@ export default class EnrollmentService extends BaseService<Attendance> {
     }
 
     return data
+  }
+  async createTeacherAttendance(teacherFrequency: TeacherFrequency) {
+    console.log('createTeacherAttendance', teacherFrequency)
+    const { data: dataAttendance, error: errorAttendance } = await this.client
+      .from('teacherAttendance')
+      .insert({
+        date: teacherFrequency.date,
+        totalClasses: teacherFrequency.totalClasses,
+        type: teacherFrequency.type,
+        teacherId: teacherFrequency.teacherId,
+        classroomId: teacherFrequency.classroomId,
+        disciplineId: teacherFrequency.disciplineId,
+        stageId: teacherFrequency.stageId,
+        schoolId: teacherFrequency.schoolId,
+      })
+      .select()
+      .single()
+
+    if (errorAttendance) {
+      console.log('errorAttendance', teacherFrequency)
+      throw new Error(`Erro ao inserir frequência do professor: ${errorAttendance.message}`)
+    }
+  }
+
+  async listTeacherAttendance(teacherId: string, date: string, classroomId: string, type: string, disciplineId?: string) {
+    let query = this.client
+      .from('teacherAttendance')
+      .select('*')
+      .eq('teacherId', teacherId)
+      .eq('date', date)
+      .eq('classroomId', classroomId)
+      .eq('type', type)
+
+    if (type === 'DISCIPLINA' && disciplineId) {
+      query = query.eq('disciplineId', disciplineId)
+    }
+
+    const { data: datalistTeacherAttendance, error: errorlistTeacherAttendance } = await query
+
+    if (errorlistTeacherAttendance) {
+      throw new Error(`Erro ao listar frequência do professor: ${errorlistTeacherAttendance.message}`)
+    }
+
+    return datalistTeacherAttendance
   }
 }
