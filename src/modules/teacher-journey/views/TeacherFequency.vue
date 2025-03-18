@@ -22,7 +22,7 @@ const justificationService = new JustificationService()
 
 const eduFProfile = ref()
 
-const schedules = ref({ data: [], count: 0 })
+const schedules = ref(0)
 
 const students = ref()
 
@@ -101,9 +101,8 @@ watch(eduFProfile, async (newValue) => {
 watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo]) => {
   if (newEduFProfile?.teacherId && newSelectedDayInfo?.selectedDate) {
     const fullWeekday = getFullWeekday(newSelectedDayInfo.weekday)
-    schedules.value = await scheduleService.getScheduleTeacherDay(newEduFProfile.teacherId, fullWeekday, newEduFProfile.classroomId, newEduFProfile.disciplineId)
-
-    console.log('schedules', schedules.value)
+    const scheduleResult = await scheduleService.getScheduleTeacherDay(newEduFProfile.teacherId, fullWeekday, newEduFProfile.classroomId, newEduFProfile.disciplineId)
+    schedules.value = scheduleResult !== undefined ? scheduleResult : 0
   }
 })
 
@@ -153,7 +152,7 @@ function getFullWeekday(abbreviatedWeekday: string): string {
 
 // Benhur até agora vejo que devemos mandar neste formato
 onMounted(async () => {
- // const data = attendanceService.createAttendance(
+  // const data = attendanceService.createAttendance(
   //   [{
   //     date: new Date('2025-03-17'),
   //     presence: false,
@@ -192,29 +191,29 @@ onMounted(async () => {
 //   }
 //   await attendanceService.createTeacherAttendance(teacherAttendance)
 
-// })
-//   const teacherAttendance: TeacherFrequency = {
-//     date: new Date('2025-03-17'),
-//     totalClasses: 5,
-//     type: 'DIARIA',
-//     teacherId: '45973489-ab5c-4d36-b5c0-842dff919a65', // Yohan Professor
-//     classroomId: '12ab8210-e080-491b-8f6c-45e240a8990e', // 1º Ano B
-//     disciplineId: '6862a800-92c3-4d46-8740-62a02a5e5cf9', // Língua Portuguesa
-//     stageId: '149665ec-a230-439e-aeb2-4cb7bfc8ebb4', // etapa 1
-//     schoolId: 'd488e90e-327b-4ca7-ad45-888c65d2a3ab', // Escola Municipal de Araripina
-//   }
-//   await attendanceService.createTeacherAttendance(teacherAttendance)
+  // })
+  //   const teacherAttendance: TeacherFrequency = {
+  //     date: new Date('2025-03-17'),
+  //     totalClasses: 5,
+  //     type: 'DIARIA',
+  //     teacherId: '45973489-ab5c-4d36-b5c0-842dff919a65', // Yohan Professor
+  //     classroomId: '12ab8210-e080-491b-8f6c-45e240a8990e', // 1º Ano B
+  //     disciplineId: '6862a800-92c3-4d46-8740-62a02a5e5cf9', // Língua Portuguesa
+  //     stageId: '149665ec-a230-439e-aeb2-4cb7bfc8ebb4', // etapa 1
+  //     schoolId: 'd488e90e-327b-4ca7-ad45-888c65d2a3ab', // Escola Municipal de Araripina
+  //   }
+  //   await attendanceService.createTeacherAttendance(teacherAttendance)
 
-const data = attendanceService.listTeacherAttendance(
+  const data = attendanceService.listTeacherAttendance(
     '45973489-ab5c-4d36-b5c0-842dff919a65', // Yohan Professor
     '2025-03-17',
     '29cf9857-0fe4-45f4-8b00-fc10e626eba8', // 7º Ano A
     'DISCIPLINA',
-    'c030869a-3b07-4f7d-b11d-69765af91f9a' // Geometria
+    'c030869a-3b07-4f7d-b11d-69765af91f9a', // Geometria
   )
-  data.then(result => {
+  data.then((result) => {
     console.log('VUE listTeacherAttendance', result)
-  }).catch(error => {
+  }).catch((error) => {
     console.error('Error fetching teacher attendance', error)
   })
 })
@@ -247,7 +246,7 @@ const data = attendanceService.listTeacherAttendance(
     <!-- frequencyToSave: {{ frequencyToSave?.slice(0, 2) }}
     </pre> -->
 
-    <FrequencyMultiSelect v-model="checkboxModal" :checkbox-modal="checkboxModal?.modal" :clean-checks="cleanChecks" :num-classes="schedules.count" @update:clean="($event) => cleanChecks = $event" />
+    <FrequencyMultiSelect v-if="eduFProfile?.frequency === 'disciplina'" v-model="checkboxModal" :checkbox-modal="checkboxModal?.modal" :clean-checks="cleanChecks" :num-classes="schedules" @update:clean="($event) => cleanChecks = $event" />
 
     <IonAccordionGroup v-if="selectedDayInfo?.selectedDate && Array.isArray(frequencyToSave) && frequencyToSave.length > 0" class="ion-content" expand="inset">
       <IonAccordion v-for="(s, i) in frequencyToSave" :key="i" :value="`${i}`" class="no-border-accordion">
@@ -268,7 +267,7 @@ const data = attendanceService.listTeacherAttendance(
                 Ausente
               </IonRadio>
             </IonRadioGroup>
-            <IonButton v-if="!s.presence" size="small" style="margin-top: auto; margin-bottom: auto; margin-left: auto;" shape="round" @click="() => { selectedStudent = s.studentId; checkboxModal.modal = true }">
+            <IonButton v-if="eduFProfile.frequency === 'disciplina' && !s.presence" size="small" style="margin-top: auto; margin-bottom: auto; margin-left: auto;" shape="round" @click="() => { selectedStudent = s.studentId; checkboxModal.modal = true }">
               <IonIcon slot="icon-only" :icon="layers" />
             </IonButton>
 
