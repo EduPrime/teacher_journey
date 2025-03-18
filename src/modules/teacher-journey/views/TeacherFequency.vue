@@ -111,13 +111,13 @@ watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo
 })
 
 watch(selectedStudent, () => {
-  frequencyToSave.value.quantifiedPresence = undefined
+  // frequencyToSave.value.quantifiedPresence = undefined
   checkboxModal.value.quantifiedPresence = undefined
   cleanChecks.value = true
 })
 
 watch(checkboxModal, (newValue) => {
-  if (newValue.quantifiedPresence) {
+  if (newValue.quantifiedPresence && frequencyToSave.value) {
     frequencyToSave.value = frequencyToSave.value.map((i: any) => {
       if (i.studentId === selectedStudent.value) {
         return { ...i, frequencies: checkboxModal.value.quantifiedPresence }
@@ -230,6 +230,9 @@ onMounted(async () => {
       <IonText color="secondary" class="ion-content ion-padding-bottom" style="display: flex; align-items: center;">
         <IonIcon color="secondary" style="margin-right: 1%;" aria-hidden="true" :icon="calendarOutline" />
         Frequência diária
+        <pre>
+          frequencyToSave: {{ frequencyToSave }}
+        </pre>
       </IonText>
     </h3>
     <EduCalendar v-model="selectedDayInfo" :teacher-id="eduFProfile?.teacherId" :current-classroom="eduFProfile?.classroomId" :current-discipline="eduFProfile?.disciplineId" />
