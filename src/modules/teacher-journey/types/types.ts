@@ -70,3 +70,11 @@ export interface Stage {
   updatedAt: Date
   deletedAt: Date | null
 }
+
+export interface WarningFrequency {
+  teacherId: string
+  date: String
+  classroomId: string
+  disciplineId?: string
+
+}

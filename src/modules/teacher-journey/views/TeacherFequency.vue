@@ -5,7 +5,7 @@ import ContentLayout from '@/components/theme/ContentLayout.vue'
 import EduCalendar from '@/components/WeekDayPicker.vue'
 import showToast from '@/utils/toast-alert'
 import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCol, IonGrid, IonIcon, IonItem, IonLabel, IonRadio, IonRadioGroup, IonRow, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
-import { calendarOutline, checkmarkCircleOutline, layers } from 'ionicons/icons'
+import { calendarOutline, checkmarkCircleOutline, layers, checkmarkDone, warningOutline } from 'ionicons/icons'
 
 import { onMounted, ref, watch } from 'vue'
 
@@ -30,6 +30,10 @@ const students = ref()
 const teacherAttendance = ref()
 
 const todayFrequency = ref()
+
+const today = ref(new Date().toISOString().split('T')[0])
+
+let isWarningInformation = ref(true)
 
 const frequencyToSave = ref<FrequencyToSave[]>()
 const cancelModal = ref(false)
@@ -265,6 +269,29 @@ onMounted(async () => {
 
     </pre>
 
+    <div v-if="isWarningInformation" class="warning-close-date">
+      <div class="title">
+        Frequência Pendente
+      </div>
+      <div class="text">
+        <IonIcon :icon="warningOutline" size="large" />
+        <div>
+          Não houve lançamento no dia <b>{{ today }}</b>.
+        </div>
+      </div>
+    </div>
+    <div v-else class="success-close-date">
+      <div class="title">
+        Frequência Registrada
+      </div>
+      <div class="text">
+        <IonIcon :icon="checkmarkDone" size="large" />
+        <div>
+          Lançada no dia <b>{{ today }}</b>.
+        </div>
+      </div>
+    </div>
+
     <IonAccordionGroup v-if="selectedDayInfo?.selectedDate && Array.isArray(frequencyToSave) && frequencyToSave.length > 0" class="ion-content" expand="inset">
       <IonAccordion v-for="(s, i) in frequencyToSave" :key="i" :value="`${i}`" class="no-border-accordion">
         <IonItem slot="header">
@@ -405,4 +432,67 @@ ion-modal#cancel-modal {
   ion-modal#cancel-modal .wrapper {
     margin-bottom: 10px;
   }
+
+.warning-close-date {
+  margin-top: 5px;
+  margin-bottom: 5px;
+  background-color: #F5C228E5;
+  color: #222;
+  padding: 5px;
+  border-radius: 8px;
+  margin-left: 10px;
+  margin-right: 10px;
+
+  .title {
+    font-size: 17px;
+    font-weight: 600;
+    padding-left: 34px;
+    margin-bottom: 3px;
+  }
+
+  .text {
+    ion-icon {
+      width: 30px;
+      margin-right: 5px;
+      margin-top: -8px;
+    }
+
+    font-weight: 300;
+    display: flex;
+    align-items: start;
+    font-size: 15px;
+  }
+}
+
+.success-close-date {
+  margin-top: 5px;
+  margin-bottom: 5px;
+  background-color: var(--ion-color-success-shade);
+  color: #1A1A1A;
+  padding: 5px;
+  border-radius: 8px;
+  margin-left: 10px;
+  margin-right: 10px;
+
+  .title {
+    font-size: 17px;
+    font-weight: 600;
+    padding-left: 34px;
+    margin-bottom: 3px;
+  }
+
+  .text {
+    ion-icon {
+      width: 30px;
+      margin-right: 5px;
+      margin-top: -8px;
+    }
+
+    font-weight: 300;
+    display: flex;
+    align-items: start;
+    font-size: 15px;
+  }
+}
+
 </style>
