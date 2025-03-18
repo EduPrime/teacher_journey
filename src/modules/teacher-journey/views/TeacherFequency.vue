@@ -5,7 +5,7 @@ import ContentLayout from '@/components/theme/ContentLayout.vue'
 import EduCalendar from '@/components/WeekDayPicker.vue'
 import showToast from '@/utils/toast-alert'
 import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCol, IonGrid, IonIcon, IonItem, IonLabel, IonRadio, IonRadioGroup, IonRow, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
-import { calendarOutline, checkmarkCircleOutline, layers, checkmarkDone, warningOutline } from 'ionicons/icons'
+import { calendarOutline, checkmarkCircleOutline, checkmarkDone, layers, warningOutline } from 'ionicons/icons'
 
 import { onMounted, ref, watch } from 'vue'
 
@@ -33,7 +33,7 @@ const todayFrequency = ref()
 
 const today = ref(new Date().toISOString().split('T')[0])
 
-let isWarningInformation = ref(true)
+const isWarningInformation = ref(true)
 
 const frequencyToSave = ref<FrequencyToSave[]>()
 const cancelModal = ref(false)
@@ -51,34 +51,61 @@ const selectedDayInfo = ref()
 
 // Watcher para atualizar schedules quando eduFProfile ou selectedDayInfo mudarem
 watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo]) => {
-  todayFrequency.value = undefined
+  todayFrequency.value = []
   if (newEduFProfile?.teacherId && newSelectedDayInfo?.selectedDate) {
     todayFrequency.value = await attendanceService.getAttendanceByToday(newSelectedDayInfo.selectedDate, newEduFProfile.classroomId)
     stage.value = await stageService.getCurrentStageWeekday(newSelectedDayInfo.selectedDate)
     justifyOptions.value = await justificationService.getJustifications()
 
     //
-
     students.value = await enrollmentService.getClassroomStudents(newEduFProfile.classroomId)
-    frequencyToSave.value = students.value.map((i: any) => {
-      return {
-        name: i.name,
-        enrollmentId: i.id,
-        classroomId: newEduFProfile.classroomId,
-        disciplineId: newEduFProfile.disciplineId,
-        studentId: i.studentId,
-        schoolId: i.schoolId,
-        stageId: stage.value?.stageId,
-        status: i.status,
-        situation: i.situation,
-        disability: i.student.disability,
-        teacherId: newEduFProfile.teacherId,
-        date: newSelectedDayInfo.selectedDate,
-        presence: true,
-        justificationId: undefined as string | undefined,
-        frequencies: [],
-      } as FrequencyToSave
-    })
+
+    if (todayFrequency.value) {
+      frequencyToSave.value = students.value.map((i: any) => {
+        // atribuimos o valor do find em todayFrequency dentro da constante abaixo
+        const studentFrequency = todayFrequency.value?.find((atdc: { studentId: string }) => atdc.studentId === i.studentId)
+
+        return {
+          name: i.name,
+          enrollmentId: i.id,
+          classroomId: newEduFProfile.classroomId,
+          disciplineId: newEduFProfile.disciplineId,
+          studentId: i.studentId,
+          schoolId: i.schoolId,
+          stageId: stage.value?.stageId,
+          status: i.status,
+          situation: i.situation,
+          disability: i.student.disability,
+          teacherId: newEduFProfile.teacherId,
+          date: newSelectedDayInfo.selectedDate,
+          presence: studentFrequency?.presence,
+          justificationId: studentFrequency?.justificationId,
+          frequencies: studentFrequency?.frequencies,
+        } as FrequencyToSave
+      })
+    }
+    else {
+      frequencyToSave.value = students.value.map((i: any) => {
+        return {
+          name: i.name,
+          enrollmentId: i.id,
+          classroomId: newEduFProfile.classroomId,
+          disciplineId: newEduFProfile.disciplineId,
+          studentId: i.studentId,
+          schoolId: i.schoolId,
+          stageId: stage.value?.stageId,
+          status: i.status,
+          situation: i.situation,
+          disability: i.student.disability,
+          teacherId: newEduFProfile.teacherId,
+          date: newSelectedDayInfo.selectedDate,
+          presence: true,
+          justificationId: undefined as string | undefined,
+          frequencies: [],
+        } as FrequencyToSave
+      })
+    }
+
     //
 
     isContentSaved.value.card = false
@@ -261,13 +288,6 @@ onMounted(async () => {
       </IonCardContent>
     </IonCard>
     <FrequencyMultiSelect v-if="eduFProfile?.frequency === 'disciplina'" v-model="checkboxModal" :checkbox-modal="checkboxModal?.modal" :clean-checks="cleanChecks" :num-classes="schedules" @update:clean="($event) => cleanChecks = $event" />
-
-    <pre>
-    dados a serem enviados
-    studentId de frequencyToSave: {{ frequencyToSave?.slice(0, 2) }}
-    studentId de todayFrequency: {{ todayFrequency?.find(i => i.studentId === frequencyToSave?.slice(0, 2).at(0)?.studentId) }}
-
-    </pre>
 
     <div v-if="isWarningInformation" class="warning-close-date">
       <div class="title">
@@ -494,5 +514,4 @@ ion-modal#cancel-modal {
     font-size: 15px;
   }
 }
-
 </style>
