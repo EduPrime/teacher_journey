@@ -3,6 +3,7 @@ import type { FrequencyToSave } from '../types/types'
 import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
 import EduCalendar from '@/components/WeekDayPicker.vue'
+import showToast from '@/utils/toast-alert'
 import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCol, IonGrid, IonIcon, IonItem, IonLabel, IonRadio, IonRadioGroup, IonRow, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
 import { calendarOutline, checkmarkCircleOutline, layers } from 'ionicons/icons'
 
@@ -162,15 +163,25 @@ function getFullWeekday(abbreviatedWeekday: string): string {
 async function saveFrequency() {
   if (frequencyToSave.value && frequencyToSave.value.length > 0) {
     try {
-      await attendanceService.createAttendance(frequencyToSave.value)
-      console.log('Frequência salva com sucesso')
+      const createdRecords = await attendanceService.createAttendance(frequencyToSave.value)
+      if (createdRecords.length > 0) {
+        showToast('Frequência salva com sucesso', 'top', 'success')
+        // Exibir mensagem de sucesso
+      }
+      else {
+        showToast('Nenhuma nova frequência foi criada', 'top', 'warning')
+        // Exibir mensagem de que nenhuma nova frequência foi criada
+      }
     }
     catch (error) {
+      showToast('Erro ao salvar frequência', 'top', 'warning')
       console.error('Erro ao salvar frequência', error)
+      // Exibir mensagem de erro
     }
   }
   else {
     console.error('Nenhuma frequência para salvar')
+    // Exibir mensagem de que não há frequência para salvar
   }
 }
 
@@ -268,7 +279,7 @@ onMounted(async () => {
 
     <pre>
     dados a serem enviados
-    frequencyToSave: {{ frequencyToSave?.slice(0, 2) }}
+    frequencyToSave: {{ frequencyToSave?.slice(0, 1) }}
 
     </pre>
 
