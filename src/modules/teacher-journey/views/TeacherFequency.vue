@@ -12,18 +12,19 @@ import FrequencyMultiSelect from '../components/frequency/MultiSelect.vue'
 import AttendanceService from '../services/AttendanceService'
 import EnrollmentService from '../services/EnrollmentService'
 import JustificationService from '../services/JustificationService'
-
 import ScheduleService from '../services/ScheduleService'
+import StageService from '../services/StageService'
 
 const scheduleService = new ScheduleService()
 const enrollmentService = new EnrollmentService()
 const attendanceService = new AttendanceService()
 const justificationService = new JustificationService()
+const stageService = new StageService()
 
 const eduFProfile = ref()
 
 const schedules = ref(0)
-
+const stage = ref()
 const students = ref()
 
 const frequencyToSave = ref<FrequencyToSave[]>()
@@ -42,6 +43,7 @@ const selectedDayInfo = ref()
 watch(selectedDayInfo, async (newValue) => {
   if (newValue.selectedDate && eduFProfile.value) {
     justifyOptions.value = await justificationService.getJustifications()
+    stage.value = await stageService.getCurrentStageWeekday(selectedDayInfo.value.selectedDate)
 
     // @TODO: função para carregar a listagem de alunos
     students.value = await enrollmentService.getClassroomStudents(eduFProfile.value.classroomId)
@@ -49,12 +51,16 @@ watch(selectedDayInfo, async (newValue) => {
     frequencyToSave.value = students.value.map((i: any) => {
       return {
         name: i.name,
+        enrollmentId: i.id,
         classroomId: eduFProfile.value?.classroomId,
-        studentId: i.id,
+        disciplineId: eduFProfile.value?.disciplineId,
+        studentId: i.studentId,
+        schoolId: i.schoolId,
+        stageId: stage.value?.stageId,
         status: i.status,
         situation: i.situation,
-        enrollmentId: i.enrollmentCode,
         disability: i.student.disability,
+        teacherId: eduFProfile.value?.teacherId,
         date: selectedDayInfo.value?.selectedDate,
         presence: true,
         justificationId: undefined as string | undefined,
@@ -76,17 +82,20 @@ watch(eduFProfile, async (newValue) => {
   if (newValue.classroomId && selectedDayInfo.value?.selectedDate) {
     // @TODO: Função para carregar a listagem dos alunos
     students.value = await enrollmentService.getClassroomStudents(newValue.classroomId)
-    console.log('students', students.value)
 
     frequencyToSave.value = students.value.map((i: any) => {
       return {
         name: i.name,
+        enrollmentId: i.id,
         classroomId: eduFProfile.value?.classroomId,
-        studentId: i.id,
+        disciplineId: eduFProfile.value?.disciplineId,
+        studentId: i.studentId,
+        schoolId: i.schoolId,
+        stageId: stage.value?.stageId,
         status: i.status,
         situation: i.situation,
-        enrollmentId: i.enrollmentCode,
         disability: i.student.disability,
+        teacherId: eduFProfile.value?.teacherId,
         date: selectedDayInfo.value?.selectedDate,
         presence: true,
         justificationId: undefined as string | undefined,
@@ -150,9 +159,20 @@ function getFullWeekday(abbreviatedWeekday: string): string {
   }
 }
 
-// async function saveFrequency() {
-//   return void 0
-// }
+async function saveFrequency() {
+  if (frequencyToSave.value && frequencyToSave.value.length > 0) {
+    try {
+      await attendanceService.createAttendance(frequencyToSave.value)
+      console.log('Frequência salva com sucesso')
+    }
+    catch (error) {
+      console.error('Erro ao salvar frequência', error)
+    }
+  }
+  else {
+    console.error('Nenhuma frequência para salvar')
+  }
+}
 
 // Benhur até agora vejo que devemos mandar neste formato
 onMounted(async () => {
@@ -230,9 +250,6 @@ onMounted(async () => {
       <IonText color="secondary" class="ion-content ion-padding-bottom" style="display: flex; align-items: center;">
         <IonIcon color="secondary" style="margin-right: 1%;" aria-hidden="true" :icon="calendarOutline" />
         Frequência diária
-        <pre>
-          frequencyToSave: {{ frequencyToSave }}
-        </pre>
       </IonText>
     </h3>
     <EduCalendar v-model="selectedDayInfo" :teacher-id="eduFProfile?.teacherId" :current-classroom="eduFProfile?.classroomId" :current-discipline="eduFProfile?.disciplineId" />
@@ -247,13 +264,13 @@ onMounted(async () => {
         </IonText>
       </IonCardContent>
     </IonCard>
+    <FrequencyMultiSelect v-if="eduFProfile?.frequency === 'disciplina'" v-model="checkboxModal" :checkbox-modal="checkboxModal?.modal" :clean-checks="cleanChecks" :num-classes="schedules" @update:clean="($event) => cleanChecks = $event" />
 
     <pre>
     dados a serem enviados
     frequencyToSave: {{ frequencyToSave?.slice(0, 2) }}
-    </pre>
 
-    <FrequencyMultiSelect v-if="eduFProfile?.frequency === 'disciplina'" v-model="checkboxModal" :checkbox-modal="checkboxModal?.modal" :clean-checks="cleanChecks" :num-classes="schedules" @update:clean="($event) => cleanChecks = $event" />
+    </pre>
 
     <IonAccordionGroup v-if="selectedDayInfo?.selectedDate && Array.isArray(frequencyToSave) && frequencyToSave.length > 0" class="ion-content" expand="inset">
       <IonAccordion v-for="(s, i) in frequencyToSave" :key="i" :value="`${i}`" class="no-border-accordion">
@@ -284,7 +301,7 @@ onMounted(async () => {
                 {{ j.name }}
               </IonSelectOption>
             </IonSelect>
-          </ionrow>
+          </IonRow>
         </div>
       </IonAccordion>
     </IonAccordionGroup>
@@ -341,12 +358,12 @@ onMounted(async () => {
         <IonGrid>
           <IonRow>
             <IonCol size="6">
-              <IonButton :disabled="justificationId?.length === 0" color="danger" expand="full" @click="cancelModal = !cancelModal">
+              <IonButton :disabled="false" color="danger" expand="full" @click="cancelModal = !cancelModal">
                 Cancelar
               </IonButton>
             </IonCol>
             <IonCol size="6">
-              <IonButton :disabled="justification?.length === 0 || justification" color="secondary" expand="full">
+              <IonButton :disabled="false" color="secondary" expand="full" @click="saveFrequency">
                 Salvar
               </IonButton>
             </IonCol>

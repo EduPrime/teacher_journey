@@ -8,7 +8,11 @@ export interface FrequencyToSave {
   name: string
   classroomId: string
   studentId: string
+  teacherId: string
+  disciplineId?: string
   status: string
+  stageId: string
+  schoolId: string
   situation: string
   enrollmentId: string
   disability: string
@@ -27,7 +31,7 @@ export interface AttendanceWithFrequencies {
   classroomId: string
   enrollmentId: string
   disciplineId?: string
-  justificationId: string
+  justificationId?: string
   stageId: string
   schoolId: string
   createdAt?: Date
@@ -53,4 +57,16 @@ export interface TeacherFrequency {
   createdAt?: Date
   deletedAt?: Date | null
   tenantId?: string
+}
+
+export interface Stage {
+  id: string
+  numberStage: string
+  startDate: Date
+  endDate: Date
+  tenantId: string
+  institutionId: string
+  createdAt: Date
+  updatedAt: Date
+  deletedAt: Date | null
 }
