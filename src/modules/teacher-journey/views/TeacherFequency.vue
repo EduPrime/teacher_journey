@@ -27,7 +27,7 @@ const schedules = ref(0)
 const stage = ref()
 const students = ref()
 
-const todayFrequency = ref()
+const todayFrequency = ref<any>([])
 
 const frequencyToSave = ref<FrequencyToSave[]>()
 const cancelModal = ref(false)
@@ -44,34 +44,61 @@ const selectedDayInfo = ref()
 
 // Watcher para atualizar schedules quando eduFProfile ou selectedDayInfo mudarem
 watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo]) => {
-  todayFrequency.value = undefined
+  todayFrequency.value = []
   if (newEduFProfile?.teacherId && newSelectedDayInfo?.selectedDate) {
     todayFrequency.value = await attendanceService.getAttendanceByToday(newSelectedDayInfo.selectedDate, newEduFProfile.classroomId)
     stage.value = await stageService.getCurrentStageWeekday(newSelectedDayInfo.selectedDate)
     justifyOptions.value = await justificationService.getJustifications()
 
     //
-
     students.value = await enrollmentService.getClassroomStudents(newEduFProfile.classroomId)
-    frequencyToSave.value = students.value.map((i: any) => {
-      return {
-        name: i.name,
-        enrollmentId: i.id,
-        classroomId: newEduFProfile.classroomId,
-        disciplineId: newEduFProfile.disciplineId,
-        studentId: i.studentId,
-        schoolId: i.schoolId,
-        stageId: stage.value?.stageId,
-        status: i.status,
-        situation: i.situation,
-        disability: i.student.disability,
-        teacherId: newEduFProfile.teacherId,
-        date: newSelectedDayInfo.selectedDate,
-        presence: true,
-        justificationId: undefined as string | undefined,
-        frequencies: [],
-      } as FrequencyToSave
-    })
+
+    if (todayFrequency.value) {
+      frequencyToSave.value = students.value.map((i: any) => {
+        // atribuimos o valor do find em todayFrequency dentro da constante abaixo
+        const studentFrequency = todayFrequency.value?.find((atdc: { studentId: string }) => atdc.studentId === i.studentId)
+
+        return {
+          name: i.name,
+          enrollmentId: i.id,
+          classroomId: newEduFProfile.classroomId,
+          disciplineId: newEduFProfile.disciplineId,
+          studentId: i.studentId,
+          schoolId: i.schoolId,
+          stageId: stage.value?.stageId,
+          status: i.status,
+          situation: i.situation,
+          disability: i.student.disability,
+          teacherId: newEduFProfile.teacherId,
+          date: newSelectedDayInfo.selectedDate,
+          presence: studentFrequency?.presence,
+          justificationId: studentFrequency?.justificationId,
+          frequencies: studentFrequency?.frequencies,
+        } as FrequencyToSave
+      })
+    }
+    else {
+      frequencyToSave.value = students.value.map((i: any) => {
+        return {
+          name: i.name,
+          enrollmentId: i.id,
+          classroomId: newEduFProfile.classroomId,
+          disciplineId: newEduFProfile.disciplineId,
+          studentId: i.studentId,
+          schoolId: i.schoolId,
+          stageId: stage.value?.stageId,
+          status: i.status,
+          situation: i.situation,
+          disability: i.student.disability,
+          teacherId: newEduFProfile.teacherId,
+          date: newSelectedDayInfo.selectedDate,
+          presence: true,
+          justificationId: undefined as string | undefined,
+          frequencies: [],
+        } as FrequencyToSave
+      })
+    }
+
     //
 
     isContentSaved.value.card = false
@@ -232,13 +259,6 @@ onMounted(async () => {
       </IonCardContent>
     </IonCard>
     <FrequencyMultiSelect v-if="eduFProfile?.frequency === 'disciplina'" v-model="checkboxModal" :checkbox-modal="checkboxModal?.modal" :clean-checks="cleanChecks" :num-classes="schedules" @update:clean="($event) => cleanChecks = $event" />
-
-    <pre>
-    dados a serem enviados
-    studentId de frequencyToSave: {{ frequencyToSave?.slice(0, 2) }}
-    studentId de todayFrequency: {{ todayFrequency?.find(i => i.studentId === frequencyToSave?.slice(0, 2).at(0)?.studentId) }}
-
-    </pre>
 
     <IonAccordionGroup v-if="selectedDayInfo?.selectedDate && Array.isArray(frequencyToSave) && frequencyToSave.length > 0" class="ion-content" expand="inset">
       <IonAccordion v-for="(s, i) in frequencyToSave" :key="i" :value="`${i}`" class="no-border-accordion">
