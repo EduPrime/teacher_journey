@@ -1,5 +1,5 @@
 import type { Attendance } from '@prisma/client'
-import type { AttendanceWithFrequencies, Frequency, TeacherFrequency } from '../types/types'
+import type { AttendanceWithFrequencies, Frequency, TeacherFrequency, WarningFrequency } from '../types/types'
 import BaseService from '@/services/BaseService'
 
 const table = 'attendance' as const
@@ -7,6 +7,32 @@ const table = 'attendance' as const
 export default class EnrollmentService extends BaseService<Attendance> {
   constructor() {
     super(table)
+  }
+
+  async listWarningAttendance(warningInfo: WarningFrequency): Promise<{ data: any; info: boolean }> {
+    let query = this.client
+      .from(table)
+      .select(`
+        id, date, classroom:classroom (name), discipline:discipline (name)
+      `)
+      .eq('teacherId', warningInfo.teacherId)
+      .eq('date', warningInfo.date)
+      .eq('classroomId', warningInfo.classroomId)
+
+    if (warningInfo.disciplineId) {
+      query = query.eq('disciplineId', warningInfo.disciplineId)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      throw new Error(`Erro ao listar aviso de alerta de frequência: ${error}`)
+    }
+
+    return {
+      data,
+      info: data && data.length > 0 ? true : false,
+    }
   }
 
   async getAttendanceByToday(selectedDate: string, classroomId: string) {
@@ -30,49 +56,56 @@ export default class EnrollmentService extends BaseService<Attendance> {
       const attendanceRecords = []
 
       for (const frequency of frequencies) {
-        // Verifica se o registro de frequência já existe
-        const { data: existingAttendance, error: existingError } = await this.client
+        // Construir a consulta dinamicamente
+        let query = this.client
           .from(table)
           .select('id')
           .eq('studentId', frequency.studentId)
           .eq('classroomId', frequency.classroomId)
           .eq('enrollmentId', frequency.enrollmentId)
           .eq('date', frequency.date)
-          .eq('disciplineId', frequency.disciplineId)
-          .single()
+
+        if (frequency.disciplineId) {
+          query = query.eq('disciplineId', frequency.disciplineId)
+        }
+
+        const { data: existingAttendance, error: existingError } = await query
 
         if (existingError) {
           throw new Error(`Erro ao verificar frequência existente: ${existingError.message}`)
         }
 
-        if (existingAttendance) {
+        if (existingAttendance && existingAttendance.length > 0) {
           console.log(`Frequência já existe para studentId: ${frequency.studentId}, enrollmentId: ${frequency.enrollmentId}, date: ${frequency.date}, disciplineId: ${frequency.disciplineId}`)
           continue // Ignora a inserção se o registro já existir
         }
 
         // Insere o registro de frequência
+        const attendanceRecord = {
+          date: frequency.date,
+          studentId: frequency.studentId,
+          classroomId: frequency.classroomId,
+          presence: frequency.presence,
+          enrollmentId: frequency.enrollmentId,
+          disciplineId: frequency.disciplineId,
+          stageId: frequency.stageId,
+          schoolId: frequency.schoolId,
+          updatedBy: frequency.updatedBy,
+          tenantId: frequency.tenantId,
+          teacherId: frequency.teacherId,
+          ...(frequency.justificationId && { justificationId: frequency.justificationId }), // Adiciona justificationId apenas se estiver definido
+        }
+
         const { data: attendanceData, error: attendanceError } = await this.client
           .from(table)
-          .insert([{
-            date: frequency.date,
-            studentId: frequency.studentId,
-            classroomId: frequency.classroomId,
-            presence: frequency.presence,
-            enrollmentId: frequency.enrollmentId,
-            disciplineId: frequency.disciplineId,
-            justificationId: frequency.justificationId,
-            stageId: frequency.stageId,
-            schoolId: frequency.schoolId,
-            updatedBy: frequency.updatedBy,
-            tenantId: frequency.tenantId,
-            teacherId: frequency.teacherId,
-          }])
+          .insert([attendanceRecord])
           .select()
           .single()
 
         if (attendanceError) {
           throw new Error(`Erro ao inserir frequência: ${attendanceError.message}`)
         }
+        console.log('attendanceData', attendanceData)
 
         const attendanceId = attendanceData.id
 
@@ -111,6 +144,8 @@ export default class EnrollmentService extends BaseService<Attendance> {
 
         attendanceRecords.push(attendanceData)
       }
+
+      console.log('attendanceRecords', attendanceRecords)
 
       return attendanceRecords
     }

@@ -3,8 +3,9 @@ import type { FrequencyToSave } from '../types/types'
 import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
 import EduCalendar from '@/components/WeekDayPicker.vue'
+import showToast from '@/utils/toast-alert'
 import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCol, IonGrid, IonIcon, IonItem, IonLabel, IonRadio, IonRadioGroup, IonRow, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
-import { calendarOutline, checkmarkCircleOutline, layers } from 'ionicons/icons'
+import { calendarOutline, checkmarkCircleOutline, checkmarkDone, layers, warningOutline } from 'ionicons/icons'
 
 import { onMounted, ref, watch } from 'vue'
 
@@ -27,7 +28,11 @@ const schedules = ref(0)
 const stage = ref()
 const students = ref()
 
-const todayFrequency = ref<any>([])
+const todayFrequency = ref()
+
+const today = ref(new Date().toISOString().split('T')[0])
+
+const isWarningInformation = ref(true)
 
 const frequencyToSave = ref<FrequencyToSave[]>()
 const cancelModal = ref(false)
@@ -156,15 +161,25 @@ function getFullWeekday(abbreviatedWeekday: string): string {
 async function saveFrequency() {
   if (frequencyToSave.value && frequencyToSave.value.length > 0) {
     try {
-      await attendanceService.createAttendance(frequencyToSave.value)
-      console.log('Frequência salva com sucesso')
+      const createdRecords = await attendanceService.createAttendance(frequencyToSave.value)
+      if (createdRecords.length > 0) {
+        showToast('Frequência salva com sucesso', 'top', 'success')
+        // Exibir mensagem de sucesso
+      }
+      else {
+        showToast('Nenhuma nova frequência foi criada', 'top', 'warning')
+        // Exibir mensagem de que nenhuma nova frequência foi criada
+      }
     }
     catch (error) {
+      showToast('Erro ao salvar frequência', 'top', 'warning')
       console.error('Erro ao salvar frequência', error)
+      // Exibir mensagem de erro
     }
   }
   else {
     console.error('Nenhuma frequência para salvar')
+    // Exibir mensagem de que não há frequência para salvar
   }
 }
 
@@ -259,6 +274,29 @@ onMounted(async () => {
       </IonCardContent>
     </IonCard>
     <FrequencyMultiSelect v-if="eduFProfile?.frequency === 'disciplina'" v-model="checkboxModal" :checkbox-modal="checkboxModal?.modal" :clean-checks="cleanChecks" :num-classes="schedules" @update:clean="($event) => cleanChecks = $event" />
+
+    <div v-if="isWarningInformation" class="warning-close-date">
+      <div class="title">
+        Frequência Pendente
+      </div>
+      <div class="text">
+        <IonIcon :icon="warningOutline" size="large" />
+        <div>
+          Não houve lançamento no dia <b>{{ today }}</b>.
+        </div>
+      </div>
+    </div>
+    <div v-else class="success-close-date">
+      <div class="title">
+        Frequência Registrada
+      </div>
+      <div class="text">
+        <IonIcon :icon="checkmarkDone" size="large" />
+        <div>
+          Lançada no dia <b>{{ today }}</b>.
+        </div>
+      </div>
+    </div>
 
     <IonAccordionGroup v-if="selectedDayInfo?.selectedDate && Array.isArray(frequencyToSave) && frequencyToSave.length > 0" class="ion-content" expand="inset">
       <IonAccordion v-for="(s, i) in frequencyToSave" :key="i" :value="`${i}`" class="no-border-accordion">
@@ -400,4 +438,66 @@ ion-modal#cancel-modal {
   ion-modal#cancel-modal .wrapper {
     margin-bottom: 10px;
   }
+
+.warning-close-date {
+  margin-top: 5px;
+  margin-bottom: 5px;
+  background-color: #F5C228E5;
+  color: #222;
+  padding: 5px;
+  border-radius: 8px;
+  margin-left: 10px;
+  margin-right: 10px;
+
+  .title {
+    font-size: 17px;
+    font-weight: 600;
+    padding-left: 34px;
+    margin-bottom: 3px;
+  }
+
+  .text {
+    ion-icon {
+      width: 30px;
+      margin-right: 5px;
+      margin-top: -8px;
+    }
+
+    font-weight: 300;
+    display: flex;
+    align-items: start;
+    font-size: 15px;
+  }
+}
+
+.success-close-date {
+  margin-top: 5px;
+  margin-bottom: 5px;
+  background-color: var(--ion-color-success-shade);
+  color: #1A1A1A;
+  padding: 5px;
+  border-radius: 8px;
+  margin-left: 10px;
+  margin-right: 10px;
+
+  .title {
+    font-size: 17px;
+    font-weight: 600;
+    padding-left: 34px;
+    margin-bottom: 3px;
+  }
+
+  .text {
+    ion-icon {
+      width: 30px;
+      margin-right: 5px;
+      margin-top: -8px;
+    }
+
+    font-weight: 300;
+    display: flex;
+    align-items: start;
+    font-size: 15px;
+  }
+}
 </style>
