@@ -53,10 +53,11 @@ watch(selectedDayInfo, async (newValue) => {
         studentId: i.id,
         status: i.status,
         situation: i.situation,
-        enrollmentCode: i.enrollmentCode,
+        enrollmentId: i.enrollmentCode,
         disability: i.student.disability,
         date: selectedDayInfo.value?.selectedDate,
         presence: true,
+        justificationId: undefined as string | undefined,
         frequencies: [],
       } as FrequencyToSave
     })
@@ -75,6 +76,8 @@ watch(eduFProfile, async (newValue) => {
   if (newValue.classroomId && selectedDayInfo.value?.selectedDate) {
     // @TODO: Função para carregar a listagem dos alunos
     students.value = await enrollmentService.getClassroomStudents(newValue.classroomId)
+    console.log('students', students.value)
+
     frequencyToSave.value = students.value.map((i: any) => {
       return {
         name: i.name,
@@ -82,11 +85,11 @@ watch(eduFProfile, async (newValue) => {
         studentId: i.id,
         status: i.status,
         situation: i.situation,
-        enrollmentCode: i.enrollmentCode,
+        enrollmentId: i.enrollmentCode,
         disability: i.student.disability,
         date: selectedDayInfo.value?.selectedDate,
         presence: true,
-        justification: undefined as string | undefined,
+        justificationId: undefined as string | undefined,
         frequencies: [],
       } as FrequencyToSave
     })
@@ -97,6 +100,7 @@ watch(eduFProfile, async (newValue) => {
     frequencyToSave.value = undefined
   }
 })
+
 // Watcher para atualizar schedules quando eduFProfile ou selectedDayInfo mudarem
 watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo]) => {
   if (newEduFProfile?.teacherId && newSelectedDayInfo?.selectedDate) {
@@ -241,10 +245,10 @@ onMounted(async () => {
       </IonCardContent>
     </IonCard>
 
-    <!-- <pre> -->
-    <!-- dados a serem enviados -->
-    <!-- frequencyToSave: {{ frequencyToSave?.slice(0, 2) }}
-    </pre> -->
+    <pre>
+    dados a serem enviados
+    frequencyToSave: {{ frequencyToSave?.slice(0, 2) }}
+    </pre>
 
     <FrequencyMultiSelect v-if="eduFProfile?.frequency === 'disciplina'" v-model="checkboxModal" :checkbox-modal="checkboxModal?.modal" :clean-checks="cleanChecks" :num-classes="schedules" @update:clean="($event) => cleanChecks = $event" />
 
@@ -271,7 +275,7 @@ onMounted(async () => {
               <IonIcon slot="icon-only" :icon="layers" />
             </IonButton>
 
-            <IonSelect v-if="!s.presence" v-model="s.justification" class="custom-floating-label ion-margin-vertical" label-placement="floating" justify="space-between" label="Justificativa de falta" fill="outline">
+            <IonSelect v-if="!s.presence" v-model="s.justificationId" class="custom-floating-label ion-margin-vertical" label-placement="floating" justify="space-between" label="Justificativa de falta" fill="outline">
               <!-- @TODO: As justificativas disponiveis ainda estão estáticas, é necessário consultar e receber estas informações de forma dinâmica -->
               <IonSelectOption v-for="(j, index) in justifyOptions" :key="index" :value="j.id">
                 {{ j.name }}
@@ -334,7 +338,7 @@ onMounted(async () => {
         <IonGrid>
           <IonRow>
             <IonCol size="6">
-              <IonButton :disabled="justification?.length === 0" color="danger" expand="full" @click="cancelModal = !cancelModal">
+              <IonButton :disabled="justificationId?.length === 0" color="danger" expand="full" @click="cancelModal = !cancelModal">
                 Cancelar
               </IonButton>
             </IonCol>

@@ -10,11 +10,11 @@ export interface FrequencyToSave {
   studentId: string
   status: string
   situation: string
-  enrollmentCode: string
+  enrollmentId: string
   disability: string
   date: Date
   presence: boolean
-  justification?: string
+  justificationId?: string
   frequencies: Frequency[]
 }
 

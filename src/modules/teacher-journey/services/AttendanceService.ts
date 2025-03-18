@@ -109,6 +109,7 @@ export default class EnrollmentService extends BaseService<Attendance> {
 
     return data
   }
+
   async createTeacherAttendance(teacherFrequency: TeacherFrequency) {
     console.log('createTeacherAttendance', teacherFrequency)
     const { data: dataAttendance, error: errorAttendance } = await this.client
