@@ -7,7 +7,6 @@ import showToast from '@/utils/toast-alert'
 import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCol, IonGrid, IonIcon, IonItem, IonLabel, IonRadio, IonRadioGroup, IonRow, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
 import { calendarOutline, checkmarkCircleOutline, checkmarkDone, layers, warningOutline } from 'ionicons/icons'
 import { DateTime } from 'luxon'
-import { DateTime } from 'luxon'
 
 import { onMounted, ref, watch } from 'vue'
 
@@ -29,13 +28,8 @@ const eduFProfile = ref()
 const schedules = ref(0)
 const stage = ref()
 const students = ref()
-const teacherAttendance = ref()
-
-const selectedStudentFrequency = ref()
 
 const todayFrequency = ref()
-
-const today = ref(new Date().toISOString().split('T')[0])
 
 const isLoadingWarning = ref(false) // Controla o estado de carregamento
 const isWarningInformation = ref<boolean | null>(null)
@@ -73,7 +67,6 @@ watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo
       frequencyToSave.value = students.value.map((i: any) => {
         // atribuimos o valor do find em todayFrequency dentro da constante abaixo
         const studentFrequency = todayFrequency.value?.find((atdc: { studentId: string }) => atdc.studentId === i.studentId)
-        console.log('StudentFrequency: ', studentFrequency)
 
         return {
           name: i.name,
@@ -172,17 +165,6 @@ function getFullWeekday(abbreviatedWeekday: string): string {
       return 'SUNDAY'
     default:
       return abbreviatedWeekday
-  }
-}
-
-function getFullType(capitalLetter: string): string {
-  switch (capitalLetter) {
-    case 'DIARIA':
-      return 'diaria'
-    case 'DISCIPLINA':
-      return 'disciplina'
-    default:
-      return capitalLetter
   }
 }
 
@@ -413,7 +395,7 @@ onMounted(async () => {
         <h1>Cancelar registro</h1>
 
         <ion-list lines="none">
-          <IonItem :button="true" :detail="false" @click="dismiss()">
+          <IonItem :button="true" :detail="false" @click="cancelModal = false">
             <IonLabel>Atenção ao confirmar todas as informações não salvas serão <b>excluidas</b> permanentemente. Deseja continuar?</IonLabel>
           </IonItem>
         </ion-list>
