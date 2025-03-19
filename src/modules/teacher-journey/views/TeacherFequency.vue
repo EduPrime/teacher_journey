@@ -7,6 +7,7 @@ import showToast from '@/utils/toast-alert'
 import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCol, IonGrid, IonIcon, IonItem, IonLabel, IonRadio, IonRadioGroup, IonRow, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
 import { calendarOutline, checkmarkCircleOutline, checkmarkDone, layers, warningOutline } from 'ionicons/icons'
 import { DateTime } from 'luxon'
+import { DateTime } from 'luxon'
 
 import { onMounted, ref, watch } from 'vue'
 
@@ -94,6 +95,8 @@ watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo
       })
     }
     else {
+      // Frequência não encontrada
+      isWarningInformation.value = true // Frequência pendente
       // Frequência não encontrada
       isWarningInformation.value = true // Frequência pendente
 
