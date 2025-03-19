@@ -4,9 +4,9 @@ import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
 import EduCalendar from '@/components/WeekDayPicker.vue'
 import showToast from '@/utils/toast-alert'
-import { DateTime } from 'luxon'
 import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCol, IonGrid, IonIcon, IonItem, IonLabel, IonRadio, IonRadioGroup, IonRow, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
 import { calendarOutline, checkmarkCircleOutline, checkmarkDone, layers, warningOutline } from 'ionicons/icons'
+import { DateTime } from 'luxon'
 
 import { onMounted, ref, watch } from 'vue'
 
@@ -64,7 +64,6 @@ watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo
     students.value = await enrollmentService.getClassroomStudents(newEduFProfile.classroomId)
 
     if (todayFrequency.value && todayFrequency.value.length > 0) {
-
       // Frequência encontrada
       isWarningInformation.value = false // Frequência registrada
 
@@ -92,9 +91,8 @@ watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo
       })
     }
     else {
-
-       // Frequência não encontrada
-       isWarningInformation.value = true // Frequência pendente
+      // Frequência não encontrada
+      isWarningInformation.value = true // Frequência pendente
 
       frequencyToSave.value = students.value.map((i: any) => {
         return {
@@ -304,7 +302,7 @@ onMounted(async () => {
       </IonCardContent>
     </IonCard>
     <FrequencyMultiSelect v-if="eduFProfile?.frequency === 'disciplina'" v-model="checkboxModal" :checkbox-modal="checkboxModal?.modal" :clean-checks="cleanChecks" :num-classes="schedules" @update:clean="($event) => cleanChecks = $event" />
-    
+
     <div v-if="isLoadingWarning" class="loading-spinner">
       <!-- <IonText>
         <IonIcon name="sync" spin />

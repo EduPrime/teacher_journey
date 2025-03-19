@@ -68,7 +68,7 @@ export default class EnrollmentService extends BaseService<Attendance> {
           updatedBy: frequency.updatedBy,
           tenantId: frequency.tenantId,
           teacherId: frequency.teacherId,
-          disciplineId: frequency.disciplineId !== undefined ? frequency.disciplineId : null, // Explicitamente define null se undefined
+          disciplineId: frequency.disciplineId !== undefined ? frequency.disciplineId : '6b0cb88e-80a1-4185-a0b4-b625bb26b5fc', // Explicitamente define id da Disciplina Geral
           ...(frequency.justificationId ? { justificationId: frequency.justificationId } : null),
         }
 
