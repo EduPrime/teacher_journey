@@ -4,6 +4,7 @@ import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
 import EduCalendar from '@/components/WeekDayPicker.vue'
 import showToast from '@/utils/toast-alert'
+import { DateTime } from 'luxon'
 import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCol, IonGrid, IonIcon, IonItem, IonLabel, IonRadio, IonRadioGroup, IonRow, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
 import { calendarOutline, checkmarkCircleOutline, checkmarkDone, layers, warningOutline } from 'ionicons/icons'
 
@@ -33,7 +34,8 @@ const todayFrequency = ref()
 
 const today = ref(new Date().toISOString().split('T')[0])
 
-const isWarningInformation = ref(true)
+const isLoadingWarning = ref(false) // Controla o estado de carregamento
+const isWarningInformation = ref<boolean | null>(null)
 
 const frequencyToSave = ref<FrequencyToSave[]>()
 const cancelModal = ref(false)
@@ -51,6 +53,7 @@ const selectedDayInfo = ref()
 
 // Watcher para atualizar schedules quando eduFProfile ou selectedDayInfo mudarem
 watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo]) => {
+  isLoadingWarning.value = true // Inicia o carregamento
   todayFrequency.value = []
   if (newEduFProfile?.teacherId && newSelectedDayInfo?.selectedDate) {
     todayFrequency.value = await attendanceService.getAttendanceByToday(newSelectedDayInfo.selectedDate, newEduFProfile.classroomId)
@@ -60,7 +63,11 @@ watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo
     //
     students.value = await enrollmentService.getClassroomStudents(newEduFProfile.classroomId)
 
-    if (todayFrequency.value) {
+    if (todayFrequency.value && todayFrequency.value.length > 0) {
+
+      // Frequência encontrada
+      isWarningInformation.value = false // Frequência registrada
+
       frequencyToSave.value = students.value.map((i: any) => {
         // atribuimos o valor do find em todayFrequency dentro da constante abaixo
         const studentFrequency = todayFrequency.value?.find((atdc: { studentId: string }) => atdc.studentId === i.studentId)
@@ -85,6 +92,10 @@ watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo
       })
     }
     else {
+
+       // Frequência não encontrada
+       isWarningInformation.value = true // Frequência pendente
+
       frequencyToSave.value = students.value.map((i: any) => {
         return {
           name: i.name,
@@ -106,8 +117,6 @@ watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo
       })
     }
 
-    //
-
     isContentSaved.value.card = false
 
     const fullWeekday = getFullWeekday(newSelectedDayInfo.weekday)
@@ -117,7 +126,9 @@ watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo
   else {
     students.value = undefined
     frequencyToSave.value = undefined
+    isWarningInformation.value = null // Reseta isWarningInformation quando não há dados
   }
+  isLoadingWarning.value = false // Finaliza o carregamento
 })
 
 watch(selectedStudent, () => {
@@ -195,6 +206,11 @@ async function saveFrequency() {
     console.error('Nenhuma frequência para salvar')
     showToast('Nenhuma frequência para salvar', 'top', 'warning')
   }
+}
+
+function luxonFormatDate(dateString: string) {
+  const date = DateTime.fromISO(dateString)
+  return date.setLocale('pt-BR').toFormat('dd/MM/yyyy')
 }
 
 // Benhur até agora vejo que devemos mandar neste formato
@@ -288,26 +304,34 @@ onMounted(async () => {
       </IonCardContent>
     </IonCard>
     <FrequencyMultiSelect v-if="eduFProfile?.frequency === 'disciplina'" v-model="checkboxModal" :checkbox-modal="checkboxModal?.modal" :clean-checks="cleanChecks" :num-classes="schedules" @update:clean="($event) => cleanChecks = $event" />
-
-    <div v-if="isWarningInformation" class="warning-close-date">
-      <div class="title">
-        Frequência Pendente
-      </div>
-      <div class="text">
-        <IonIcon :icon="warningOutline" size="large" />
-        <div>
-          Não houve lançamento no dia <b>{{ today }}</b>.
+    
+    <div v-if="isLoadingWarning" class="loading-spinner">
+      <!-- <IonText>
+        <IonIcon name="sync" spin />
+        Carregando informações...
+      </IonText> -->
+    </div>
+    <div v-else-if="isWarningInformation !== null">
+      <div v-if="isWarningInformation" class="warning-close-date">
+        <div class="title">
+          Frequência Pendente
+        </div>
+        <div class="text">
+          <IonIcon :icon="warningOutline" size="large" />
+          <div>
+            Não houve lançamento no dia <b>{{ luxonFormatDate(selectedDayInfo.selectedDate) }}</b>.
+          </div>
         </div>
       </div>
-    </div>
-    <div v-else class="success-close-date">
-      <div class="title">
-        Frequência Registrada
-      </div>
-      <div class="text">
-        <IonIcon :icon="checkmarkDone" size="large" />
-        <div>
-          Lançada no dia <b>{{ today }}</b>.
+      <div v-else class="success-close-date">
+        <div class="title">
+          Frequência Registrada
+        </div>
+        <div class="text">
+          <IonIcon :icon="checkmarkDone" size="large" />
+          <div>
+            Lançada no dia <b>{{ luxonFormatDate(selectedDayInfo.selectedDate) }}</b>.
+          </div>
         </div>
       </div>
     </div>
