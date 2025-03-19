@@ -4,7 +4,7 @@ import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
 import EduCalendar from '@/components/WeekDayPicker.vue'
 import showToast from '@/utils/toast-alert'
-import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCol, IonGrid, IonIcon, IonItem, IonLabel, IonRadio, IonRadioGroup, IonRow, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
+import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCol, IonGrid, IonIcon, IonItem, IonLabel, IonRadio, IonRadioGroup, IonRow, IonSelect, IonSelectOption, IonText, IonToolbar, IonLoading } from '@ionic/vue'
 import { calendarOutline, checkmarkCircleOutline, checkmarkDone, layers, warningOutline } from 'ionicons/icons'
 import { DateTime } from 'luxon'
 
@@ -33,6 +33,7 @@ const todayFrequency = ref()
 
 const isLoadingWarning = ref(false) // Controla o estado de carregamento
 const isWarningInformation = ref<boolean | null>(null)
+const isLoadingSaveFrequency = ref(false) // Controla o estado do IonLoading
 
 const frequencyToSave = ref<FrequencyToSave[]>()
 const cancelModal = ref(false)
@@ -171,21 +172,48 @@ function getFullWeekday(abbreviatedWeekday: string): string {
 async function saveFrequency() {
   if (frequencyToSave.value && frequencyToSave.value.length > 0) {
     isLoading.value = true
+    isLoadingSaveFrequency.value = true // Exibe o IonLoading
     try {
+      	// verificar se já existe frequencia do professor para o dia selecionado
+        const teacherAttendance = await attendanceService.listTeacherAttendance(
+          eduFProfile.value.teacherId,
+          selectedDayInfo.value.selectedDate,
+          eduFProfile.value.classroomId,
+          eduFProfile.value.frequency.toUpperCase(), // Tipo de frequência DISCIPLINA OU DIARIA
+          eduFProfile.value.disciplineId,
+        )
+        if (!teacherAttendance || teacherAttendance.length === 0) {
+        // Cria o registro de frequência do professor
+        await attendanceService.createTeacherAttendance({
+          date: selectedDayInfo.value.selectedDate,
+          totalClasses: schedules.value, // Número total de aulas
+          type: eduFProfile.value.frequency.toUpperCase(), // Tipo de frequência DISCIPLINA OU DIARIA
+          teacherId: eduFProfile.value.teacherId,
+          classroomId: eduFProfile.value.classroomId,
+          disciplineId: eduFProfile.value.disciplineId,
+          stageId: stage.value?.stageId,
+          schoolId: students.value?.[0]?.schoolId, // Obtém o ID da escola do primeiro aluno
+        })
+        // showToast('Frequência do professor registrada com sucesso', 'top', 'success')
+      } else {
+        // showToast('Frequência do professor já foi registrada', 'top', 'warning')
+      }
+
+      // Salva a frequência dos alunos
       const createdRecords = await attendanceService.createAttendance(frequencyToSave.value)
       if (createdRecords.length > 0) {
+        isWarningInformation.value = false
         showToast('Frequência salva com sucesso', 'top', 'success')
       }
       else {
         showToast('Nenhuma nova frequência foi criada', 'top', 'warning')
       }
-    }
-    catch (error) {
+    } catch (error) {
       showToast('Erro ao salvar frequência', 'top', 'warning')
       console.error('Erro ao salvar frequência', error)
-    }
-    finally {
+    } finally {
       isLoading.value = false
+      isLoadingSaveFrequency.value = false // Oculta o IonLoading
     }
   }
   else {
@@ -303,7 +331,7 @@ onMounted(async () => {
 
     <!-- @update:model-value="($event) => checkboxModal.quantifiedPresence = $event" -->
 
-    <div v-if="isLoadingWarning" class="loading-spinner">
+    <div v-if="isLoadingWarning" class="loading-spinner" style="height: 65px;">
       <!-- <IonText>
         <IonIcon name="sync" spin />
         Carregando informações...
@@ -333,6 +361,13 @@ onMounted(async () => {
         </div>
       </div>
     </div>
+
+    <IonLoading
+      :is-open="isLoadingSaveFrequency"
+      message="Salvando..."
+      spinner="crescent"
+      class="custom-save-loading"
+    />
 
     <IonAccordionGroup v-if="selectedDayInfo?.selectedDate && Array.isArray(frequencyToSave) && frequencyToSave.length > 0" class="ion-content" expand="inset">
       <IonAccordion v-for="(s, i) in frequencyToSave" :key="i" :value="`${i}`" class="no-border-accordion">
@@ -478,8 +513,8 @@ ion-modal#cancel-modal {
 .warning-close-date {
   margin-top: 5px;
   margin-bottom: 5px;
-  background-color: #F5C228E5;
-  color: #222;
+  background-color: #F5C228E6;
+  color: #000000B3;
   padding: 5px;
   border-radius: 8px;
   margin-left: 10px;
@@ -510,7 +545,7 @@ ion-modal#cancel-modal {
   margin-top: 5px;
   margin-bottom: 5px;
   background-color: var(--ion-color-success-shade);
-  color: #1A1A1A;
+  color: #000000B3;
   padding: 5px;
   border-radius: 8px;
   margin-left: 10px;
@@ -534,6 +569,13 @@ ion-modal#cancel-modal {
     display: flex;
     align-items: start;
     font-size: 15px;
+  }
+
+  ion-loading.custom-save-loading {
+    --background: #e3edff;
+    --spinner-color: var(--ion-color-warning);
+
+    color: var(--ion-color-info);
   }
 }
 </style>

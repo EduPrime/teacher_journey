@@ -99,7 +99,7 @@ export default class EnrollmentService extends BaseService<Attendance> {
           throw new Error(`Erro ao inserir ou atualizar frequência: ${attendanceError.message}`)
         }
 
-        console.log('attendanceData', attendanceData)
+        // console.log('attendanceData', attendanceData)
 
         const attendanceId = attendanceData.id
 
@@ -124,7 +124,7 @@ export default class EnrollmentService extends BaseService<Attendance> {
         attendanceRecords.push(attendanceData)
       }
 
-      console.log('attendanceRecords', attendanceRecords)
+      // console.log('attendanceRecords', attendanceRecords)
 
       return attendanceRecords
     }
@@ -181,7 +181,7 @@ export default class EnrollmentService extends BaseService<Attendance> {
   }
 
   async createTeacherAttendance(teacherFrequency: TeacherFrequency) {
-    console.log('createTeacherAttendance', teacherFrequency)
+    // console.log('createTeacherAttendance', teacherFrequency)
     const { data: dataAttendance, error: errorAttendance } = await this.client
       .from('teacherAttendance')
       .insert({
@@ -198,7 +198,7 @@ export default class EnrollmentService extends BaseService<Attendance> {
       .single()
 
     if (errorAttendance) {
-      console.log('errorAttendance', teacherFrequency)
+      // console.log('errorAttendance', teacherFrequency)
       throw new Error(`Erro ao inserir frequência do professor: ${errorAttendance.message}`)
     }
   }
