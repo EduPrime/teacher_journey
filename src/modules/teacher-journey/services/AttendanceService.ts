@@ -68,19 +68,16 @@ export default class EnrollmentService extends BaseService<Attendance> {
           updatedBy: frequency.updatedBy,
           tenantId: frequency.tenantId,
           teacherId: frequency.teacherId,
-          ...(frequency.disciplineId ? { disciplineId: frequency.disciplineId } : {}), // Adiciona apenas se existir
-          ...(frequency.justificationId ? { justificationId: frequency.justificationId } : {}), // Adiciona apenas se existir
+          disciplineId: frequency.disciplineId !== undefined ? frequency.disciplineId : null, // Explicitamente define null se undefined
+          ...(frequency.justificationId ? { justificationId: frequency.justificationId } : null),
         }
 
-        // Determinar a chave de conflito
-        const conflictColumns = ['studentId', 'classroomId', 'enrollmentId', 'date']
-        if (frequency.disciplineId) {
-          conflictColumns.push('disciplineId') // Só adiciona se existir
-        }
+        // Especificar as colunas de conflito de maneira mais simples
+        const conflictColumns = ['studentId', 'classroomId', 'enrollmentId', 'date', 'disciplineId']
 
         // Realiza o upsert na tabela principal (attendance)
         const { data: attendanceData, error: attendanceError } = await this.client
-          .from(table)
+          .from('attendance')
           .upsert([attendanceRecord], { onConflict: conflictColumns.join(',') })
           .select()
           .single()
@@ -93,19 +90,22 @@ export default class EnrollmentService extends BaseService<Attendance> {
 
         const attendanceId = attendanceData.id
 
-        // Upsert para os registros de ausência (numMissed)
-        const numMissedRecords = frequency.frequencies.map((f: Frequency) => ({
-          attendanceId,
-          name: f.name,
-          absent: f.absence,
-        }))
+        // Verificar se frequency.frequencies está definido
+        if (frequency.frequencies) {
+          // Upsert para os registros de ausência (numMissed)
+          const numMissedRecords = frequency.frequencies.map((f: Frequency) => ({
+            attendanceId,
+            name: f.name,
+            absent: f.absence,
+          }))
 
-        const { error: numMissedError } = await this.client
-          .from('numMissed')
-          .upsert(numMissedRecords, { onConflict: 'attendanceId, name' }) // Garante atualização correta
+          const { error: numMissedError } = await this.client
+            .from('numMissed')
+            .upsert(numMissedRecords, { onConflict: 'attendanceId, name' }) // Garante atualização correta
 
-        if (numMissedError) {
-          throw new Error(`Erro ao inserir ou atualizar registros de ausência: ${numMissedError.message}`)
+          if (numMissedError) {
+            throw new Error(`Erro ao inserir ou atualizar registros de ausência: ${numMissedError.message}`)
+          }
         }
 
         attendanceRecords.push(attendanceData)
