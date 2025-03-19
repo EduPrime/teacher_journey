@@ -28,9 +28,9 @@ const fixedRoutes: Array<CustomRouteRecordRaw> = [
     },
   },
   {
-    path: '/teacherjourney/attendance',
-    name: 'TeacherAttendance',
-    component: TeacherJourney,
+    path: '/teacherjourney/frequency',
+    name: 'teacherFrequency',
+    component: TeacherFrequency,
     meta: {
       moduleName: 'TeacherJourney',
       moduleIcon: pencil,
@@ -63,19 +63,6 @@ const fixedRoutes: Array<CustomRouteRecordRaw> = [
       icon: idCard,
       name: 'Registro de conteúdo',
       order: 6,
-      requiredRole: ['PROFESSOR'],
-    },
-  },
-  {
-    path: '/teacherjourney/frequency',
-    name: 'teacherFrequency',
-    component: TeacherFrequency,
-    meta: {
-      moduleName: 'TeacherJourney',
-      moduleIcon: pencil,
-      icon: idCard,
-      name: 'Registro de frequência',
-      order: 7,
       requiredRole: ['PROFESSOR'],
     },
   },
