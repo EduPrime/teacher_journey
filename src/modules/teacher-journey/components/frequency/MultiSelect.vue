@@ -8,39 +8,52 @@ interface Props {
   checkboxModal: boolean
   cleanChecks: boolean
   numClasses: number
+  currentStudent: any
 }
 
 const props = defineProps<Props>()
 
-const emits = defineEmits(['update:modelValue', 'update:clean'])
+const emits = defineEmits(['update:modelValue', 'update:clean', 'update:openModal'])
 
 interface ClassPerDay {
   name: string
-  absence: boolean
+  absent: boolean
 }
 
 const classesPerDay = ref<ClassPerDay[]>([])
 
-watch(() => props.numClasses, (newValue) => {
-  classesPerDay.value = Array.from({ length: newValue }, (_, i) => ({
-    name: `${i + 1}º aula`,
-    absence: false,
-  }))
-})
+// watch(() => props.numClasses, (newValue) => {
+//   classesPerDay.value = Array.from({ length: newValue }, (_, i) => ({
+//     name: `${i + 1}º aula`,
+//     absent: false,
+//   }))
+// })
 
 watch(() => props.cleanChecks, (newValue) => {
   emits('update:clean', false)
 
-  if (newValue) {
+  if (newValue && props.currentStudent?.frequencies?.length === 0) {
     classesPerDay.value = classesPerDay.value.map((i: any) => {
-      return { ...i, absence: false }
+      return { ...i, absent: false }
     })
   }
 })
+
+watch(() => props.currentStudent, (newValue) => {
+  if (newValue && newValue.frequencies && newValue.frequencies.length > 0) {
+    classesPerDay.value = newValue.frequencies
+  }
+  else {
+    classesPerDay.value = Array.from({ length: props.numClasses }, (_, i) => ({
+      name: `${i + 1}º aula`,
+      absent: false,
+    }))
+  }
+}, { immediate: true })
 </script>
 
 <template>
-  <IonModal id="quantify-modal" class="ion-padding" :is-open="props.checkboxModal" @ion-modal-did-dismiss="emits('update:modelValue', { modal: false, quantifiedPresence: classesPerDay })">
+  <IonModal id="quantify-modal" class="ion-padding" :is-open="props.checkboxModal" @ion-modal-did-dismiss="emits('update:openModal', false)">
     <IonCard v-if="true" class="ion-no-padding ion-no-margin">
       <IonCardHeader color="secondary">
         <div style="display: flex; align-items: center; height: 15px;">
@@ -49,8 +62,9 @@ watch(() => props.cleanChecks, (newValue) => {
           </IonCardTitle>
         </div>
       </IonCardHeader>
+
       <div class="ion-padding-top ion-padding-horizontal">
-        <IonCheckbox v-for="(x, index) in classesPerDay" :key="index" v-model="x.absence" class="ion-margin-end ion-margin-bottom" label-placement="end">
+        <IonCheckbox v-for="(x, index) in classesPerDay" :key="index" v-model="x.absent" class="ion-margin-end ion-margin-bottom" label-placement="end">
           <IonText color="secondary">
             {{ x.name }}
           </IonText>
@@ -61,11 +75,11 @@ watch(() => props.cleanChecks, (newValue) => {
           <!-- @TODO: construir função para ao clicar em salvar inserir uma copia do registro de conteúdo atual para a turma selecionada -->
           <IonButton
             color="secondary"
-            size="small" style="text-transform: capitalize;" @click="emits('update:modelValue', { modal: false, quantifiedPresence: classesPerDay })"
+            size="small" style="text-transform: capitalize;" @click="() => { emits('update:modelValue', classesPerDay); emits('update:openModal', false) }"
           >
             Salvar
           </IonButton>
-          <IonButton fill="clear" color="danger" size="small" style="text-transform: capitalize;" @click="emits('update:modelValue', { modal: false })">
+          <IonButton fill="clear" color="danger" size="small" style="text-transform: capitalize;" @click="emits('update:openModal', false)">
             Cancelar
           </IonButton>
         </div>

@@ -4,9 +4,9 @@ import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
 import EduCalendar from '@/components/WeekDayPicker.vue'
 import showToast from '@/utils/toast-alert'
-import { DateTime } from 'luxon'
 import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCol, IonGrid, IonIcon, IonItem, IonLabel, IonRadio, IonRadioGroup, IonRow, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
 import { calendarOutline, checkmarkCircleOutline, checkmarkDone, layers, warningOutline } from 'ionicons/icons'
+import { DateTime } from 'luxon'
 
 import { onMounted, ref, watch } from 'vue'
 
@@ -29,6 +29,8 @@ const schedules = ref(0)
 const stage = ref()
 const students = ref()
 const teacherAttendance = ref()
+
+const selectedStudentFrequency = ref()
 
 const todayFrequency = ref()
 
@@ -64,13 +66,13 @@ watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo
     students.value = await enrollmentService.getClassroomStudents(newEduFProfile.classroomId)
 
     if (todayFrequency.value && todayFrequency.value.length > 0) {
-
       // Frequência encontrada
       isWarningInformation.value = false // Frequência registrada
 
       frequencyToSave.value = students.value.map((i: any) => {
         // atribuimos o valor do find em todayFrequency dentro da constante abaixo
         const studentFrequency = todayFrequency.value?.find((atdc: { studentId: string }) => atdc.studentId === i.studentId)
+        console.log('StudentFrequency: ', studentFrequency)
 
         return {
           name: i.name,
@@ -85,16 +87,15 @@ watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo
           disability: i.student.disability,
           teacherId: newEduFProfile.teacherId,
           date: newSelectedDayInfo.selectedDate,
-          presence: studentFrequency?.presence,
-          justificationId: studentFrequency?.justificationId,
-          frequencies: studentFrequency?.frequencies,
+          presence: studentFrequency?.presence ?? true,
+          justificationId: studentFrequency?.justificationId ?? undefined,
+          frequencies: studentFrequency?.frequencies ?? [],
         } as FrequencyToSave
       })
     }
     else {
-
-       // Frequência não encontrada
-       isWarningInformation.value = true // Frequência pendente
+      // Frequência não encontrada
+      isWarningInformation.value = true // Frequência pendente
 
       frequencyToSave.value = students.value.map((i: any) => {
         return {
@@ -137,11 +138,11 @@ watch(selectedStudent, () => {
   cleanChecks.value = true
 })
 
-watch(checkboxModal, (newValue) => {
-  if (newValue.quantifiedPresence && frequencyToSave.value) {
+watch(() => checkboxModal.value.quantifiedPresence, (newValue) => {
+  if (newValue && frequencyToSave.value) {
     frequencyToSave.value = frequencyToSave.value.map((i: any) => {
-      if (i.studentId === selectedStudent.value) {
-        return { ...i, frequencies: checkboxModal.value.quantifiedPresence }
+      if (i.studentId === selectedStudent.value.studentId) {
+        return { ...i, frequencies: newValue }
       }
       else {
         return i
@@ -303,8 +304,20 @@ onMounted(async () => {
         </IonText>
       </IonCardContent>
     </IonCard>
-    <FrequencyMultiSelect v-if="eduFProfile?.frequency === 'disciplina'" v-model="checkboxModal" :checkbox-modal="checkboxModal?.modal" :clean-checks="cleanChecks" :num-classes="schedules" @update:clean="($event) => cleanChecks = $event" />
-    
+
+    <FrequencyMultiSelect
+      v-if="eduFProfile?.frequency === 'disciplina'"
+      v-model="checkboxModal.quantifiedPresence"
+      :checkbox-modal="checkboxModal?.modal"
+      :clean-checks="cleanChecks"
+      :num-classes="schedules"
+      :current-student="selectedStudent"
+      @update:open-modal="($event) => checkboxModal.modal = $event"
+      @update:clean="($event) => cleanChecks = $event"
+    />
+
+    <!-- @update:model-value="($event) => checkboxModal.quantifiedPresence = $event" -->
+
     <div v-if="isLoadingWarning" class="loading-spinner">
       <!-- <IonText>
         <IonIcon name="sync" spin />
@@ -355,7 +368,7 @@ onMounted(async () => {
                 Ausente
               </IonRadio>
             </IonRadioGroup>
-            <IonButton v-if="eduFProfile.frequency === 'disciplina' && !s.presence" size="small" style="margin-top: auto; margin-bottom: auto; margin-left: auto;" shape="round" @click="() => { selectedStudent = s.studentId; checkboxModal.modal = true }">
+            <IonButton v-if="eduFProfile.frequency === 'disciplina' && !s.presence" size="small" style="margin-top: auto; margin-bottom: auto; margin-left: auto;" shape="round" @click="() => { selectedStudent = s; checkboxModal.modal = true }">
               <IonIcon slot="icon-only" :icon="layers" />
             </IonButton>
 

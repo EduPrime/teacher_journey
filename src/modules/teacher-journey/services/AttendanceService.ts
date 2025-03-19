@@ -35,12 +35,25 @@ export default class EnrollmentService extends BaseService<Attendance> {
     }
   }
 
-  async getAttendanceByToday(selectedDate: string, classroomId: string) {
-    const { data, error } = await this.client
-      .from(table)
-      .select('*')
-      .eq('date', selectedDate)
-      .eq('classroomId', classroomId)
+  async getAttendanceByToday(selectedDate: string, classroomId: string, disciplineId?: string) {
+    const fields = `*,
+        frequencies: numMissed (id, name, absent)`
+    const { data, error } = disciplineId
+      ? await this.client
+        .from(table)
+        .select(
+          fields,
+        )
+        .eq('date', selectedDate)
+        .eq('classroomId', classroomId)
+        .eq('disciplineId', disciplineId)
+      : await this.client
+        .from(table)
+        .select(
+          fields,
+        )
+        .eq('date', selectedDate)
+        .eq('classroomId', classroomId)
 
     if (error) {
       throw new Error(`Erro listar todas as frequencias do dia ${selectedDate}: ${error.message}`)
