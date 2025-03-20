@@ -2,7 +2,7 @@ import type { Schedule } from '@prisma/client'
 import BaseService from '@/services/BaseService'
 import { ref } from 'vue'
 
-const table = 'Schedule' as const
+const table = 'schedule' as const
 
 export default class ScheduleService extends BaseService<Schedule> {
   constructor() {
@@ -11,7 +11,7 @@ export default class ScheduleService extends BaseService<Schedule> {
 
   async countSchools(teacherId: string | null) {
     const { data, error } = await this.client
-      .from('schedule')
+      .from(table)
       .select('schoolId')
       .eq('teacherId', teacherId)
 
@@ -30,9 +30,33 @@ export default class ScheduleService extends BaseService<Schedule> {
     return countSchools.size
   }
 
+  async getInstitutionId(teacherId: string | null) {
+    const { data, error } = await this.client
+      .from(table)
+      .select('schoolId')
+      .eq('teacherId', teacherId)
+      .single()
+
+    if (data) {
+      const institutionId = await this.client
+        .from('school')
+        .select('institutionId')
+        .eq('id', data.schoolId)
+        .single()
+      return institutionId.data?.institutionId
+    }
+
+    if (error) {
+      throw new Error(`Erro ao obter o id de instituição: ${error.message}`)
+    }
+    if (!data) {
+      throw new Error('Nenhuma escola associada ao professor')
+    }
+  }
+
   async countClassrooms(teacherId: string | null) {
     const { data, error } = await this.client
-      .from('schedule')
+      .from(table)
       .select('classroomId')
       .eq('teacherId', teacherId)
 
@@ -53,7 +77,7 @@ export default class ScheduleService extends BaseService<Schedule> {
 
   async listClassrooms(teacherId: string | null) {
     const { data, error }: { data: { classroomId: string }[] | null, error: any } = await this.client
-      .from('schedule')
+      .from(table)
       .select('classroomId')
       .eq('teacherId', teacherId)
 
@@ -71,7 +95,7 @@ export default class ScheduleService extends BaseService<Schedule> {
 
   async getSchedule(teacherId: string | null) {
     const { data, error } = await this.client
-      .from('schedule')
+      .from(table)
       .select(`
             *,
             classroom:classroomId (name),
@@ -128,10 +152,10 @@ export default class ScheduleService extends BaseService<Schedule> {
     }
   }
 
-  async getCourse(teacherId: string) {
+  async getCourse(teacherId: string | null) {
     try {
       const infoClass = await this.client
-        .from('schedule')
+        .from(table)
         .select(`
             classroomId
             `,
@@ -154,15 +178,7 @@ export default class ScheduleService extends BaseService<Schedule> {
         )
         .eq('id', infoSerie.data?.[0]?.seriesId)
 
-      const infoCourseName = await this.client
-        .from('course')
-        .select(`
-            name
-            `,
-        )
-        .eq('id', infoCourse.data?.[0]?.courseId)
-
-      return infoCourseName.data?.[0]?.name
+      return infoCourse.data?.[0]?.courseId
     }
     catch (error: any) {
       throw new Error(`Erro ao buscar curso: ${error.message}`)
