@@ -35,12 +35,25 @@ export default class EnrollmentService extends BaseService<Attendance> {
     }
   }
 
-  async getAttendanceByToday(selectedDate: string, classroomId: string) {
-    const { data, error } = await this.client
-      .from(table)
-      .select('*')
-      .eq('date', selectedDate)
-      .eq('classroomId', classroomId)
+  async getAttendanceByToday(selectedDate: string, classroomId: string, disciplineId?: string) {
+    const fields = `*,
+        frequencies: numMissed (id, name, absent)`
+    const { data, error } = disciplineId
+      ? await this.client
+        .from(table)
+        .select(
+          fields,
+        )
+        .eq('date', selectedDate)
+        .eq('classroomId', classroomId)
+        .eq('disciplineId', disciplineId)
+      : await this.client
+        .from(table)
+        .select(
+          fields,
+        )
+        .eq('date', selectedDate)
+        .eq('classroomId', classroomId)
 
     if (error) {
       throw new Error(`Erro listar todas as frequencias do dia ${selectedDate}: ${error.message}`)
@@ -86,7 +99,7 @@ export default class EnrollmentService extends BaseService<Attendance> {
           throw new Error(`Erro ao inserir ou atualizar frequência: ${attendanceError.message}`)
         }
 
-        console.log('attendanceData', attendanceData)
+        // console.log('attendanceData', attendanceData)
 
         const attendanceId = attendanceData.id
 
@@ -96,7 +109,7 @@ export default class EnrollmentService extends BaseService<Attendance> {
           const numMissedRecords = frequency.frequencies.map((f: Frequency) => ({
             attendanceId,
             name: f.name,
-            absent: f.absence,
+            absent: f.absent,
           }))
 
           const { error: numMissedError } = await this.client
@@ -111,7 +124,7 @@ export default class EnrollmentService extends BaseService<Attendance> {
         attendanceRecords.push(attendanceData)
       }
 
-      console.log('attendanceRecords', attendanceRecords)
+      // console.log('attendanceRecords', attendanceRecords)
 
       return attendanceRecords
     }
@@ -168,7 +181,7 @@ export default class EnrollmentService extends BaseService<Attendance> {
   }
 
   async createTeacherAttendance(teacherFrequency: TeacherFrequency) {
-    console.log('createTeacherAttendance', teacherFrequency)
+    // console.log('createTeacherAttendance', teacherFrequency)
     const { data: dataAttendance, error: errorAttendance } = await this.client
       .from('teacherAttendance')
       .insert({
@@ -185,7 +198,7 @@ export default class EnrollmentService extends BaseService<Attendance> {
       .single()
 
     if (errorAttendance) {
-      console.log('errorAttendance', teacherFrequency)
+      // console.log('errorAttendance', teacherFrequency)
       throw new Error(`Erro ao inserir frequência do professor: ${errorAttendance.message}`)
     }
   }
