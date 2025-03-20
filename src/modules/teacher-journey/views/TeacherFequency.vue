@@ -54,7 +54,7 @@ watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo
   isLoadingWarning.value = true // Inicia o carregamento
   todayFrequency.value = []
   if (newEduFProfile?.teacherId && newSelectedDayInfo?.selectedDate) {
-    todayFrequency.value = await attendanceService.getAttendanceByToday(newSelectedDayInfo.selectedDate, newEduFProfile.classroomId)
+    todayFrequency.value = await attendanceService.getAttendanceByToday(newSelectedDayInfo.selectedDate, newEduFProfile.classroomId, newEduFProfile.frequency === 'discipline' && newEduFProfile.disciplineId ? newEduFProfile.disciplineId : undefined)
     stage.value = await stageService.getCurrentStageWeekday(newSelectedDayInfo.selectedDate)
     justifyOptions.value = await justificationService.getJustifications()
 
@@ -67,7 +67,7 @@ watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo
 
       frequencyToSave.value = students.value.map((i: any) => {
         // atribuimos o valor do find em todayFrequency dentro da constante abaixo
-        const studentFrequency = todayFrequency.value?.find((atdc: { studentId: string }) => atdc.studentId === i.studentId)
+        const studentFrequency = todayFrequency.value?.find((atdc: { studentId: string, disciplineId: string }) => atdc.studentId === i.studentId && (atdc.disciplineId === newEduFProfile.disciplineId || newEduFProfile.frequency === 'diaria'))
 
         return {
           name: i.name,
@@ -227,73 +227,6 @@ function luxonFormatDate(dateString: string) {
   return date.setLocale('pt-BR').toFormat('dd/MM/yyyy')
 }
 
-// Benhur até agora vejo que devemos mandar neste formato
-onMounted(async () => {
-  // const data = attendanceService.createAttendance(
-  //   [{
-  //     date: new Date('2025-03-17'),
-  //     presence: false,
-  //     teacherId: '45973489-ab5c-4d36-b5c0-842dff919a65', // Yohan Professor
-  //     studentId: '03f22c85-729a-4916-a500-992616003bc1', // João da Silva
-  //     classroomId: '0c086508-d50b-49b6-afce-0c146643129d', // 1º Ano A
-  //     enrollmentId: 'fc10830c-bd72-41fe-b1ab-c23aa6c67731', // João da Silva
-  //     justificationId: '1e222b35-25da-430e-8bbf-03218baccbd7', // Doença
-  //     stageId: '149665ec-a230-439e-aeb2-4cb7bfc8ebb4', // etapa 1
-  //     schoolId: 'd488e90e-327b-4ca7-ad45-888c65d2a3ab', // Escola Municipal de Araripina
-  //     frequencies: [
-  //       {
-  //         name: '1º aula',
-  //         absence: true,
-  //       },
-  //       {
-  //         name: '2º aula',
-  //         absence: true,
-  //       },
-  //       {
-  //         name: '3º aula',
-  //         absence: true,
-  //       },
-  //     ],
-  //   }],
-  // )
-  //   const teacherAttendance: TeacherFrequency = {
-  //     date: new Date('2025-03-18'),
-  //     totalClasses: 5,
-  //     type: 'DISCIPLINA',
-  //     teacherId: '45973489-ab5c-4d36-b5c0-842dff919a65', // Yohan Professor
-  //     classroomId: '29cf9857-0fe4-45f4-8b00-fc10e626eba8', // 7º Ano A
-  //     disciplineId: 'c030869a-3b07-4f7d-b11d-69765af91f9a', // Geometria
-  //     stageId: '149665ec-a230-439e-aeb2-4cb7bfc8ebb4', // etapa 1
-  //     schoolId: 'd488e90e-327b-4ca7-ad45-888c65d2a3ab', // Escola Municipal de Araripina
-  //   }
-  //   await attendanceService.createTeacherAttendance(teacherAttendance)
-
-  // })
-  //   const teacherAttendance: TeacherFrequency = {
-  //     date: new Date('2025-03-17'),
-  //     totalClasses: 5,
-  //     type: 'DIARIA',
-  //     teacherId: '45973489-ab5c-4d36-b5c0-842dff919a65', // Yohan Professor
-  //     classroomId: '12ab8210-e080-491b-8f6c-45e240a8990e', // 1º Ano B
-  //     disciplineId: '6862a800-92c3-4d46-8740-62a02a5e5cf9', // Língua Portuguesa
-  //     stageId: '149665ec-a230-439e-aeb2-4cb7bfc8ebb4', // etapa 1
-  //     schoolId: 'd488e90e-327b-4ca7-ad45-888c65d2a3ab', // Escola Municipal de Araripina
-  //   }
-  //   await attendanceService.createTeacherAttendance(teacherAttendance)
-
-  const data = attendanceService.listTeacherAttendance(
-    '45973489-ab5c-4d36-b5c0-842dff919a65', // Yohan Professor
-    '2025-03-17',
-    '29cf9857-0fe4-45f4-8b00-fc10e626eba8', // 7º Ano A
-    'DISCIPLINA',
-    'c030869a-3b07-4f7d-b11d-69765af91f9a', // Geometria
-  )
-  data.then((result) => {
-    console.log('VUE listTeacherAttendance', result)
-  }).catch((error) => {
-    console.error('Error fetching teacher attendance', error)
-  })
-})
 </script>
 
 <template>
@@ -305,7 +238,7 @@ onMounted(async () => {
         Frequência diária
       </IonText>
     </h3>
-    <EduCalendar v-model="selectedDayInfo" :teacher-id="eduFProfile?.teacherId" :current-classroom="eduFProfile?.classroomId" :current-discipline="eduFProfile?.disciplineId" />
+    <EduCalendar v-model="selectedDayInfo" :teacher-id="eduFProfile?.teacherId" :current-classroom="eduFProfile?.classroomId" :current-discipline="eduFProfile?.disciplineId" :frequency="eduFProfile?.frequency" />
 
     <IonCard v-if="false" color="success">
       <IonCardContent>
@@ -515,8 +448,8 @@ ion-modal#cancel-modal {
   margin-bottom: 5px;
   background-color: #F5C228E6;
   color: #000000B3;
-  padding: 5px;
-  border-radius: 8px;
+  padding: 6px 6px 6px 6px;
+  border-radius: 3px;
   margin-left: 10px;
   margin-right: 10px;
 
@@ -524,14 +457,13 @@ ion-modal#cancel-modal {
     font-size: 17px;
     font-weight: 600;
     padding-left: 34px;
-    margin-bottom: 3px;
   }
 
   .text {
     ion-icon {
       width: 30px;
       margin-right: 5px;
-      margin-top: -8px;
+      margin-top: -18px;
     }
 
     font-weight: 300;
@@ -546,8 +478,8 @@ ion-modal#cancel-modal {
   margin-bottom: 5px;
   background-color: var(--ion-color-success-shade);
   color: #000000B3;
-  padding: 5px;
-  border-radius: 8px;
+  padding: 6px 6px 6px 6px;
+  border-radius: 3px;
   margin-left: 10px;
   margin-right: 10px;
 
@@ -555,14 +487,13 @@ ion-modal#cancel-modal {
     font-size: 17px;
     font-weight: 600;
     padding-left: 34px;
-    margin-bottom: 3px;
   }
 
   .text {
     ion-icon {
       width: 30px;
       margin-right: 5px;
-      margin-top: -8px;
+      margin-top: -18px;
     }
 
     font-weight: 300;
