@@ -1,24 +1,18 @@
 <script setup lang="ts">
 import showToast from "@/utils/toast-alert";
 import {
-	IonAccordion,
-	IonAccordionGroup,
 	IonButton,
 	IonCard,
 	IonCardContent,
 	IonCardHeader,
 	IonCardTitle,
-	IonChip,
 	IonIcon,
-	IonItem,
-	IonLabel,
-	IonModal,
 	IonSelect,
 	IonSelectOption,
 	IonTextarea,
 } from "@ionic/vue";
-import { add, calendarOutline, save } from "ionicons/icons";
-import { computed, defineProps, onMounted, ref, watch } from "vue";
+import { save } from "ionicons/icons";
+import { computed, defineProps, ref, watch } from "vue";
 import BNCCService from "../../services/BNCCService";
 import ContentService from "../../services/ContentService";
 import { Form, Field, ErrorMessage } from "vee-validate";
@@ -158,7 +152,7 @@ async function saveContent() {
             </ErrorMessage>
 
           <br>
-          <Field name="Currículos" v-slot="{ field }" rules="required|min:2|max:255">
+          <Field name="Currículos" v-slot="{ field }" rules="required">
             <IonSelect
               v-bind="field"
               v-model="filledContent.bnccs"
