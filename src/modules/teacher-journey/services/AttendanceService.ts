@@ -109,7 +109,7 @@ export default class EnrollmentService extends BaseService<Attendance> {
           const numMissedRecords = frequency.frequencies.map((f: Frequency) => ({
             attendanceId,
             name: f.name,
-            absent: f.absence,
+            absent: f.absent,
           }))
 
           const { error: numMissedError } = await this.client

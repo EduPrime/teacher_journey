@@ -141,7 +141,7 @@ function changeSelectedToUpdate(current: any): void {
         Lançamento diário
       </ion-text>
     </h3>
-    <EduCalendar v-model="selectedDayInfo" :teacher-id="eduFProfile?.teacherId" :current-classroom="eduFProfile?.classroomId" :current-discipline="eduFProfile?.disciplineId" />
+    <EduCalendar v-model="selectedDayInfo" :teacher-id="eduFProfile?.teacherId" :current-classroom="eduFProfile?.classroomId" :current-discipline="eduFProfile?.disciplineId" :frequency="eduFProfile?.frequency" />
 
     <div v-if="eduFProfile?.classroomId && selectedDayInfo?.selectedDate">
       <IonCard v-show="registros?.length === 0 && !isContentSaved.card" class="ion-no-padding ion-margin-top">

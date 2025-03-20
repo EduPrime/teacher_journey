@@ -1,7 +1,7 @@
 // import type { Attendance } from '@prisma/client'
 export interface Frequency {
   name: string
-  absence: boolean
+  absent: boolean
 }
 
 export interface FrequencyToSave {

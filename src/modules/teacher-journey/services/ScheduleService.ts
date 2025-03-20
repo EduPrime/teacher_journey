@@ -35,15 +35,15 @@ export default class ScheduleService extends BaseService<Schedule> {
       .from(table)
       .select('schoolId')
       .eq('teacherId', teacherId)
-      .single()
+      .limit(1) // Garante que apenas uma linha seja retornada
 
     if (data) {
       const institutionId = await this.client
         .from('school')
         .select('institutionId')
-        .eq('id', data.schoolId)
-        .single()
-      return institutionId.data?.institutionId
+        .eq('id', data[0]?.schoolId)
+        .limit(1)
+      return institutionId.data?.[0]?.institutionId
     }
 
     if (error) {
@@ -119,7 +119,7 @@ export default class ScheduleService extends BaseService<Schedule> {
   async getScheduleTeacherDay(teacherId: string, weekday: string, classroomId: string, disciplineId: string) {
     if (disciplineId) {
       try {
-      // throw new Error('Parâmetros inválidos fornecidos para getScheduleTeacherDay')
+        // throw new Error('Parâmetros inválidos fornecidos para getScheduleTeacherDay')
 
         const { data, error } = await this.client
           .from('schedule')
