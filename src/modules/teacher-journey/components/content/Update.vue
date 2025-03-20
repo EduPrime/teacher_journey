@@ -122,6 +122,11 @@ watch(
 async function getBNCCByDisciplines(selectedDisciplines: string[]) {
 	const data = await bnccService.getBNCC(selectedDisciplines, props.seriesId);
 	bnccs.value = data;
+
+	filledContent.value.bnccs = filledContent.value.bnccs.filter((bnccId) =>
+		data.some((bncc) => bncc.id === bnccId),
+	);
+
 	filledContent.value.disciplines = selectedDisciplines;
 	return data;
 }
@@ -172,6 +177,7 @@ function luxonFormatDate(dateString: string) {
               <Field name="Disciplina" v-slot="{ field }" rules="required">
                 <IonSelect
                   v-bind="field"
+                  v-model="filledContent.disciplines"
                   class="ion-select-card-content"
                   label="Disciplina"
                   label-placement="floating"
@@ -194,6 +200,7 @@ function luxonFormatDate(dateString: string) {
               <Field name="Conteúdo" v-slot="{ field }" rules="required|min:2|max:360">
                 <IonTextarea
                   v-bind="field"
+                  v-model="filledContent.description"
                   label="Conteúdo"
                   label-placement="floating"
                   fill="outline"
@@ -210,6 +217,7 @@ function luxonFormatDate(dateString: string) {
               <Field name="Currículos" v-slot="{ field }" rules="required">
                 <IonSelect
                   v-bind="field"
+                  v-model="filledContent.bnccs"
                   class="ion-select-card-content"
                   label="Currículos"
                   label-placement="floating"
