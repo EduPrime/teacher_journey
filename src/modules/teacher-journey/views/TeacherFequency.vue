@@ -37,6 +37,8 @@ const isLoadingSaveFrequency = ref(false) // Controla o estado do IonLoading
 
 const frequencyToSave = ref<FrequencyToSave[]>()
 const cancelModal = ref(false)
+const hasUnsavedChanges = ref(false)
+const isCancelEnabled = ref(false)
 
 const checkboxModal = ref({ modal: false, quantifiedPresence: undefined as any })
 const selectedStudent = ref()
@@ -48,6 +50,23 @@ const isContentSaved = ref({ card: false, saved: undefined as any })
 const isLoading = ref(false)
 
 const selectedDayInfo = ref()
+
+watch(frequencyToSave, (newValue, oldValue) => {
+  if (newValue && newValue.length > 0) {
+    if (JSON.stringify(newValue) !== JSON.stringify(oldValue)) {
+      isCancelEnabled.value = false
+      hasUnsavedChanges.value = false
+    }
+    else {
+      isCancelEnabled.value = true
+      hasUnsavedChanges.value = true
+    }
+  }
+  else {
+    isCancelEnabled.value = false
+    hasUnsavedChanges.value = false
+  }
+}, { deep: true })
 
 // Watcher para atualizar schedules quando eduFProfile ou selectedDayInfo mudarem
 watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo]) => {
@@ -217,6 +236,7 @@ async function saveFrequency() {
     finally {
       isLoading.value = false
       isLoadingSaveFrequency.value = false // Oculta o IonLoading
+      isCancelEnabled.value = false // Desabilita Botão Cancelar
     }
   }
   else {
@@ -391,7 +411,7 @@ function luxonFormatDate(dateString: string) {
         <IonGrid>
           <IonRow>
             <IonCol size="6">
-              <IonButton :disabled="false" color="danger" expand="full" @click="cancelModal = !cancelModal">
+              <IonButton :disabled="!isCancelEnabled" color="danger" expand="full" @click="cancelModal = !cancelModal">
                 Cancelar
               </IonButton>
             </IonCol>
