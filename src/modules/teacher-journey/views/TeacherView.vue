@@ -18,6 +18,7 @@ import EnrollmentService from '../services/EnrollmentService'
 import GradeService from '../services/GradeService'
 import ScheduleService from '../services/ScheduleService'
 import StageService from '../services/StageService'
+import EvaluationRuleService from '@/services/EvaluationRuleService'
 
 import 'swiper/css'
 import 'swiper/css/pagination'
@@ -45,39 +46,39 @@ type Schedules = {
 }[]
 
 type Classes = {
-      id: string | null
-      name: string | null
-      school: string | null
-      discipline: string | null
-      disciplineId: string | null
-      students?: {
-      id: string | null
-      name: string | null
-      student: {
-        disability?: string[]
-      }
-      grade?: number
-      }[]
-    }[]
+  id: string | null
+  name: string | null
+  school: string | null
+  discipline: string | null
+  disciplineId: string | null
+  students?: {
+    id: string | null
+    name: string | null
+    student: {
+      disability?: string[]
+    }
+    grade?: number
+  }[]
+}[]
 
 const modules = ref([Pagination])
 const stageService = new StageService()
 const scheduleService = new ScheduleService()
 const enrollment = new EnrollmentService()
 const gradeService = new GradeService()
+const evaluationRuleService = new EvaluationRuleService()
+
 const stages = ref(<Stages>{})
 const schedules = ref(<Schedules>[])
 const teacherId = localStorage.getItem('teacherId')
-const institutionId = 'bd14f407-3758-4656-a299-e4cf3859dd29'
-
-// Dados mockados
-const alertasInformacoes = {
-  escolas: 2,
-  turmas: 8,
-}
-const classes = ref([])
+const institutionId = ref('')
 const totalSchools = ref(0)
 const totalClassrooms = ref(0)
+const classrooms = ref()
+const courseId = ref('')
+const rules = ref()
+const frequencyType = ref()
+
 const quadroHorarios = {
   dias: [
     { label: 'Seg', value: 'MONDAY' },
@@ -89,47 +90,25 @@ const quadroHorarios = {
   ],
 
 }
-
-const necessidadesEspeciais = [
-  {
-    turma: '4º ANO B',
-    tag: 'GCR',
-    alunos: [
-      { nome: 'Jane Salino Alves', tag: 'tag' },
-      { nome: 'Maria Aquino Marinho', tag: 'tag' },
-      { nome: 'Maria Maurinho Marinho', tag: 'tag' },
-    ],
-  },
-  {
-    turma: '4º ANO C',
-    tag: 'GCR',
-    alunos: [
-      { nome: 'Jane Salino Alves', tag: 'tag' },
-      { nome: 'Maria Aquino Marinho', tag: 'tag' },
-      { nome: 'Maria Maurinho Marinho', tag: 'tag' },
-    ],
-  },
-]
-
-const alertaDesempenho = [
-  {
-    turma: '4º ANO C',
-    professor: 'GCR',
-    alunos: [
-      { nome: 'Jane Salino Alves', tag: 'tag' },
-      { nome: 'Maria Aquino Marinho', tag: 'tag' },
-      { nome: 'Maria Maurinho Marinho', tag: 'tag' },
-    ],
-  },
-]
 const selectDay = ref('MONDAY')
 const allClasses = ref(<Classes>[])
 async function loadStages() {
   try {
-    stages.value = await stageService.getCurrentStage(institutionId)
+    stages.value = await stageService.getCurrentStage(institutionId.value)
   }
   catch (error) {
     console.error('Erro ao carregar os estágios:', error)
+  }
+}
+
+async function getRules() {
+  try {
+    courseId.value = await scheduleService.getCourse(teacherId)
+    rules.value = await evaluationRuleService.getRulesFromCourse(courseId.value)
+    frequencyType.value = rules.value.frequencyType
+  }
+  catch (error) {
+    console.error('Erro ao carregar as regras:', error)
   }
 }
 
@@ -158,14 +137,17 @@ async function loadSchedule() {
     console.error('Erro ao carregar os estágios:', error)
   }
 }
+
 async function loadSchools() {
   try {
     totalSchools.value = await scheduleService.countSchools(teacherId)
+    institutionId.value = await scheduleService.getInstitutionId(teacherId)
   }
   catch (error) {
     console.error('Erro ao carregar as escolas:', error)
   }
 }
+
 async function loadClassrooms() {
   try {
     totalClassrooms.value = await scheduleService.countClassrooms(teacherId)
@@ -181,6 +163,7 @@ const horarios = computed(() => {
   })
   return filteredSchedule
 })
+
 const disabledStudents = computed(() => {
   return allClasses.value.map((classroom) => {
     const filteredStudents = classroom.students?.filter(currentStudent => currentStudent.student.disability?.length)
@@ -190,8 +173,7 @@ const disabledStudents = computed(() => {
     }
   })
 })
-const classrooms = ref()
-const students = ref()
+
 async function getStudents() {
   try {
     classrooms.value = await scheduleService.listClassrooms(teacherId)
@@ -211,27 +193,6 @@ async function getStudents() {
   }
 }
 
-// async function getClassAndDisciplines() {
-//   const data = await scheduleService.getClassroomsAndDisciplines(teacherId);
-//   data.forEach(async (classe) => {
-//     gradeService.getGrades(classe.classroomId, classe.disciplineId, stages.value.stageId).then((classroomStudents) => {
-//       allClasses.value.forEach((classroom) => {
-//         if (
-//           classroom.disciplineId === classroomStudents[0].disciplineId
-//         ) {
-//           classroom.students.forEach((currentStudent) => {
-//             classroomStudents.forEach((classroomStudent) => {
-//               if (currentStudent.id === classroomStudent.enrollmentId)
-//                 currentStudent.grade = classroomStudent.grade
-//               // console.log(currentStudent, classroomStudents)
-//             })
-//           })
-//         }
-//       })
-//     })
-//   })
-//   return data
-// }
 function getCapitalizedInitials(input: string): string {
   const initials = input
     .match(/\b[A-Z][a-z]*\b/g)
@@ -241,10 +202,11 @@ function getCapitalizedInitials(input: string): string {
 
   return initials
 }
+
 const attentionStudents = computed(() => {
   return allClasses.value.map((classroom) => {
     const filteredStudents = classroom.students?.filter(student =>
-      student?.grade || 0 < 6,
+      student?.grade && student?.grade < 6,
     )
     return {
       ...classroom,
@@ -252,18 +214,22 @@ const attentionStudents = computed(() => {
     }
   })
 })
+
 onMounted(async () => {
+  getRules()
   loadSchedule()
-  loadSchools()
+  await loadSchools()
   loadClassrooms()
   getStudents()
   await loadStages()
-  // getClassAndDisciplines()
+
 })
+
 function formatHour(horario: any) {
   const [HH, mm] = horario.split(':')
   return `${HH}:${mm}`
 }
+
 </script>
 
 <template>
@@ -330,10 +296,38 @@ function formatHour(horario: any) {
         </div>
         <div class="grid">
           <IonCard v-for="(horario, index) in horarios" :key="index" style="margin: 0px" class="ion-padding">
+            <div v-if="frequencyType === 'disciplina'" class="text-primary text-lg grid-row">
+              {{ horario.discipline.name }}
+            </div>
             <div class="grid-row borders">
-              <svg width="23" height="23" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg v-if="index === 0" width="23" height="23" viewBox="0 0 20 20" fill="none"
+                xmlns="http://www.w3.org/2000/svg">
                 <path
                   d="M17.5 14.1667H5.83337V2.50004H17.5M17.5 0.833374H5.83337C5.39135 0.833374 4.96742 1.00897 4.65486 1.32153C4.3423 1.63409 4.16671 2.05801 4.16671 2.50004V14.1667C4.16671 14.6087 4.3423 15.0327 4.65486 15.3452C4.96742 15.6578 5.39135 15.8334 5.83337 15.8334H17.5C17.9421 15.8334 18.366 15.6578 18.6786 15.3452C18.9911 15.0327 19.1667 14.6087 19.1667 14.1667V2.50004C19.1667 2.05801 18.9911 1.63409 18.6786 1.32153C18.366 1.00897 17.9421 0.833374 17.5 0.833374ZM11.6667 12.5H13.3334V4.16671H10V5.83337H11.6667M2.50004 4.16671H0.833374V17.5C0.833374 17.9421 1.00897 18.366 1.32153 18.6786C1.63409 18.9911 2.05801 19.1667 2.50004 19.1667H15.8334V17.5H2.50004V4.16671Z"
+                  fill="#71438D" />
+              </svg>
+              <svg v-if="index === 1" width="23" height="23" viewBox="0 0 20 20" fill="none"
+                xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M14.1666 10.8334H10.8333V9.16671H12.5C12.942 9.16671 13.3659 8.99111 13.6785 8.67855C13.9911 8.36599 14.1666 7.94207 14.1666 7.50004V5.83337C14.1666 4.90837 13.4166 4.16671 12.5 4.16671H9.16665V5.83337H12.5V7.50004H10.8333C10.3913 7.50004 9.96736 7.67564 9.6548 7.9882C9.34224 8.30076 9.16665 8.72468 9.16665 9.16671V12.5H14.1666M17.5 14.1667H5.83331V2.50004H17.5M17.5 0.833374H5.83331C5.39129 0.833374 4.96736 1.00897 4.6548 1.32153C4.34224 1.63409 4.16665 2.05801 4.16665 2.50004V14.1667C4.16665 14.6087 4.34224 15.0327 4.6548 15.3452C4.96736 15.6578 5.39129 15.8334 5.83331 15.8334H17.5C17.942 15.8334 18.3659 15.6578 18.6785 15.3452C18.9911 15.0327 19.1666 14.6087 19.1666 14.1667V2.50004C19.1666 2.05801 18.9911 1.63409 18.6785 1.32153C18.3659 1.00897 17.942 0.833374 17.5 0.833374ZM2.49998 4.16671H0.833313V17.5C0.833313 17.9421 1.00891 18.366 1.32147 18.6786C1.63403 18.9911 2.05795 19.1667 2.49998 19.1667H15.8333V17.5H2.49998V4.16671Z"
+                  fill="#71438D" />
+              </svg>
+              <svg v-if="index === 2" width="23" height="23" viewBox="0 0 20 20" fill="none"
+                xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M14.1666 10.8334V9.58337C14.1666 9.25185 14.035 8.93391 13.8005 8.69949C13.5661 8.46507 13.2482 8.33337 12.9166 8.33337C13.2482 8.33337 13.5661 8.20168 13.8005 7.96726C14.035 7.73284 14.1666 7.4149 14.1666 7.08337V5.83337C14.1666 4.90837 13.4166 4.16671 12.5 4.16671H9.16665V5.83337H12.5V7.50004H10.8333V9.16671H12.5V10.8334H9.16665V12.5H12.5C12.942 12.5 13.3659 12.3244 13.6785 12.0119C13.9911 11.6993 14.1666 11.2754 14.1666 10.8334ZM2.49998 4.16671H0.833313V17.5C0.833313 17.9421 1.00891 18.366 1.32147 18.6786C1.63403 18.9911 2.05795 19.1667 2.49998 19.1667H15.8333V17.5H2.49998M17.5 14.1667H5.83331V2.50004H17.5M17.5 0.833374H5.83331C5.39129 0.833374 4.96736 1.00897 4.6548 1.32153C4.34224 1.63409 4.16665 2.05801 4.16665 2.50004V14.1667C4.16665 14.6087 4.34224 15.0327 4.6548 15.3452C4.96736 15.6578 5.39129 15.8334 5.83331 15.8334H17.5C17.942 15.8334 18.3659 15.6578 18.6785 15.3452C18.9911 15.0327 19.1666 14.6087 19.1666 14.1667V2.50004C19.1666 2.05801 18.9911 1.63409 18.6785 1.32153C18.3659 1.00897 17.942 0.833374 17.5 0.833374Z"
+                  fill="#71438D" />
+              </svg>
+              <svg v-if="index === 3" width="23" height="23" viewBox="0 0 20 20" fill="none"
+                xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M17.5 14.1667H5.83331V2.50004H17.5M17.5 0.833374H5.83331C5.39129 0.833374 4.96736 1.00897 4.6548 1.32153C4.34224 1.63409 4.16665 2.05801 4.16665 2.50004V14.1667C4.16665 14.6087 4.34224 15.0327 4.6548 15.3452C4.96736 15.6578 5.39129 15.8334 5.83331 15.8334H17.5C17.942 15.8334 18.3659 15.6578 18.6785 15.3452C18.9911 15.0327 19.1666 14.6087 19.1666 14.1667V2.50004C19.1666 2.05801 18.9911 1.63409 18.6785 1.32153C18.3659 1.00897 17.942 0.833374 17.5 0.833374ZM12.5 12.5H14.1666V4.16671H12.5V7.50004H10.8333V4.16671H9.16665V9.16671H12.5M2.49998 4.16671H0.833313V17.5C0.833313 17.9421 1.00891 18.366 1.32147 18.6786C1.63403 18.9911 2.05795 19.1667 2.49998 19.1667H15.8333V17.5H2.49998V4.16671Z"
+                  fill="#71438D" />
+              </svg>
+              <svg v-if="index === 4" width="23" height="23" viewBox="0 0 20 20" fill="none"
+                xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M13.3333 10V8.33333C13.3333 7.40833 12.5833 6.66667 11.6667 6.66667H10V5H13.3333V3.33333H8.33333V8.33333H11.6667V10H8.33333V11.6667H11.6667C12.1087 11.6667 12.5326 11.4911 12.8452 11.1785C13.1577 10.866 13.3333 10.442 13.3333 10ZM1.66667 3.33333H0V16.6667C0 17.1087 0.175595 17.5326 0.488155 17.8452C0.800716 18.1577 1.22464 18.3333 1.66667 18.3333H15V16.6667H1.66667M16.6667 13.3333H5V1.66667H16.6667M16.6667 0H5C4.55797 0 4.13405 0.175595 3.82149 0.488155C3.50893 0.800716 3.33333 1.22464 3.33333 1.66667V13.3333C3.33333 13.7754 3.50893 14.1993 3.82149 14.5118C4.13405 14.8244 4.55797 15 5 15H16.6667C17.1087 15 17.5326 14.8244 17.8452 14.5118C18.1577 14.1993 18.3333 13.7754 18.3333 13.3333V1.66667C18.3333 1.22464 18.1577 0.800716 17.8452 0.488155C17.5326 0.175595 17.1087 0 16.6667 0Z"
                   fill="#71438D" />
               </svg>
               <div>

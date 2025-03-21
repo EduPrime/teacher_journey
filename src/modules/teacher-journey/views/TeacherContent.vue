@@ -141,7 +141,7 @@ function changeSelectedToUpdate(current: any): void {
         Lançamento diário
       </ion-text>
     </h3>
-    <EduCalendar v-model="selectedDayInfo" :teacher-id="eduFProfile?.teacherId" />
+    <EduCalendar v-model="selectedDayInfo" :teacher-id="eduFProfile?.teacherId" :current-classroom="eduFProfile?.classroomId" :current-discipline="eduFProfile?.disciplineId" :frequency="eduFProfile?.frequency" />
 
     <div v-if="eduFProfile?.classroomId && selectedDayInfo?.selectedDate">
       <IonCard v-show="registros?.length === 0 && !isContentSaved.card" class="ion-no-padding ion-margin-top">
@@ -169,7 +169,7 @@ function changeSelectedToUpdate(current: any): void {
         </div>
       </IonCard>
 
-      <IonAccordionGroup v-if="isAccordionContent || registros.length > 0" id="RegistrosExistentes" class="ion-content" expand="inset" :multiple="true" value="0">
+      <IonAccordionGroup v-if="isAccordionContent || registros.length > 0" id="RegistrosExistentes" class="ion-content" expand="inset" :value="`${selectedToCopy ? registros.indexOf(selectedToCopy) : '0'}`">
         <IonAccordion v-for="(registro, index) in registros" :key="index" style="margin-bottom: 5px;" :value="`${index}`">
           <IonItem slot="header" color="secondary">
             <IonLabel class="custom-span">
@@ -221,6 +221,8 @@ function changeSelectedToUpdate(current: any): void {
         :selected-day="selectedDayInfo?.selectedDate"
         :teacher-id="eduFProfile.teacherId" :classroom-id="eduFProfile?.classroomId"
         :available-disciplines="schedules?.availableDisciplines"
+        :frequency="eduFProfile.frequency"
+        :discipline-id="eduFProfile.disciplineId"
       />
 
       <ContentUpdate
@@ -230,6 +232,7 @@ function changeSelectedToUpdate(current: any): void {
         :series-id="eduFProfile?.seriesId"
         :classroom-id="eduFProfile?.classroomId"
         :available-disciplines="schedules?.availableDisciplines"
+        :frequency="eduFProfile.frequency"
       />
 
       <div v-if="registros.length > 0" id="NovoRegistro" style="display: flex; justify-content: flex-end;" class="ion-content">
@@ -304,7 +307,6 @@ ion-accordion-group {
 
 ion-modal#copy-modal {
   --width: fit-content;
-  /* --min-width: 350px; */
   --height: fit-content;
   --border-radius: 6px;
   --box-shadow: 0 28px 48px rgba(0, 0, 0, 0.4);
@@ -325,11 +327,6 @@ ion-modal#copy-modal ion-icon {
 
   color: var(--ion-color-lightaccent-shade);
 }
-
-/*
-.custom-floating-label::part(label) {
-  transform: translateY(10%) scale(1);
-} */
 
 ion-select {
 

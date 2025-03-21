@@ -12,8 +12,9 @@ interface Props {
   teacherId: string
   classroomId: string
   selectedDay: string
-  disciplineId?: string
+  disciplineId: string
   seriesId: string
+  frequency: string
 }
 
 const props = defineProps<Props>()
@@ -47,6 +48,11 @@ watch(() => props.availableDisciplines, async (newValue) => {
     bnccs.value = await bnccService.getBNCC(availableDisciplineIds.value.length > 0
       ? availableDisciplineIds.value
       : props.availableDisciplines.map((disciplines: AvailableDisciplines) => { return disciplines.id }), props.seriesId)
+
+    // Se frequency for 'disciplina', definir a disciplina selecionada
+    if (props.frequency === 'disciplina' && props.disciplineId) {
+      filledContent.value.disciplines = [props.disciplineId]
+    }
   }
 }, { immediate: true })
 
@@ -79,7 +85,6 @@ async function saveContent() {
         </IonCardTitle>
       </div>
     </IonCardHeader>
-
     <div>
       <IonCardContent class="ion-padding-top">
         <IonSelect
@@ -89,6 +94,7 @@ async function saveContent() {
           label-placement="floating"
           fill="outline"
           cancel-text="Cancelar"
+          :disabled="props.frequency === 'disciplina'"
           :multiple="true"
           @ion-change="getBNCCByDisciplines($event.detail.value)"
         >

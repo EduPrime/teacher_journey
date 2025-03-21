@@ -95,16 +95,19 @@ export default class ContentService extends BaseService<Content> {
         throw new Error(`Erro ao inserir disciplinas: ${disciplineError.message}`)
       }
 
-      // Então inicia o insert no relacionamento many-to-many para [conteudo_bncc]
-      const { error: bnccError } = await this.client
-        .from('contentbncc')
-        .insert(content.bnccs.map(bnccId => ({
-          contentId,
-          bnccId,
-        })))
+      // Verificar se o campo bnccs está preenchido antes de tentar fazer o insert
+      if (content.bnccs && content.bnccs.length > 0) {
+        // Então inicia o insert no relacionamento many-to-many para [conteudo_bncc]
+        const { error: bnccError } = await this.client
+          .from('contentbncc')
+          .insert(content.bnccs.map(bnccId => ({
+            contentId,
+            bnccId,
+          })))
 
-      if (bnccError) {
-        throw new Error(`Erro ao inserir BNCCs: ${bnccError.message}`)
+        if (bnccError) {
+          throw new Error(`Erro ao inserir BNCCs: ${bnccError.message}`)
+        }
       }
 
       return contentData
