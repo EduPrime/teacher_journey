@@ -11,6 +11,7 @@ import ContentUpdate from '../components/content/Update.vue'
 
 import ContentService from '../services/ContentService'
 import ScheduleService from '../services/ScheduleService'
+import showToast from '@/utils/toast-alert'
 
 interface Registro {
   id: string
@@ -111,6 +112,7 @@ async function confirmDeleteContent() {
       const userId = JSON.parse(localStorage.getItem('userLocal') || '{}').id || ''
       await contentService.softDeleteContent({ id: registroToDelete.value, userId })
       await loadDataContent(eduFProfile.value.classroomId, selectedDayInfo.value?.selectedDate)
+      showToast('Conteúdo deletado com sucesso', 'top', 'success')
     }
     catch (error: unknown | any) {
       console.error('Erro ao deletar os dados:', error.message)
@@ -223,7 +225,8 @@ function changeSelectedToUpdate(current: any): void {
         :teacher-id="eduFProfile.teacherId" :classroom-id="eduFProfile?.classroomId"
         :available-disciplines="schedules?.availableDisciplines"
         :frequency="eduFProfile.frequency"
-        :discipline-id="eduFProfile.disciplineId"
+        :evaluation="eduFProfile.evaluation"
+        :discipline-id="eduFProfile?.disciplineId"
       />
 
       <ContentUpdate
@@ -234,6 +237,8 @@ function changeSelectedToUpdate(current: any): void {
         :classroom-id="eduFProfile?.classroomId"
         :available-disciplines="schedules?.availableDisciplines"
         :frequency="eduFProfile.frequency"
+        :evaluation="eduFProfile.evaluation"
+        :discipline-id="eduFProfile?.disciplineId"
       />
 
       <div v-if="registros.length > 0" id="NovoRegistro" style="display: flex; justify-content: flex-end;" class="ion-content">

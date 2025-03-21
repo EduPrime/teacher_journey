@@ -29,6 +29,7 @@ interface Props {
 	selectedDay: string;
 	disciplineId?: string;
 	seriesId: string;
+  evaluation: string;
 }
 
 const props = defineProps<Props>();
@@ -41,7 +42,7 @@ const contentService = new ContentService();
 const bnccs = ref();
 
 const filledContent = ref({
-	disciplines: [] as string[],
+	disciplines: props.disciplineId ? [props.disciplineId] : [] as string[],
 	date: computed(() => props.selectedDay),
 	description: "",
 	bnccs: [] as string[],
@@ -80,6 +81,33 @@ watch(
 	{ immediate: true },
 );
 
+watch(
+  () => props.classroomId,
+  async (newValue) => {
+    if (newValue) {
+      filledContent.value.disciplines = [];
+    }
+  },
+);
+
+watch(
+  () => filledContent.value.disciplines,
+  async (newValue) => {
+    if (newValue.length > 0) {
+      await getBNCCByDisciplines(newValue);
+    }
+  },
+);
+
+watch(
+  () => props.disciplineId,
+  async (newValue) => {
+    if (newValue) {
+      filledContent.value.disciplines = [newValue];
+    }
+  },
+)
+
 async function getBNCCByDisciplines(selectedDisciplines: string[]) {
 	const data = await bnccService.getBNCC(selectedDisciplines, props.seriesId);
 	bnccs.value = data;
@@ -100,7 +128,11 @@ async function saveContent() {
 </script>
 
 <template>
-  <Form @submit="saveContent">
+  <Form
+    :initial-values="{
+      Disciplina: filledContent.disciplines,
+    }"
+    @submit="saveContent">
     <IonCard id="NovoRegistroFormulario" class="ion-no-padding ion-margin-top">
       <IonCardHeader color="secondary">
         <div style="display: flex; align-items: center; height: 10px;">
@@ -114,7 +146,7 @@ async function saveContent() {
       <div>
         <IonCardContent class="ion-padding-top">
           <Field name="Disciplina" v-slot="{ field }" rules="required">
-            <IonSelect
+            <IonSelect v-if="props.evaluation === 'conceitual'"
               v-bind="field"
               v-model="filledContent.disciplines"
               class="ion-select-card-content"
@@ -127,6 +159,22 @@ async function saveContent() {
             >
               <IonSelectOption v-for="(discipline, index) in availableDisciplines" :key="index" :value="discipline.id">
                 {{ discipline.name }}
+              </IonSelectOption>
+            </IonSelect>
+            <IonSelect v-else
+              v-bind="field"
+              v-model="filledContent.disciplines"
+              class="ion-select-card-content"
+              label="Disciplina"
+              label-placement="floating"
+              fill="outline"
+              cancel-text="Cancelar"
+              :multiple="false"
+              :disabled="true"
+              @ion-change="getBNCCByDisciplines($event.detail.value)"
+            >
+              <IonSelectOption v-for="(discipline, index) in availableDisciplines" :key="index" :value="discipline.id" :selected="filledContent.disciplines.includes(discipline.id)">
+              {{ discipline.name }}
               </IonSelectOption>
             </IonSelect>
           </Field>
@@ -145,6 +193,7 @@ async function saveContent() {
               placeholder="Digite o conteúdo"
               style="--color: var(--ion-color-secondary);"
               :auto-grow="true"
+              :maxlength="361"
             />
           </Field>
           <ErrorMessage name="Conteúdo" v-slot="{ message }">

@@ -33,6 +33,7 @@ interface Props {
 	registry: any;
 	isUpdateModalOpen: boolean;
 	frequency: string;
+  evaluation: string;
 }
 
 const props = defineProps<Props>();
@@ -123,9 +124,11 @@ async function getBNCCByDisciplines(selectedDisciplines: string[]) {
 	const data = await bnccService.getBNCC(selectedDisciplines, props.seriesId);
 	bnccs.value = data;
 
-	filledContent.value.bnccs = filledContent.value.bnccs.filter((bnccId) =>
-		data.some((bncc) => bncc.id === bnccId),
-	);
+	filledContent.value.bnccs = data.map((bncc) => bncc.id);
+  // @TODO: Verificar a atualização do BNCC corretamente ao trocar de disciplina ao editar um conteúdo
+  // filledContent.value.bnccs = filledContent.value.bnccs.filter((bnccId) =>
+	// 	data.some((bncc) => bncc.id === bnccId),
+	// );
 
 	filledContent.value.disciplines = selectedDisciplines;
 	return data;
@@ -136,11 +139,11 @@ async function setBNCC(selectedBNCC: string[]) {
 }
 
 async function saveContent() {
-	console.log("saveContent entrou");
+	// console.log("saveContent entrou");
 
 	const data = await contentService.updateContent({ ...filledContent.value });
 
-	console.log("data", data);
+	// console.log("data", data);
 
 	emits("update:modelValue", false);
 
@@ -197,7 +200,7 @@ function luxonFormatDate(dateString: string) {
               </ErrorMessage>
               
               <br>
-              <Field name="Conteúdo" v-slot="{ field }" rules="required|min:2|max:255">
+              <Field name="Conteúdo" v-slot="{ field }" rules="required|min:2|max:360">
                 <IonTextarea
                   v-bind="field"
                   v-model="filledContent.description"
@@ -207,7 +210,7 @@ function luxonFormatDate(dateString: string) {
                   placeholder="Digite o conteúdo"
                   style="--color: var(--ion-color-secondary);"
                   :auto-grow="true"
-                  :maxlength="255"
+                  :maxlength="361"
                 />
               </Field>
               <ErrorMessage name="Conteúdo" v-slot="{ message }">
