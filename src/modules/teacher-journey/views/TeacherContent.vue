@@ -53,6 +53,7 @@ const registroToDelete = ref<string | null>(null)
 const setCopyModalOpen = (open: boolean) => (isCopyModalOpen.value = open)
 const setUpdateModalOpen = (open: boolean) => (isUpdateModalOpen.value = open)
 const registros = ref<Registro[]>([])
+  const expandedAccordion = ref<string | string[] | undefined>(undefined);
 
 watch(selectedDayInfo, async (newValue) => {
   if (newValue.selectedDate && eduFProfile.value) {
@@ -169,7 +170,7 @@ function changeSelectedToUpdate(current: any): void {
         </div>
       </IonCard>
 
-      <IonAccordionGroup v-if="isAccordionContent || registros.length > 0" id="RegistrosExistentes" class="ion-content" expand="inset" :value="`${selectedToCopy ? registros.indexOf(selectedToCopy) : '0'}`">
+      <IonAccordionGroup v-model="expandedAccordion" id="RegistrosExistentes" class="ion-content" expand="inset">
         <IonAccordion v-for="(registro, index) in registros" :key="index" style="margin-bottom: 5px;" :value="`${index}`">
           <IonItem slot="header" color="secondary">
             <IonLabel class="custom-span">
@@ -186,7 +187,7 @@ function changeSelectedToUpdate(current: any): void {
               {{ disciplina.disciplineId.name }}
             </IonChip>
             <div style="margin: 10px 10px 10px 5px;">
-              <ion-text color="secondary" class="ion-text-justify">
+              <ion-text color="secondary" class="ion-text-justify" style="white-space: pre-line;">
                 {{ registro.description }}
               </ion-text>
             </div>

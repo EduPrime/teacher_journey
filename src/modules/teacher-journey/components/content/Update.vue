@@ -197,7 +197,7 @@ function luxonFormatDate(dateString: string) {
               </ErrorMessage>
               
               <br>
-              <Field name="Conteúdo" v-slot="{ field }" rules="required|min:2|max:360">
+              <Field name="Conteúdo" v-slot="{ field }" rules="required|min:2|max:255">
                 <IonTextarea
                   v-bind="field"
                   v-model="filledContent.description"
@@ -207,6 +207,7 @@ function luxonFormatDate(dateString: string) {
                   placeholder="Digite o conteúdo"
                   style="--color: var(--ion-color-secondary);"
                   :auto-grow="true"
+                  :maxlength="255"
                 />
               </Field>
               <ErrorMessage name="Conteúdo" v-slot="{ message }">
