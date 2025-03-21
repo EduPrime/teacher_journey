@@ -4,7 +4,7 @@ import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
 import EduCalendar from '@/components/WeekDayPicker.vue'
 import showToast from '@/utils/toast-alert'
-import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCol, IonGrid, IonIcon, IonItem, IonLabel, IonRadio, IonRadioGroup, IonRow, IonSelect, IonSelectOption, IonText, IonToolbar, IonLoading } from '@ionic/vue'
+import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCol, IonGrid, IonIcon, IonItem, IonLabel, IonLoading, IonRadio, IonRadioGroup, IonRow, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
 import { calendarOutline, checkmarkCircleOutline, checkmarkDone, layers, warningOutline } from 'ionicons/icons'
 import { DateTime } from 'luxon'
 
@@ -174,15 +174,15 @@ async function saveFrequency() {
     isLoading.value = true
     isLoadingSaveFrequency.value = true // Exibe o IonLoading
     try {
-      	// verificar se já existe frequencia do professor para o dia selecionado
-        const teacherAttendance = await attendanceService.listTeacherAttendance(
-          eduFProfile.value.teacherId,
-          selectedDayInfo.value.selectedDate,
-          eduFProfile.value.classroomId,
-          eduFProfile.value.frequency.toUpperCase(), // Tipo de frequência DISCIPLINA OU DIARIA
-          eduFProfile.value.disciplineId,
-        )
-        if (!teacherAttendance || teacherAttendance.length === 0) {
+      // verificar se já existe frequencia do professor para o dia selecionado
+      const teacherAttendance = await attendanceService.listTeacherAttendance(
+        eduFProfile.value.teacherId,
+        selectedDayInfo.value.selectedDate,
+        eduFProfile.value.classroomId,
+        eduFProfile.value.frequency.toUpperCase(), // Tipo de frequência DISCIPLINA OU DIARIA
+        eduFProfile.value.disciplineId,
+      )
+      if (!teacherAttendance || teacherAttendance.length === 0) {
         // Cria o registro de frequência do professor
         await attendanceService.createTeacherAttendance({
           date: selectedDayInfo.value.selectedDate,
@@ -195,7 +195,8 @@ async function saveFrequency() {
           schoolId: students.value?.[0]?.schoolId, // Obtém o ID da escola do primeiro aluno
         })
         // showToast('Frequência do professor registrada com sucesso', 'top', 'success')
-      } else {
+      }
+      else {
         // showToast('Frequência do professor já foi registrada', 'top', 'warning')
       }
 
@@ -208,10 +209,12 @@ async function saveFrequency() {
       else {
         showToast('Nenhuma nova frequência foi criada', 'top', 'warning')
       }
-    } catch (error) {
+    }
+    catch (error) {
       showToast('Erro ao salvar frequência', 'top', 'warning')
       console.error('Erro ao salvar frequência', error)
-    } finally {
+    }
+    finally {
       isLoading.value = false
       isLoadingSaveFrequency.value = false // Oculta o IonLoading
     }
@@ -226,7 +229,6 @@ function luxonFormatDate(dateString: string) {
   const date = DateTime.fromISO(dateString)
   return date.setLocale('pt-BR').toFormat('dd/MM/yyyy')
 }
-
 </script>
 
 <template>
@@ -383,6 +385,7 @@ function luxonFormatDate(dateString: string) {
         </div>
       </div>
     </ion-modal>
+    <div style="height: 64px;" />
     <template #footer>
       <IonToolbar>
         <IonGrid>
