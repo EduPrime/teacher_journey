@@ -239,7 +239,7 @@ async function saveContent() {
                 :key="bncc.id" 
                 :value="bncc.id"
               >
-                {{ bncc.code }} - {{ bncc.objective.slice(0, 100) }}
+                {{ bncc.code }} - {{ bncc.objective.slice(0, 125) }}
               </IonSelectOption>
             </IonSelect>
           </Field>
