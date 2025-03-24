@@ -2,16 +2,16 @@
 import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
 import EduCalendar from '@/components/WeekDayPicker.vue'
+import showToast from '@/utils/toast-alert'
 import { IonAccordion, IonAccordionGroup, IonAlert, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonIcon, IonItem, IonLabel } from '@ionic/vue'
 import { add, calendarOutline, save } from 'ionicons/icons'
 import { ref, watch } from 'vue'
 import ContentCopy from '../components/content/Copy.vue'
 import ContentCreate from '../components/content/Create.vue'
-import ContentUpdate from '../components/content/Update.vue'
 
+import ContentUpdate from '../components/content/Update.vue'
 import ContentService from '../services/ContentService'
 import ScheduleService from '../services/ScheduleService'
-import showToast from '@/utils/toast-alert'
 
 interface Registro {
   id: string
@@ -54,7 +54,7 @@ const registroToDelete = ref<string | null>(null)
 const setCopyModalOpen = (open: boolean) => (isCopyModalOpen.value = open)
 const setUpdateModalOpen = (open: boolean) => (isUpdateModalOpen.value = open)
 const registros = ref<Registro[]>([])
-  const expandedAccordion = ref<string | string[] | undefined>(undefined);
+const expandedAccordion = ref<string | string[] | undefined>(undefined)
 
 watch(selectedDayInfo, async (newValue) => {
   if (newValue.selectedDate && eduFProfile.value) {
@@ -172,7 +172,7 @@ function changeSelectedToUpdate(current: any): void {
         </div>
       </IonCard>
 
-      <IonAccordionGroup v-model="expandedAccordion" id="RegistrosExistentes" class="ion-content" expand="inset">
+      <IonAccordionGroup id="RegistrosExistentes" v-model="expandedAccordion" class="ion-content" expand="inset">
         <IonAccordion v-for="(registro, index) in registros" :key="index" style="margin-bottom: 5px;" :value="`${index}`">
           <IonItem slot="header" color="secondary">
             <IonLabel class="custom-span">

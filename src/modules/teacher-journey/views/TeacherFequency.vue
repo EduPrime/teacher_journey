@@ -388,7 +388,7 @@ function luxonFormatDate(dateString: string) {
 
         <ion-list lines="none">
           <IonItem :button="true" :detail="false" @click="cancelModal = false">
-            <IonLabel>Atenção ao confirmar todas as informações não salvas serão <b>excluidas</b> permanentemente. Deseja continuar?</IonLabel>
+            <IonLabel>Atenção, as alterações realizadas serão desfeitas. Deseja continuar?</IonLabel>
           </IonItem>
         </ion-list>
         <div v-if="true">
