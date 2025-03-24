@@ -11,6 +11,7 @@ import ContentUpdate from '../components/content/Update.vue'
 
 import ContentService from '../services/ContentService'
 import ScheduleService from '../services/ScheduleService'
+import showToast from '@/utils/toast-alert'
 
 interface Registro {
   id: string
@@ -53,6 +54,7 @@ const registroToDelete = ref<string | null>(null)
 const setCopyModalOpen = (open: boolean) => (isCopyModalOpen.value = open)
 const setUpdateModalOpen = (open: boolean) => (isUpdateModalOpen.value = open)
 const registros = ref<Registro[]>([])
+  const expandedAccordion = ref<string | string[] | undefined>(undefined);
 
 watch(selectedDayInfo, async (newValue) => {
   if (newValue.selectedDate && eduFProfile.value) {
@@ -110,6 +112,7 @@ async function confirmDeleteContent() {
       const userId = JSON.parse(localStorage.getItem('userLocal') || '{}').id || ''
       await contentService.softDeleteContent({ id: registroToDelete.value, userId })
       await loadDataContent(eduFProfile.value.classroomId, selectedDayInfo.value?.selectedDate)
+      showToast('Conteúdo deletado com sucesso', 'top', 'success')
     }
     catch (error: unknown | any) {
       console.error('Erro ao deletar os dados:', error.message)
@@ -169,7 +172,7 @@ function changeSelectedToUpdate(current: any): void {
         </div>
       </IonCard>
 
-      <IonAccordionGroup v-if="isAccordionContent || registros.length > 0" id="RegistrosExistentes" class="ion-content" expand="inset" :value="`${selectedToCopy ? registros.indexOf(selectedToCopy) : '0'}`">
+      <IonAccordionGroup v-model="expandedAccordion" id="RegistrosExistentes" class="ion-content" expand="inset">
         <IonAccordion v-for="(registro, index) in registros" :key="index" style="margin-bottom: 5px;" :value="`${index}`">
           <IonItem slot="header" color="secondary">
             <IonLabel class="custom-span">
@@ -186,7 +189,7 @@ function changeSelectedToUpdate(current: any): void {
               {{ disciplina.disciplineId.name }}
             </IonChip>
             <div style="margin: 10px 10px 10px 5px;">
-              <ion-text color="secondary" class="ion-text-justify">
+              <ion-text color="secondary" class="ion-text-justify" style="white-space: pre-line;">
                 {{ registro.description }}
               </ion-text>
             </div>
@@ -222,7 +225,8 @@ function changeSelectedToUpdate(current: any): void {
         :teacher-id="eduFProfile.teacherId" :classroom-id="eduFProfile?.classroomId"
         :available-disciplines="schedules?.availableDisciplines"
         :frequency="eduFProfile.frequency"
-        :discipline-id="eduFProfile.disciplineId"
+        :evaluation="eduFProfile.evaluation"
+        :discipline-id="eduFProfile?.disciplineId"
       />
 
       <ContentUpdate
@@ -233,6 +237,8 @@ function changeSelectedToUpdate(current: any): void {
         :classroom-id="eduFProfile?.classroomId"
         :available-disciplines="schedules?.availableDisciplines"
         :frequency="eduFProfile.frequency"
+        :evaluation="eduFProfile.evaluation"
+        :discipline-id="eduFProfile?.disciplineId"
       />
 
       <div v-if="registros.length > 0" id="NovoRegistro" style="display: flex; justify-content: flex-end;" class="ion-content">

@@ -110,7 +110,7 @@ async function saveContent() {
             </IonSelectOption>
           </IonSelect>
 
-          <IonSelect v-if="props.schedules" v-model="filledContent.classroomId" class="custom-floating-label" label-placement="floating" label="Turma" fill="outline">
+          <IonSelect v-if="props.schedules" v-model="filledContent.classroomId" class="custom-floating-label" label-placement="floating" label="Turma" fill="outline" ok-text="Confirmar" cancel-text="Cancelar">
             <!-- Se copyContentSchool existir é usado para encontrar o index ( escola ) no qual as turmas serão pegas e se não usa o index 0 para selecionar o primeiro item no array de turmas por escolas -->
             <!-- todas as turmas são filtradas abaixo para garantir que estejam disponiveis para seleção apenas os items em que a seriesId seja igual a seriesId oriunda da turma selecionada no filtro principal da página ( o de escolas e turmas ) -->
 

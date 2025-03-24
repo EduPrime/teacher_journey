@@ -37,6 +37,8 @@ const isLoadingSaveFrequency = ref(false) // Controla o estado do IonLoading
 
 const frequencyToSave = ref<FrequencyToSave[]>()
 const cancelModal = ref(false)
+const hasUnsavedChanges = ref(false)
+const isCancelEnabled = ref(false)
 
 const checkboxModal = ref({ modal: false, quantifiedPresence: undefined as any })
 const selectedStudent = ref()
@@ -49,6 +51,23 @@ const isLoading = ref(false)
 
 const selectedDayInfo = ref()
 
+watch(frequencyToSave, (newValue, oldValue) => {
+  if (newValue && newValue.length > 0) {
+    if (JSON.stringify(newValue) !== JSON.stringify(oldValue)) {
+      isCancelEnabled.value = false
+      hasUnsavedChanges.value = false
+    }
+    else {
+      isCancelEnabled.value = true
+      hasUnsavedChanges.value = true
+    }
+  }
+  else {
+    isCancelEnabled.value = false
+    hasUnsavedChanges.value = false
+  }
+}, { deep: true })
+
 // Watcher para atualizar schedules quando eduFProfile ou selectedDayInfo mudarem
 watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo]) => {
   isLoadingWarning.value = true // Inicia o carregamento
@@ -60,61 +79,7 @@ watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo
 
     //
     students.value = await enrollmentService.getClassroomStudents(newEduFProfile.classroomId)
-
-    if (todayFrequency.value && todayFrequency.value.length > 0) {
-      // Frequência encontrada
-      isWarningInformation.value = false // Frequência registrada
-
-      frequencyToSave.value = students.value.map((i: any) => {
-        // atribuimos o valor do find em todayFrequency dentro da constante abaixo
-        const studentFrequency = todayFrequency.value?.find((atdc: { studentId: string, disciplineId: string }) => atdc.studentId === i.studentId && (atdc.disciplineId === newEduFProfile.disciplineId || newEduFProfile.frequency === 'diaria'))
-
-        return {
-          name: i.name,
-          enrollmentId: i.id,
-          classroomId: newEduFProfile.classroomId,
-          disciplineId: newEduFProfile.disciplineId,
-          studentId: i.studentId,
-          schoolId: i.schoolId,
-          stageId: stage.value?.stageId,
-          status: i.status,
-          situation: i.situation,
-          disability: i.student.disability,
-          teacherId: newEduFProfile.teacherId,
-          date: newSelectedDayInfo.selectedDate,
-          presence: studentFrequency?.presence ?? true,
-          justificationId: studentFrequency?.justificationId ?? undefined,
-          frequencies: studentFrequency?.frequencies ?? [],
-        } as FrequencyToSave
-      })
-    }
-    else {
-      // Frequência não encontrada
-      isWarningInformation.value = true // Frequência pendente
-      // Frequência não encontrada
-      isWarningInformation.value = true // Frequência pendente
-
-      frequencyToSave.value = students.value.map((i: any) => {
-        return {
-          name: i.name,
-          enrollmentId: i.id,
-          classroomId: newEduFProfile.classroomId,
-          disciplineId: newEduFProfile.disciplineId,
-          studentId: i.studentId,
-          schoolId: i.schoolId,
-          stageId: stage.value?.stageId,
-          status: i.status,
-          situation: i.situation,
-          disability: i.student.disability,
-          teacherId: newEduFProfile.teacherId,
-          date: newSelectedDayInfo.selectedDate,
-          presence: true,
-          justificationId: undefined as string | undefined,
-          frequencies: [],
-        } as FrequencyToSave
-      })
-    }
-
+    await mountStudentList(newEduFProfile, newSelectedDayInfo)
     isContentSaved.value.card = false
 
     const fullWeekday = getFullWeekday(newSelectedDayInfo.weekday)
@@ -147,6 +112,62 @@ watch(() => checkboxModal.value.quantifiedPresence, (newValue) => {
     })
   }
 })
+
+async function mountStudentList(filterInfo: any, dayInfo: any) {
+  if (dayInfo.value && dayInfo.value.length > 0) {
+    // Frequência encontrada
+    isWarningInformation.value = false // Frequência registrada
+
+    frequencyToSave.value = students.value.map((i: any) => {
+      // atribuimos o valor do find em todayFrequency dentro da constante abaixo
+      const studentFrequency = todayFrequency.value?.find((atdc: { studentId: string, disciplineId: string }) => atdc.studentId === i.studentId && (atdc.disciplineId === filterInfo.disciplineId || filterInfo.frequency === 'diaria'))
+
+      return {
+        name: i.name,
+        enrollmentId: i.id,
+        classroomId: filterInfo.classroomId,
+        disciplineId: filterInfo.disciplineId,
+        studentId: i.studentId,
+        schoolId: i.schoolId,
+        stageId: stage.value?.stageId,
+        status: i.status,
+        situation: i.situation,
+        disability: i.student.disability,
+        teacherId: filterInfo.teacherId,
+        date: dayInfo.selectedDate,
+        presence: studentFrequency?.presence ?? true,
+        justificationId: studentFrequency?.justificationId ?? undefined,
+        frequencies: studentFrequency?.frequencies ?? [],
+      } as FrequencyToSave
+    })
+  }
+  else {
+    // Frequência não encontrada
+    isWarningInformation.value = true // Frequência pendente
+    // Frequência não encontrada
+    isWarningInformation.value = true // Frequência pendente
+
+    frequencyToSave.value = students.value.map((i: any) => {
+      return {
+        name: i.name,
+        enrollmentId: i.id,
+        classroomId: filterInfo.classroomId,
+        disciplineId: filterInfo.disciplineId,
+        studentId: i.studentId,
+        schoolId: i.schoolId,
+        stageId: stage.value?.stageId,
+        status: i.status,
+        situation: i.situation,
+        disability: i.student.disability,
+        teacherId: filterInfo.teacherId,
+        date: dayInfo.selectedDate,
+        presence: true,
+        justificationId: undefined as string | undefined,
+        frequencies: [],
+      } as FrequencyToSave
+    })
+  }
+}
 
 function getFullWeekday(abbreviatedWeekday: string): string {
   switch (abbreviatedWeekday) {
@@ -217,6 +238,7 @@ async function saveFrequency() {
     finally {
       isLoading.value = false
       isLoadingSaveFrequency.value = false // Oculta o IonLoading
+      isCancelEnabled.value = false // Desabilita Botão Cancelar
     }
   }
   else {
@@ -374,7 +396,7 @@ function luxonFormatDate(dateString: string) {
             <!-- @TODO: construir função para ao clicar em salvar inserir uma copia do registro de conteúdo atual para a turma selecionada -->
             <IonButton
               color="secondary"
-              style="text-transform: capitalize;" @click="cancelModal = false"
+              style="text-transform: capitalize;" @click="() => { cancelModal = false; mountStudentList(eduFProfile, selectedDayInfo); }"
             >
               Confirmar
             </IonButton>
@@ -391,7 +413,7 @@ function luxonFormatDate(dateString: string) {
         <IonGrid>
           <IonRow>
             <IonCol size="6">
-              <IonButton :disabled="false" color="danger" expand="full" @click="cancelModal = !cancelModal">
+              <IonButton :disabled="!isCancelEnabled" color="danger" expand="full" @click="cancelModal = !cancelModal">
                 Cancelar
               </IonButton>
             </IonCol>
