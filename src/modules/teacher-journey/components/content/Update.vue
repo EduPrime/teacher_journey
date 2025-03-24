@@ -124,11 +124,11 @@ async function getBNCCByDisciplines(selectedDisciplines: string[]) {
   const data = await bnccService.getBNCC(selectedDisciplines, props.seriesId)
   bnccs.value = data
 
-  filledContent.value.bnccs = data.map(bncc => bncc.id)
+	// filledContent.value.bnccs = data.map((bncc) => bncc.id);
   // @TODO: Verificar a atualização do BNCC corretamente ao trocar de disciplina ao editar um conteúdo
-  // filledContent.value.bnccs = filledContent.value.bnccs.filter((bnccId) =>
-  // 	data.some((bncc) => bncc.id === bnccId),
-  // );
+  filledContent.value.bnccs = filledContent.value.bnccs.filter((bnccId) =>
+		data.some((bncc) => bncc.id === bnccId),
+	);
 
   filledContent.value.disciplines = selectedDisciplines
   return data
@@ -139,13 +139,14 @@ async function setBNCC(selectedBNCC: string[]) {
 }
 
 async function saveContent() {
-  // console.log("saveContent entrou");
+  if (filledContent.value.bnccs.length === 0) {
+    showToast("Por favor, selecione pelo menos um currículo", "top", "warning");
+    return;
+  }
 
-  const data = await contentService.updateContent({ ...filledContent.value })
+  const data = await contentService.updateContent({ ...filledContent.value });
 
-  // console.log("data", data);
-
-  emits('update:modelValue', false)
+  emits("update:modelValue", false);
 
   showToast('Conteúdo editado com sucesso', 'top', 'success')
 }
@@ -175,70 +176,75 @@ function luxonFormatDate(dateString: string) {
           </div>
         </IonCardHeader>
 
-        <div>
-          <IonCardContent class="" style="display: flex; flex-direction: column; gap: 15px;">
-            <Field v-slot="{ field }" name="Disciplina" rules="required">
-              <IonSelect
-                v-bind="field"
-                v-model="filledContent.disciplines"
-                class="ion-select-card-content"
-                label="Disciplina"
-                label-placement="floating"
-                fill="outline"
-                cancel-text="Cancelar"
-                :disabled="props.frequency === 'disciplina'"
-                :multiple="true"
-                @ion-change="getBNCCByDisciplines($event.detail.value)"
-              >
-                <IonSelectOption v-for="(discipline, index) in availableDisciplines" :key="index" :value="discipline.id">
-                  {{ discipline.name }}
-                </IonSelectOption>
-              </IonSelect>
-            </Field>
-            <ErrorMessage v-slot="{ message }" name="Disciplina">
-              <span class="error-message">{{ message }}</span>
-            </ErrorMessage>
+          <div>
+            <pre>{{ filledContent }}</pre>
+            <IonCardContent class="" style="display: flex; flex-direction: column; gap: 15px;">
+              <Field name="Disciplina" v-slot="{ field }" rules="required">
+                <IonSelect
+                  v-bind="field"
+                  v-model="filledContent.disciplines"
+                  class="ion-select-card-content"
+                  label="Disciplina"
+                  label-placement="floating"
+                  fill="outline"
+                  cancel-text="Cancelar"
+                  :disabled="props.frequency === 'disciplina'"
+                  :multiple="true"
+                  @ion-change="getBNCCByDisciplines($event.detail.value)"
+                >
+                  <IonSelectOption 
+                    v-for="(discipline, index) in availableDisciplines" 
+                    :key="index" 
+                    :value="discipline.id" 
+                    :selected="filledContent.disciplines.includes(discipline.id)">
+                    {{ discipline.name }}
+                  </IonSelectOption>
+                </IonSelect>
+              </Field>
+              <ErrorMessage name="Disciplina" v-slot="{ message }">
+                <span class="error-message">{{ message }}</span>
+              </ErrorMessage>
+              
+              <br>
+              <Field name="Conteúdo" v-slot="{ field }" rules="required|min:2|max:360">
+                <IonTextarea
+                  v-bind="field"
+                  v-model="filledContent.description"
+                  label="Conteúdo"
+                  label-placement="floating"
+                  fill="outline"
+                  placeholder="Digite o conteúdo"
+                  style="--color: var(--ion-color-secondary);"
+                  :auto-grow="true"
+                  :maxlength="361"
+                />
+              </Field>
+              <ErrorMessage name="Conteúdo" v-slot="{ message }">
+                <span class="error-message">{{ message }}</span>
+              </ErrorMessage>
 
-            <br>
-            <Field v-slot="{ field }" name="Conteúdo" rules="required|min:2|max:360">
-              <IonTextarea
-                v-bind="field"
-                v-model="filledContent.description"
-                label="Conteúdo"
-                label-placement="floating"
-                fill="outline"
-                placeholder="Digite o conteúdo"
-                style="--color: var(--ion-color-secondary);"
-                :auto-grow="true"
-                :maxlength="361"
-              />
-            </Field>
-            <ErrorMessage v-slot="{ message }" name="Conteúdo">
-              <span class="error-message">{{ message }}</span>
-            </ErrorMessage>
-
-            <br>
-            <Field v-slot="{ field }" name="Currículos" rules="required">
-              <IonSelect
-                v-bind="field"
-                v-model="filledContent.bnccs"
-                class="ion-select-card-content"
-                label="Currículos"
-                label-placement="floating"
-                fill="outline"
-                cancel-text="Cancelar"
-                style="--color: var(--ion-color-secondary);"
-                :multiple="true"
-                @ion-change="setBNCC($event.detail.value)"
-              >
-                <IonSelectOption v-for="(bncc, index) in bnccs" :key="index" :value="bncc.id">
-                  {{ bncc.code }} - {{ bncc.objective.slice(0, 58) }}...
-                </IonSelectOption>
-              </IonSelect>
-            </Field>
-            <ErrorMessage v-slot="{ message }" name="Currículos">
-              <span class="error-message">{{ message }}</span>
-            </ErrorMessage>
+              <br>
+              <Field name="Currículos" v-slot="{ field }" rules="required">
+                <IonSelect
+                  v-bind="field"
+                  v-model="filledContent.bnccs"
+                  class="ion-select-card-content"
+                  label="Currículos"
+                  label-placement="floating"
+                  fill="outline"
+                  cancel-text="Cancelar"
+                  style="--color: var(--ion-color-secondary);"
+                  :multiple="true"
+                  @ion-change="setBNCC($event.detail.value)"
+                >
+                  <IonSelectOption v-for="(bncc, index) in bnccs" :key="index" :value="bncc.id">
+                    {{ bncc.code }} - {{ bncc.objective.slice(0, 100) }}
+                  </IonSelectOption>
+                </IonSelect>
+              </Field>
+              <ErrorMessage name="Currículos" v-slot="{ message }">
+                <span class="error-message">{{ message }}</span>
+              </ErrorMessage>
 
             <div class="ion-margin-top" style="display: flex; justify-content: right;">
               <IonButton color="danger" size="small" style="text-transform: capitalize;" @click="emits('update:modelValue', false)">
