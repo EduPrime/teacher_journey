@@ -145,7 +145,10 @@ function changeSelectedToUpdate(current: any): void {
       </ion-text>
     </h3>
     <EduCalendar v-model="selectedDayInfo" :teacher-id="eduFProfile?.teacherId" :current-classroom="eduFProfile?.classroomId" :current-discipline="eduFProfile?.disciplineId" :frequency="eduFProfile?.frequency" />
+    <!-- <pre>
 
+      schedules: {{ schedules?.classesPerSchool?.filter((x: any) => x.classes.find((vish: any) => vish.seriesId === eduFProfile.seriesId && vish.classroomId !== eduFProfile.classroomId)) }}
+    </pre> -->
     <div v-if="eduFProfile?.classroomId && selectedDayInfo?.selectedDate">
       <IonCard v-show="registros?.length === 0 && !isContentSaved.card" class="ion-no-padding ion-margin-top">
         <IonCardHeader color="secondary">
@@ -213,7 +216,7 @@ function changeSelectedToUpdate(current: any): void {
         </IonAccordion>
       </IonAccordionGroup>
 
-      <ContentCopy v-model="isCopyModalOpen" :is-copy-modal-open="isCopyModalOpen" :schedules="schedules" :registry="selectedToCopy" :current-classroom-id="eduFProfile?.classroomId" />
+      <ContentCopy v-model="isCopyModalOpen" :is-copy-modal-open="isCopyModalOpen" :schedules="schedules" :registry="selectedToCopy" :current-classroom-id="eduFProfile?.classroomId" :current-serie-id="eduFProfile?.seriesId" :current-school-id="eduFProfile?.schoolId" />
 
       <!-- aqui vem o registro do conteúdo -->
       <ContentCreate

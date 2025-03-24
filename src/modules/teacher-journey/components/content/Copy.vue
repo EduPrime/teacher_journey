@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import showToast from '@/utils/toast-alert'
-import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonIcon, IonItem, IonLabel, IonModal, IonSelect, IonSelectOption, IonTextarea } from '@ionic/vue'
+import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonDatetime, IonDatetimeButton, IonIcon, IonItem, IonLabel, IonModal, IonSelect, IonSelectOption, IonTextarea } from '@ionic/vue'
 import { add, calendarOutline, save } from 'ionicons/icons'
 import { computed, ref, watch } from 'vue'
 import ContentService from '../../services/ContentService'
@@ -8,6 +8,8 @@ import ContentService from '../../services/ContentService'
 interface Props {
   currentClassroomId: string
   isCopyModalOpen: boolean
+  currentSchoolId: string
+  currentSerieId: string
   schedules: any
   registry: any
 }
@@ -23,7 +25,6 @@ const emits = defineEmits(['update:modelValue'])
 const contentService = new ContentService()
 
 const modalOpened = ref(props.isCopyModalOpen)
-const selectedClassroom = ref('352a5857-193f-4672-9abf-c5302afd1c37')
 const copyContentSchool = ref()
 
 const filledContent = ref({
@@ -105,7 +106,7 @@ async function saveContent() {
           </ion-text>
 
           <IonSelect v-if="props.schedules?.schools.length > 1" v-model="copyContentSchool" class="custom-floating-label" label-placement="floating" justify="space-between" label="Escola" fill="outline">
-            <IonSelectOption v-for="(sc, index) in props.schedules?.schools" :key="index" :value="sc.id">
+            <IonSelectOption v-for="(sc, index) in removeDuplicatas(props.schedules?.schools, 'id')" :key="index" :value="sc.id">
               {{ sc.name }}
             </IonSelectOption>
           </IonSelect>
@@ -116,8 +117,8 @@ async function saveContent() {
 
             <IonSelectOption
               v-for="(cls, index) in copyContentSchool
-                ? removeDuplicatas(props.schedules.classesPerSchool.find((i: any) => i.schoolId === copyContentSchool).classes.filter((cl: any) => cl.seriesId === selectedClassroom && cl.classroomId !== props.currentClassroomId), 'classroomName')
-                : removeDuplicatas(props.schedules.classesPerSchool.at(0).classes.filter((cl: any) => cl.seriesId === selectedClassroom && cl.classroomId !== props.currentClassroomId), 'classroomName')"
+                ? removeDuplicatas(props.schedules.classesPerSchool.find((i: any) => i.schoolId === copyContentSchool).classes.filter((cl: any) => cl.seriesId === props.currentSerieId && cl.classroomId !== props.currentClassroomId), 'classroomName')
+                : removeDuplicatas(props.schedules.classesPerSchool.at(0).classes.filter((cl: any) => cl.seriesId === props.currentSerieId && cl.classroomId !== props.currentClassroomId), 'classroomName')"
               :key="index"
               :value="cls.classroomId"
             >
