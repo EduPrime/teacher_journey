@@ -237,7 +237,7 @@ function luxonFormatDate(dateString: string) {
                   @ion-change="setBNCC($event.detail.value)"
                 >
                   <IonSelectOption v-for="(bncc, index) in bnccs" :key="index" :value="bncc.id">
-                    {{ bncc.code }} - {{ bncc.objective.slice(0, 100) }}
+                    {{ bncc.code }} - {{ bncc.objective.slice(0, 125) }}
                   </IonSelectOption>
                 </IonSelect>
               </Field>
