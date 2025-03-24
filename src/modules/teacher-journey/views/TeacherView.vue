@@ -203,11 +203,47 @@ function getCapitalizedInitials(input: string): string {
   return initials
 }
 
+function formatDeficiencies(deficiencies: string[]): string {
+    const fullList = [
+        'TRANSTORNO_DO_ESPECTRO_AUTISTA', 
+        'TRANSTORNO_DESINTEGRATIVO_DA_INFANCIA_PSICOSE_INFANTIL', 
+        'TDAH', 
+        'SINDROME_DE_RETT', 
+        'SINDROME_DE_ASPERGER', 
+        'SURDOCEGUEIRA', 
+        'SURDEZ', 
+        'DEFICIENCIA_MULTIPLA', 
+        'DEFICIENCIA_MENTAL', 
+        'DEFICIENCIA_INTELECTUAL', 
+        'DEFICIENCIA_FISICA', 
+        'DEFICIENCIA_AUDITIVA', 
+        'CEGUEIRA', 
+        'BAIXA_VISAO', 
+        'AUTISMO_CLASSICO', 
+        'ALTAS_HABILIDADES_SUPERDOTACAO'
+    ];
+    
+    // Função auxiliar para formatar a string
+    function formatString(str: string) {
+        return str
+            .replace(/_/g, ' ')               // Substitui os underscores por espaços
+            .split(' ')                       // Divide a string em palavras
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitaliza a primeira letra de cada palavra
+            .join(' ');                       // Junta as palavras novamente
+    }
+
+    // Filtra as deficiências fornecidas e formata a string
+    return deficiencies
+        .map(deficiency => formatString(deficiency))  // Formata cada entrada
+        .join(', ');  // Junta as deficiências com vírgula e espaço
+}
+
 const attentionStudents = computed(() => {
   return allClasses.value.map((classroom) => {
-    const filteredStudents = classroom.students?.filter(student =>
-      student?.grade && student?.grade < 6,
-    )
+    const filteredStudents = classroom.students?.filter((student, index) =>
+    //  student?.grade && student?.grade < 6,
+    index < 3,  
+  )
     return {
       ...classroom,
       students: filteredStudents,
@@ -376,7 +412,7 @@ function formatHour(horario: any) {
                 <div v-for="(student, i) in classroom.students" :key="i" class="flex between">
                   <div>{{ student.name }}</div>
                   <div class="badge">
-                    {{ student.student.disability }}
+                    {{ formatDeficiencies(student.student.disability) }}
                   </div>
                 </div>
               </div>
