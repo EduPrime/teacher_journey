@@ -177,7 +177,6 @@ function luxonFormatDate(dateString: string) {
         </IonCardHeader>
 
           <div>
-            <pre>{{ filledContent }}</pre>
             <IonCardContent class="" style="display: flex; flex-direction: column; gap: 15px;">
               <Field name="Disciplina" v-slot="{ field }" rules="required">
                 <IonSelect
