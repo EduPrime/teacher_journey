@@ -203,7 +203,7 @@ function getCapitalizedInitials(input: string): string {
   return initials
 }
 
-function formatDeficiencies(deficiencies: string[]): string {
+function formatDeficiencies(deficiencies: string[]| undefined ): string {
     const fullList = [
         'TRANSTORNO_DO_ESPECTRO_AUTISTA', 
         'TRANSTORNO_DESINTEGRATIVO_DA_INFANCIA_PSICOSE_INFANTIL', 
@@ -233,6 +233,9 @@ function formatDeficiencies(deficiencies: string[]): string {
     }
 
     // Filtra as deficiências fornecidas e formata a string
+    if (!deficiencies) {
+        return '';
+    }
     return deficiencies
         .map(deficiency => formatString(deficiency))  // Formata cada entrada
         .join(', ');  // Junta as deficiências com vírgula e espaço
