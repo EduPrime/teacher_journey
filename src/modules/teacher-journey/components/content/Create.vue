@@ -10,12 +10,12 @@ import {
   IonSelect,
   IonSelectOption,
   IonTextarea,
-} from '@ionic/vue'
-import { save } from 'ionicons/icons'
-import { ErrorMessage, Field, Form } from 'vee-validate'
-import { computed, defineProps, ref, watch } from 'vue'
-import BNCCService from '../../services/BNCCService'
-import ContentService from '../../services/ContentService'
+} from "@ionic/vue";
+import { save } from "ionicons/icons";
+import { computed, defineProps, ref, watch, onMounted } from "vue";
+import BNCCService from "../../services/BNCCService";
+import ContentService from "../../services/ContentService";
+import { Form, Field, ErrorMessage } from "vee-validate";
 
 interface AvailableDisciplines {
   id: string
@@ -39,7 +39,8 @@ const availableDisciplineIds = ref<string[]>([])
 const bnccService = new BNCCService()
 const contentService = new ContentService()
 
-const bnccs = ref()
+const bnccs = ref<any[]>([]);
+const isLoadingBnccs = ref(false);
 
 const filledContent = ref({
   disciplines: props.disciplineId ? [props.disciplineId] : [] as string[],
@@ -50,40 +51,35 @@ const filledContent = ref({
   teacherId: computed(() => props.teacherId),
 })
 
+onMounted(async () => {
+  if (props.disciplineId) {
+    await getBNCCByDisciplines([props.disciplineId]);
+  } else if (props.availableDisciplines?.length > 0) {
+    availableDisciplineIds.value = props.availableDisciplines
+      .filter(discipline => discipline.classroomId === props.classroomId)
+      .map(discipline => discipline.id);
+  }
+});
+
 watch(
   () => props.availableDisciplines,
   async (newValue) => {
-    if (
-      newValue
-      && newValue.length > 0
-      && filledContent.value.disciplines.length === 0
-    ) {
-      availableDisciplineIds.value = []
-      props.availableDisciplines.map((discipline: AvailableDisciplines) => {
-        if (discipline.classroomId === props.classroomId) {
-          availableDisciplineIds.value.push(discipline.id)
-        }
-        return void 0
-      })
-
-      bnccs.value = await bnccService.getBNCC(
-        availableDisciplineIds.value.length > 0
-          ? availableDisciplineIds.value
-          : props.availableDisciplines.map(
-              (disciplines: AvailableDisciplines) => {
-                return disciplines.id
-              },
-            ),
-        props.seriesId,
-      )
+    if (newValue && newValue.length > 0) {
+      availableDisciplineIds.value = newValue
+        .filter(discipline => discipline.classroomId === props.classroomId)
+        .map(discipline => discipline.id);
+      
+      if (!props.disciplineId && filledContent.value.disciplines.length === 0) {
+        await getBNCCByDisciplines(availableDisciplineIds.value);
+      }
     }
   },
-  { immediate: true },
-)
+  { immediate: true }
+);
 
 watch(
   () => props.classroomId,
-  async (newValue) => {
+  (newValue) => {
     if (newValue) {
       filledContent.value.disciplines = []
     }
@@ -103,16 +99,25 @@ watch(
   () => props.disciplineId,
   async (newValue) => {
     if (newValue) {
-      filledContent.value.disciplines = [newValue]
+      filledContent.value.disciplines = [newValue];
+      await getBNCCByDisciplines([newValue]);
     }
   },
-)
+  { immediate: true }
+);
 
 async function getBNCCByDisciplines(selectedDisciplines: string[]) {
-  const data = await bnccService.getBNCC(selectedDisciplines, props.seriesId)
-  bnccs.value = data
-  filledContent.value.disciplines = selectedDisciplines
-  return data
+  try {
+    isLoadingBnccs.value = true;
+    const data = await bnccService.getBNCC(selectedDisciplines, props.seriesId);
+    bnccs.value = data || [];
+    filledContent.value.bnccs = []; 
+  } catch (error) {
+    console.error("Erro ao carregar BNCCs:", error);
+    bnccs.value = [];
+  } finally {
+    isLoadingBnccs.value = false;
+  }
 }
 
 async function setBNCC(selectedBNCC: string[]) {
@@ -146,8 +151,8 @@ async function saveContent() {
 
       <div>
         <IonCardContent class="ion-padding-top">
-          <Field v-slot="{ field }" name="Disciplina" rules="required">
-            <IonSelect
+          <Field name="Disciplina" v-slot="{ field }" rules="required">
+            <IonSelect 
               v-if="props.evaluation === 'conceitual'"
               v-bind="field"
               v-model="filledContent.disciplines"
@@ -157,13 +162,18 @@ async function saveContent() {
               fill="outline"
               cancel-text="Cancelar"
               :multiple="true"
+              :disabled="!!props.disciplineId"
               @ion-change="getBNCCByDisciplines($event.detail.value)"
             >
-              <IonSelectOption v-for="(discipline, index) in availableDisciplines" :key="index" :value="discipline.id">
+              <IonSelectOption 
+                v-for="(discipline, index) in availableDisciplines" 
+                :key="index" 
+                :value="discipline.id"
+              >
                 {{ discipline.name }}
               </IonSelectOption>
             </IonSelect>
-            <IonSelect
+            <IonSelect 
               v-else
               v-bind="field"
               v-model="filledContent.disciplines"
@@ -176,12 +186,17 @@ async function saveContent() {
               :disabled="true"
               @ion-change="getBNCCByDisciplines($event.detail.value)"
             >
-              <IonSelectOption v-for="(discipline, index) in availableDisciplines" :key="index" :value="discipline.id" :selected="filledContent.disciplines.includes(discipline.id)">
+              <IonSelectOption 
+                v-for="(discipline, index) in availableDisciplines" 
+                :key="index" 
+                :value="discipline.id" 
+                :selected="filledContent.disciplines.includes(discipline.id)"
+              >
                 {{ discipline.name }}
               </IonSelectOption>
             </IonSelect>
           </Field>
-          <ErrorMessage v-slot="{ message }" name="Disciplina">
+          <ErrorMessage name="Disciplina" v-slot="{ message }">
             <span class="error-message">{{ message }}</span>
           </ErrorMessage>
 
@@ -199,7 +214,7 @@ async function saveContent() {
               :maxlength="361"
             />
           </Field>
-          <ErrorMessage v-slot="{ message }" name="Conteúdo">
+          <ErrorMessage name="Conteúdo" v-slot="{ message }">
             <span class="error-message">{{ message }}</span>
           </ErrorMessage>
 
@@ -215,23 +230,41 @@ async function saveContent() {
               cancel-text="Cancelar"
               style="--color: var(--ion-color-secondary);"
               :multiple="true"
+              :disabled="isLoadingBnccs || bnccs.length === 0"
+              interface="alert"
               @ion-change="setBNCC($event.detail.value)"
             >
-              <IonSelectOption v-for="bncc in bnccs" :key="bncc" :value="bncc.id">
+              <IonSelectOption 
+                v-for="bncc in bnccs" 
+                :key="bncc.id" 
+                :value="bncc.id"
+              >
                 {{ bncc.code }} - {{ bncc.objective.slice(0, 58) }}...
               </IonSelectOption>
             </IonSelect>
           </Field>
-          <ErrorMessage v-slot="{ message }" name="Currículos">
+          <ErrorMessage name="Currículos" v-slot="{ message }">
             <span class="error-message">{{ message }}</span>
           </ErrorMessage>
 
           <div class="ion-margin-top" style="display: flex; justify-content: right;">
-            <IonButton color="danger" size="small" style="text-transform: capitalize;" @click="emits('update:modelValue', { card: false })">
+            <IonButton 
+              color="danger" 
+              size="small" 
+              style="text-transform: capitalize;" 
+              @click="emits('update:modelValue', { card: false })"
+            >
               Cancelar
             </IonButton>
-            <IonButton type="submit" color="secondary" size="small" style="text-transform: capitalize;">
-              Salvar
+            <IonButton 
+              type="submit" 
+              color="secondary" 
+              size="small" 
+              style="text-transform: capitalize;"
+              :disabled="isLoadingBnccs"
+            >
+              <span v-if="isLoadingBnccs">Carregando...</span>
+              <span v-else>Salvar</span>
               <!-- @TODO: O botão deve aparecer mais aparente na tela -->
             </IonButton>
           </div>
