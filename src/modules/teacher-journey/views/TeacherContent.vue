@@ -48,7 +48,9 @@ const isUpdateModalOpen = ref(false)
 const isContentSaved = ref({ card: false, saved: undefined as any })
 
 const selectedDayInfo = ref()
-const isAccordionContent = ref(false)
+const invalidDay = ref(false)
+
+// const isAccordionContent = ref(false)
 const showAlert = ref(false)
 const registroToDelete = ref<string | null>(null)
 const setCopyModalOpen = (open: boolean) => (isCopyModalOpen.value = open)
@@ -144,12 +146,33 @@ function changeSelectedToUpdate(current: any): void {
         Lançamento diário
       </ion-text>
     </h3>
-    <EduCalendar v-model="selectedDayInfo" :teacher-id="eduFProfile?.teacherId" :current-classroom="eduFProfile?.classroomId" :current-discipline="eduFProfile?.disciplineId" :frequency="eduFProfile?.frequency" />
+    <EduCalendar v-model="selectedDayInfo" :teacher-id="eduFProfile?.teacherId" :current-classroom="eduFProfile?.classroomId" :current-discipline="eduFProfile?.disciplineId" :frequency="eduFProfile?.frequency" @update:invalid-day="($event) => invalidDay = $event" />
     <!-- <pre>
 
       schedules: {{ schedules?.classesPerSchool?.filter((x: any) => x.classes.find((vish: any) => vish.seriesId === eduFProfile.seriesId && vish.classroomId !== eduFProfile.classroomId)) }}
     </pre> -->
-    <div v-if="eduFProfile?.classroomId && selectedDayInfo?.selectedDate">
+
+    <IonCard v-if="invalidDay" color="info">
+      <IonCardHeader>
+        <IonCardTitle>
+          Selecione
+          <span v-if="eduFProfile?.evaluation === 'numerica'">
+            a disciplina e
+          </span>
+          o dia
+        </IonCardTitle>
+      </IonCardHeader>
+
+      <IonCardContent>
+        Olá, por favor selecione em qual
+        <span v-if="eduFProfile?.evaluation === 'numerica'">
+          disciplina e
+        </span>
+        dia você dejesa fazer o preenchimento
+      </IonCardContent>
+    </IonCard>
+
+    <div v-else-if="eduFProfile?.classroomId && selectedDayInfo?.selectedDate">
       <IonCard v-show="registros?.length === 0 && !isContentSaved.card" class="ion-no-padding ion-margin-top">
         <IonCardHeader color="secondary">
           <div style="display: flex; align-items: center; height: 10px;">
