@@ -6,6 +6,13 @@ export interface Frequency {
   absent: boolean
 }
 
+export interface Thematics {
+  id?: string
+  name: string
+  seriesId: string
+  disciplineId: string
+}
+
 export interface FrequencyToSave {
   name: string
   classroomId: string
@@ -38,6 +45,16 @@ export interface NumericToSave {
   at5: Decimal
   makeUp: Decimal
   grade: Decimal
+}
+
+export interface ConceptualToSave {
+  studentId: string
+  enrollmentId: string
+  classroomId: string
+  disciplineId: string
+  schoolId: string
+  stageId: string
+  thematics?: Thematics[]
 }
 
 export interface MountedStudent {
