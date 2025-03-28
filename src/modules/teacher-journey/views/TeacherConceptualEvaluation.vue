@@ -2,51 +2,47 @@
 import type { MountedStudent } from '../types/types'
 import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
-import EduCalendar from '@/components/WeekDayPicker.vue'
-import showToast from '@/utils/toast-alert'
-import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCol, IonGrid, IonIcon, IonItem, IonLabel, IonLoading, IonRadio, IonRadioGroup, IonRow, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
-import { calendarOutline, checkmarkCircleOutline, checkmarkDone, layers, text, warningOutline } from 'ionicons/icons'
-import { DateTime } from 'luxon'
 
-import { onMounted, ref, watch } from 'vue'
+import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol, IonGrid, IonIcon, IonItem, IonLabel, IonLoading, IonRadio, IonRadioGroup, IonRow, IonSegment, IonSegmentButton, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
+
+import { apps, text } from 'ionicons/icons'
+
+import { ref, watch } from 'vue'
+
+import EduStageTabs from '../components/StageTabs.vue'
 
 import EnrollmentService from '../services/EnrollmentService'
 
-import StageService from '../services/StageService'
-
 const enrollmentService = new EnrollmentService()
-const stageService = new StageService()
 
 const eduFProfile = ref()
-const selectedDayInfo = ref()
 
-const stage = ref()
+const currentStage = ref()
 const students = ref()
 const studentList = ref<MountedStudent[]>()
 
 const isLoading = ref(false)
 
 // Watcher que observa o filtro e o calendário para montar a listágem de alunos
-watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo]) => {
-  if (newEduFProfile?.teacherId && newSelectedDayInfo?.selectedDate) {
-    stage.value = await stageService.getCurrentStageWeekday(newSelectedDayInfo.selectedDate)
+watch(eduFProfile, async (newValue) => {
+  if (newValue && newValue?.classroomId) {
+    // stage.value = await stageService.getCurrentStageWeekday(newSelectedDayInfo.selectedDate)
 
-    students.value = await enrollmentService.getClassroomStudents(newEduFProfile.classroomId)
-
+    students.value = await enrollmentService.getClassroomStudents(newValue.classroomId)
     studentList.value = students.value.map((i: any) => {
       return {
         name: i.name,
         enrollmentId: i.id,
-        classroomId: newEduFProfile.classroomId,
-        disciplineId: newEduFProfile.disciplineId,
+        classroomId: newValue.classroomId,
+        disciplineId: newValue.disciplineId,
         studentId: i.studentId,
         schoolId: i.schoolId,
-        stageId: stage.value?.stageId,
+        // stageId: stage.value?.stageId,
         status: i.status,
         situation: i.situation,
         disability: i.student.disability,
-        teacherId: newEduFProfile.teacherId,
-      } as studentList
+        teacherId: newValue.teacherId,
+      }
     })
   }
   else {
@@ -57,15 +53,72 @@ watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo
 
 <template>
   <ContentLayout>
-    <EduFilterProfile :discipline="false" @update:filtered-ocupation="($event) => eduFProfile = $event" />
+    <EduFilterProfile :discipline="true" @update:filtered-ocupation="($event) => eduFProfile = $event" />
     <h3>
       <IonText color="secondary" class="ion-content ion-padding-bottom" style="display: flex; align-items: center;">
         <IonIcon color="secondary" style="margin-right: 10px;" aria-hidden="true" :icon="text" />
-        Registro Conceitual
+        Registro Conceitual {{ }}
       </IonText>
     </h3>
 
-    <IonCard color="info">
+    <div v-if=" eduFProfile?.classroomId && (eduFProfile?.evaluation === 'conceitual' || eduFProfile?.disciplineId)">
+      <!--  -->
+      <pre>
+        {{ currentStage }}
+      </pre>
+      <EduStageTabs v-model="currentStage">
+        <template #1-etapa>
+          aaaa
+        </template>
+        <template #2-etapa>
+          bbbb
+        </template>
+        <template #3-etapa>
+          cccc
+        </template>
+        <template #4-etapa>
+          ddddd
+        </template>
+      </EduStageTabs>
+      <IonAccordionGroup v-if="studentList && studentList.length > 0" class="ion-content" expand="inset">
+        <IonAccordion v-for="(s, i) in studentList" :key="i" :value="`${i}`" class="no-border-accordion">
+          <IonItem slot="header">
+            <IonLabel style="display: flex">
+              <IonText color="secondary" style="margin: auto 0 auto 0;">
+                {{ s.name }}
+              </IonText>
+              <IonChip v-if="s.situation === 'CURSANDO'" class="ion-no-margin" style="margin: auto 0 auto auto;" :style="!s.disability ? 'margin-right: 0px;' : ''" mode="md" color="light">
+                {{ s.situation.toLowerCase() }}
+              </IonChip>
+              <IonChip v-if="!s.disability" class="ion-no-margin" style="margin: auto 0 auto auto;" :style=" s.situation === 'CURSANDO' ? 'margin-left: 0px;' : ''" mode="md" color="tertiary">
+                PCD
+              </IonChip>
+            </IonLabel>
+          </IonItem>
+          <div slot="content" class="ion-padding">
+            <IonCardHeader id="accordionContentHeader" class="ion-no-padding" style="padding: 8px;" :translucent="true">
+              <div style="display: flex; align-items: center; height: 15px;">
+                <IonIcon :icon="apps" style="margin-right: 10px;" />
+                Unidades Temáticas
+              </div>
+            </IonCardHeader>
+          </div>
+        </IonAccordion>
+      </IonAccordionGroup>
+      <IonCard v-else color="warning">
+        <IonCardHeader>
+          <IonCardTitle>Alunos não encontrados</IonCardTitle>
+        </IonCardHeader>
+
+        <IonCardContent>
+          <IonText>
+            Nenhum aluno encontrado. Por favor entre em contato com a secretaria de sua escola para verificar se sua turma foi cadastrada corretamente.
+          </IonText>
+        </IonCardContent>
+      </IonCard>
+    </div>
+
+    <IonCard v-else color="info">
       <IonCardHeader>
         <IonCardTitle>Selecione a turma</IonCardTitle>
       </IonCardHeader>
@@ -95,6 +148,11 @@ watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo
 </template>
 
 <style scoped>
+ion-card-header#accordionContentHeader {
+    --background: rgba(var(--ion-color-secondary-rgb), 0.15);
+    --color: var(--ion-color-secondary);
+  }
+
 ion-content {
   --padding-start: 10px;
   --padding-end: 10px;

@@ -9,6 +9,19 @@ export default class StageService extends BaseService<Stage> {
     super(table)
   }
 
+  async getAllStages() {
+    const { data, error } = await this.client
+      .from('stage')
+      .select('id, numberStage, startDate, endDate')
+
+    if (error) {
+      console.error('getStages falhou e disparou erro ao buscar etapa:', error)
+    }
+    else if (data) {
+      return data
+    }
+  }
+
   async getCurrentStage(institutionId: string) {
     const { data, error } = await this.client
       .from('stage')
