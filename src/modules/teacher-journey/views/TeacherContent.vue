@@ -146,6 +146,7 @@ function changeSelectedToUpdate(current: any): void {
         Lançamento diário
       </ion-text>
     </h3>
+
     <EduCalendar v-model="selectedDayInfo" :teacher-id="eduFProfile?.teacherId" :current-classroom="eduFProfile?.classroomId" :current-discipline="eduFProfile?.disciplineId" :frequency="eduFProfile?.frequency" @update:invalid-day="($event) => invalidDay = $event" />
     <!-- <pre>
 
