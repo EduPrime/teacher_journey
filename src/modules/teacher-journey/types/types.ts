@@ -22,6 +22,20 @@ export interface FrequencyToSave {
   frequencies: Frequency[]
 }
 
+export interface MountedStudent {
+  name: string
+  classroomId: string
+  studentId: string
+  teacherId: string
+  disciplineId?: string
+  status: string
+  stageId: string
+  schoolId: string
+  situation: string
+  enrollmentId: string
+  disability: string
+}
+
 export interface AttendanceWithFrequencies {
   id?: string
   date: Date
@@ -73,7 +87,7 @@ export interface Stage {
 
 export interface WarningFrequency {
   teacherId: string
-  date: String
+  date: string
   classroomId: string
   disciplineId?: string
 

@@ -1,5 +1,6 @@
 import type { CustomRouteRecordRaw } from '@/router/RouterType'
 import { calendar, clipboard, clipboardSharp, create, extensionPuzzle, folderOutline, home, idCard, pencil, ribbon, saveSharp, shapes, star, text, trendingUp } from 'ionicons/icons'
+import TeacherConceptualEvaluation from './views/TeacherConceptualEvaluation.vue'
 import TeacherContent from './views/TeacherContent.vue'
 import TeacherFrequency from './views/TeacherFequency.vue'
 import TeacherJourney from './views/TeacherJourney.vue'
@@ -136,11 +137,12 @@ const dynamicRoutes: Array<CustomRouteRecordRaw> = [
   {
     path: '/teacherjourney/conceitual',
     name: 'TeacherConceitual',
-    component: TeacherJourney,
+    component: TeacherConceptualEvaluation,
     meta: {
       moduleName: 'TeacherJourney',
       moduleIcon: pencil,
-      icon: star,
+      // icon: star,
+      icon: text,
       name: 'Avaliação conceitual',
       order: 3,
       requiredRole: ['PROFESSOR'],
