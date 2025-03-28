@@ -1,7 +1,16 @@
+import type { Decimal } from '@prisma/client/runtime/library'
+
 // import type { Attendance } from '@prisma/client'
 export interface Frequency {
   name: string
   absent: boolean
+}
+
+export interface Thematics {
+  id?: string
+  name: string
+  seriesId: string
+  disciplineId: string
 }
 
 export interface FrequencyToSave {
@@ -20,6 +29,32 @@ export interface FrequencyToSave {
   presence: boolean
   justificationId?: string
   frequencies: Frequency[]
+}
+
+export interface NumericToSave {
+  classroomId: string
+  disciplineId: string
+  enrollmentId: string
+  studentId: string
+  stageId: string
+  schoolId: string
+  at1: Decimal
+  at2: Decimal
+  at3: Decimal
+  at4: Decimal
+  at5: Decimal
+  makeUp: Decimal
+  grade: Decimal
+}
+
+export interface ConceptualToSave {
+  studentId: string
+  enrollmentId: string
+  classroomId: string
+  disciplineId: string
+  schoolId: string
+  stageId: string
+  thematics?: Thematics[]
 }
 
 export interface MountedStudent {

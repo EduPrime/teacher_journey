@@ -15,7 +15,7 @@ import { Pagination } from 'swiper/modules'
 import { Swiper, SwiperSlide } from 'swiper/vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import EnrollmentService from '../services/EnrollmentService'
-import GradeService from '../services/GradeService'
+// import GradeService from '../services/GradeService'
 import ScheduleService from '../services/ScheduleService'
 import StageService from '../services/StageService'
 import EvaluationRuleService from '@/services/EvaluationRuleService'
@@ -65,7 +65,7 @@ const modules = ref([Pagination])
 const stageService = new StageService()
 const scheduleService = new ScheduleService()
 const enrollment = new EnrollmentService()
-const gradeService = new GradeService()
+// const gradeService = new GradeService()
 const evaluationRuleService = new EvaluationRuleService()
 
 const stages = ref(<Stages>{})

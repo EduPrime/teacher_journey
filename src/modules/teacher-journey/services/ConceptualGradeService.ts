@@ -1,5 +1,6 @@
 import type { ConceptualGrade } from '@prisma/client'
 import BaseService from '@/services/BaseService'
+import type { ConceptualToSave } from '../types/types'
 
 const table = 'conceptualGrade' as const
 export default class ConceptualGradeService extends BaseService<ConceptualGrade> {
@@ -33,7 +34,7 @@ export default class ConceptualGradeService extends BaseService<ConceptualGrade>
                 *,
                 enrollment:enrollmentId (id, name),
                 conceptualGradeByThematicUnit:conceptualGradeByThematicUnit (id, grade)
-                `
+                `,
             )
             .eq('enrollment.classroomId', concept.classroomId)
             .eq('disciplineId', concept.disciplineId)
@@ -49,44 +50,19 @@ export default class ConceptualGradeService extends BaseService<ConceptualGrade>
         return data
     }
 
-    async upsertConceptualGrade(concept: {
-        classroomId: string,
-        disciplineId: string,
-        stageId: string,
-        thematicUnits: { id: string, grade: number }[]
-    }) {
-        const { data: conceptualGradeData, error: conceptualGradeError } = await this.client
+    async createConceptualGrade(conceptualGrade: ConceptualToSave) {
+        const { data, error } = await this.client
             .from(table)
-            .upsert({
-                classroomId: concept.classroomId,
-                disciplineId: concept.disciplineId,
-                stageId: concept.stageId,
-            }, { onConflict: 'classroomId,disciplineId,stageId' })
-            .select('id')
+            .insert(conceptualGrade)
+            .select()
 
-        if (conceptualGradeError) {
-            throw new Error(`Erro ao criar ou atualizar nota conceitual: ${conceptualGradeError.message}`)
+        if (error) {
+            throw new Error(`Erro ao criar nota conceitual: ${error.message}`)
         }
-        if (!conceptualGradeData || conceptualGradeData.length === 0) {
-            throw new Error('Nenhuma nota conceitual encontrada ou criada')
+        if (!data || data.length === 0) {
+            throw new Error('Falha ao criar nota conceitual')
         }
 
-        const conceptualGradeId = conceptualGradeData[0].id
-
-        for (const thematicUnit of concept.thematicUnits) {
-            const { error: thematicUnitError } = await this.client
-                .from('conceptualGradeByThematicUnit')
-                .upsert({
-                    conceptualGradeId,
-                    thematicUnitId: thematicUnit.id,
-                    grade: thematicUnit.grade,
-                }, { onConflict: 'conceptualGradeId,thematicUnitId' })
-
-            if (thematicUnitError) {
-                throw new Error(`Erro ao criar ou atualizar nota por unidade temática: ${thematicUnitError.message}`)
-            }
-        }
-
-        return { conceptualGradeId }
+        return data
     }
 }
