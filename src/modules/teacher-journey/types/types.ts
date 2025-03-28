@@ -1,3 +1,5 @@
+import type { Decimal } from '@prisma/client/runtime/library'
+
 // import type { Attendance } from '@prisma/client'
 export interface Frequency {
   name: string
@@ -20,6 +22,22 @@ export interface FrequencyToSave {
   presence: boolean
   justificationId?: string
   frequencies: Frequency[]
+}
+
+export interface NumericToSave {
+  classroomId: string
+  disciplineId: string
+  enrollmentId: string
+  studentId: string
+  stageId: string
+  schoolId: string
+  at1: Decimal
+  at2: Decimal
+  at3: Decimal
+  at4: Decimal
+  at5: Decimal
+  makeUp: Decimal
+  grade: Decimal
 }
 
 export interface MountedStudent {
