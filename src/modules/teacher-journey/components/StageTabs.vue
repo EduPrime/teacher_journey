@@ -14,7 +14,6 @@ interface Props {
 const props = defineProps<Props>()
 // const props = defineProps<Props>()
 const emits = defineEmits(['update:modelValue'])
-const stages = ref()
 
 const currentStage = ref('')
 
@@ -30,9 +29,9 @@ watch(() => props.stages, (newValue) => {
       compararDatas(stage)
     })
 
-    emits('update:modelValue', currentStage.value)
+    emits('update:modelValue', props.stages.find(i => i.numberStage === currentStage.value))
   }
-})
+}, { immediate: true })
 
 function compararDatas(stage: { startDate: string, endDate: string, numberStage: string }) {
   const hoje = new Date()
@@ -53,32 +52,36 @@ function disabledStages(startDate: string): boolean {
 </script>
 
 <template>
-  <pre>
-    stages: {{ stages }}
-    currentStage: {{ currentStage }}
-  </pre>
-  <IonSegment v-if="props.stages && props.stages.length > 0" v-model="currentStage" mode="ios" :scrollable="true" :value="currentStage" style="margin: 0 10px 0 10px;">
-    <!-- Adicionar esse atributo ( disabled ) abaixo quando finalizar a questão da tab selecionadisabledStages(stage.startDate)" ) -->
-    <IonSegmentButton v-for="stage in props.stages" :key="stage.numberStage" :value="stage.numberStage" :content-id="stage.numberStage" @click="emits('update:modelValue', stage)">
+  <IonSegment
+    v-if="props.stages && props.stages.length > 0"
+    v-model="currentStage"
+    mode="ios"
+    :scrollable="true"
+    :value="currentStage"
+    style="margin: 0 10px 0 10px;"
+  >
+    <!-- :disabled="!disabledStages(stage.startDate)" esse atributo pertence ao bloco abaixo -->
+    <IonSegmentButton
+      v-for="stage in props.stages"
+      :key="stage.numberStage"
+      :value="stage.numberStage"
+      :disabled="!disabledStages(stage.startDate)"
+      :content-id="stage.numberStage"
+      @click="emits('update:modelValue', stage)"
+    >
       <span>{{ stage.numberStage }}º Etapa</span>
     </IonSegmentButton>
   </IonSegment>
 
-  <!-- <IonSegmentView v-if="stages && stages.length > 0" class="ion-content">
-    <IonSegmentContent v-for="stage in stages" :id="stage.numberStage" :key="stage.numberStage">
-      <IonCard>
-        <IonCardHeader>
-          etapa {{ stage.numberStage }}
-        </IonCardHeader>
-        <IonCardContent>
-          asdasdasd
-        </IonCardContent>
-      </IonCard>
-    </IonSegmentContent>
-  </IonSegmentView> -->
-
-  <IonSegmentView v-if="props.stages && props.stages.length > 0" class="ion-content">
-    <IonSegmentContent v-for="stage in props.stages" :id="stage.numberStage" :key="stage.numberStage">
+  <IonSegmentView
+    v-if="props.stages && props.stages.length > 0"
+    style="margin: 10px;"
+  >
+    <IonSegmentContent
+      v-for="stage in props.stages"
+      :id="stage.numberStage"
+      :key="stage.numberStage"
+    >
       <slot :name="stage.numberStage" />
     </IonSegmentContent>
   </IonSegmentView>
