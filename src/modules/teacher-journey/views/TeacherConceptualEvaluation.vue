@@ -83,18 +83,18 @@ onMounted(async () => {
             <IonAccordion v-for="(s, i) in studentList" :key="i" :value="`${i}`" class="no-border-accordion">
               <IonItem slot="header">
                 <IonLabel style="display: flex">
-                  <IonText color="secondary" class="" style="margin: auto 0 auto 0;">
+                  <IonText color="secondary" class="" style="margin: auto 0 auto 0;" :style="s.situation !== 'CURSANDO' ? ' opacity: 0.4;' : ''">
                     <b>{{ s.name }}</b>
                   </IonText>
-                  <IonChip v-if="s.situation === 'CURSANDO'" class="ion-no-margin" style="margin: auto 0 auto auto;" :style="!s.disability ? 'margin-right: 0px;' : ''" mode="md" color="light">
-                    {{ s.situation.toLowerCase() }}
-                  </IonChip>
-                  <IonChip v-if="!s.disability" class="ion-no-margin" style="margin: auto 0 auto auto;" :style=" s.situation === 'CURSANDO' ? 'margin-left: 0px;' : ''" mode="md" color="tertiary">
+                  <IonChip v-if="s.disability" class="ion-no-margin" style="margin: auto 0 auto auto;" mode="md" color="tertiary">
                     PCD
                   </IonChip>
                 </IonLabel>
               </IonItem>
               <div slot="content" class="ion-padding">
+                <div v-if="s.situation !== 'CURSANDO'" class="ion-padding-bottom">
+                  {{ s.situation }}
+                </div>
                 <IonCardHeader id="accordionContentHeader" class="ion-no-padding" style="padding: 8px;" :translucent="true">
                   <div style="display: flex; align-items: center; height: 15px;">
                     <IonIcon :icon="apps" style="margin-right: 10px;" />
@@ -112,7 +112,11 @@ onMounted(async () => {
                         </IonCol>
                         <IonCol size="6">
                           <IonSelect
-                            cancel-text="Cancelar" label="Nota conceitual" label-placement="floating" fill="outline"
+                            cancel-text="Cancelar"
+                            label="Avaliar"
+                            label-placement="floating"
+                            fill="outline"
+                            mode="md"
                           >
                             <IonSelectOption value="pc">
                               PC
@@ -181,6 +185,10 @@ ion-card-header#accordionContentHeader {
     --background: rgba(var(--ion-color-secondary-rgb), 0.15);
     --color: var(--ion-color-secondary);
   }
+
+ion-select{
+ min-height: 48px
+}
 
 ion-content {
   --padding-start: 10px;
