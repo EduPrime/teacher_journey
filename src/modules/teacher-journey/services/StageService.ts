@@ -13,6 +13,7 @@ export default class StageService extends BaseService<Stage> {
     const { data, error } = await this.client
       .from('stage')
       .select('id, numberStage, startDate, endDate')
+      .order('numberStage', { ascending: true })
 
     if (error) {
       console.error('getStages falhou e disparou erro ao buscar etapa:', error)

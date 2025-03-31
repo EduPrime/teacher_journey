@@ -7,11 +7,17 @@ import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, Io
 
 import { apps, text } from 'ionicons/icons'
 
-import { ref, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 
 import EduStageTabs from '../components/StageTabs.vue'
 
 import EnrollmentService from '../services/EnrollmentService'
+
+import StageService from '../services/StageService'
+
+const stageService = new StageService()
+
+const stages = ref()
 
 const enrollmentService = new EnrollmentService()
 
@@ -49,6 +55,10 @@ watch(eduFProfile, async (newValue) => {
     students.value = undefined
   }
 })
+
+onMounted(async () => {
+  stages.value = await stageService.getAllStages()
+})
 </script>
 
 <template>
@@ -57,7 +67,6 @@ watch(eduFProfile, async (newValue) => {
     <h3>
       <IonText color="secondary" class="ion-content ion-padding-bottom" style="display: flex; align-items: center;">
         <IonIcon color="secondary" style="margin-right: 10px;" aria-hidden="true" :icon="text" />
-        Registro Conceitual {{ }}
       </IonText>
     </h3>
 
@@ -66,18 +75,34 @@ watch(eduFProfile, async (newValue) => {
       <pre>
         {{ currentStage }}
       </pre>
-      <EduStageTabs v-model="currentStage">
-        <template #1-etapa>
-          aaaa
-        </template>
-        <template #2-etapa>
-          bbbb
-        </template>
-        <template #3-etapa>
-          cccc
-        </template>
-        <template #4-etapa>
-          ddddd
+      <EduStageTabs v-model="currentStage" :stages="stages">
+        <template v-for="stage in stages" :key="stage" #[stage.numberStage]>
+          {{ stage.numberStage }} etapa
+          <IonAccordionGroup v-if="studentList && studentList.length > 0" class="ion-content" expand="inset">
+            <IonAccordion v-for="(s, i) in studentList" :key="i" :value="`${i}`" class="no-border-accordion">
+              <IonItem slot="header">
+                <IonLabel style="display: flex">
+                  <IonText color="secondary" style="margin: auto 0 auto 0;">
+                    {{ s.name }}
+                  </IonText>
+                  <IonChip v-if="s.situation === 'CURSANDO'" class="ion-no-margin" style="margin: auto 0 auto auto;" :style="!s.disability ? 'margin-right: 0px;' : ''" mode="md" color="light">
+                    {{ s.situation.toLowerCase() }}
+                  </IonChip>
+                  <IonChip v-if="!s.disability" class="ion-no-margin" style="margin: auto 0 auto auto;" :style=" s.situation === 'CURSANDO' ? 'margin-left: 0px;' : ''" mode="md" color="tertiary">
+                    PCD
+                  </IonChip>
+                </IonLabel>
+              </IonItem>
+              <div slot="content" class="ion-padding">
+                <IonCardHeader id="accordionContentHeader" class="ion-no-padding" style="padding: 8px;" :translucent="true">
+                  <div style="display: flex; align-items: center; height: 15px;">
+                    <IonIcon :icon="apps" style="margin-right: 10px;" />
+                    Unidades Temáticas
+                  </div>
+                </IonCardHeader>
+              </div>
+            </IonAccordion>
+          </IonAccordionGroup>
         </template>
       </EduStageTabs>
       <IonAccordionGroup v-if="studentList && studentList.length > 0" class="ion-content" expand="inset">
