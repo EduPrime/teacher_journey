@@ -7,7 +7,7 @@ import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, Io
 
 import { apps, text } from 'ionicons/icons'
 
-import { onMounted, ref, watch } from 'vue'
+import { onMounted, onUpdated, ref, watch } from 'vue'
 
 import EduStageTabs from '../components/StageTabs.vue'
 
@@ -15,7 +15,11 @@ import EnrollmentService from '../services/EnrollmentService'
 
 import StageService from '../services/StageService'
 
+import EvaluationRuleService from '../services/EvaluationRuleService'
+
 const stageService = new StageService()
+
+const evaluationRuleService = new EvaluationRuleService()
 
 const stages = ref()
 
@@ -28,31 +32,41 @@ const students = ref()
 const studentList = ref<MountedStudent[]>()
 
 // Dados estaticos para testes
-const thematicUnitis = ref([{ name: 'Brincadeiras e jogos', id: '1' }, { name: 'Danças', id: '2' }, { name: 'Esportes', id: '3' }, { name: 'Lutas', id: '4' }])
+const thematicUnits = ref([{ name: 'Brincadeiras e jogos', id: '1' }, { name: 'Danças', id: '2' }, { name: 'Esportes', id: '3' }, { name: 'Lutas', id: '4' }])
+let conceptualTypes = ref()
+
+const oldList = ref<MountedStudent[]>([])
 
 const isLoading = ref(false)
 
 // Watcher que observa o filtro e o calendário para montar a listágem de alunos
 watch(eduFProfile, async (newValue) => {
-  if (newValue && newValue?.classroomId) {
+  if (newValue && newValue?.disciplineId) {
     // stage.value = await stageService.getCurrentStageWeekday(newSelectedDayInfo.selectedDate)
 
-    students.value = await enrollmentService.getClassroomStudents(newValue.classroomId)
-    studentList.value = students.value.map((i: any) => {
-      return {
-        name: i.name,
-        enrollmentId: i.id,
-        classroomId: newValue.classroomId,
-        disciplineId: newValue.disciplineId,
-        studentId: i.studentId,
-        schoolId: i.schoolId,
-        // stageId: stage.value?.stageId,
-        status: i.status,
-        situation: i.situation,
-        disability: i.student.disability,
-        teacherId: newValue.teacherId,
-      }
-    })
+    // students.value = await enrollmentService.getClassroomStudents(newValue.classroomId)
+    // studentList.value = students.value.map((i: any) => {
+    //   return {
+    //     name: i.name,
+    //     enrollmentId: i.id,
+    //     classroomId: newValue.classroomId,
+    //     disciplineId: newValue.disciplineId,
+    //     studentId: i.studentId,
+    //     schoolId: i.schoolId,
+    //     // stageId: stage.value?.stageId,
+    //     status: i.status,
+    //     situation: i.situation,
+    //     disability: i.student.disability,
+    //     teacherId: newValue.teacherId,
+    //   }
+    // })
+    studentList.value = await enrollmentService.getClassroomConceptualGrades(
+      newValue.classroomId, newValue.schoolId, newValue.disciplineId, '149665ec-a230-439e-aeb2-4cb7bfc8ebb4', newValue.seriesId,
+    )
+    conceptualTypes.value = await evaluationRuleService.getConceptualGradesTypes(newValue.courseIds)
+
+    oldList.value = JSON.parse(JSON.stringify(studentList.value))
+    
   }
   else {
     students.value = undefined
@@ -62,6 +76,7 @@ watch(eduFProfile, async (newValue) => {
 onMounted(async () => {
   stages.value = await stageService.getAllStages()
 })
+
 </script>
 
 <template>
@@ -103,7 +118,7 @@ onMounted(async () => {
                     </div>
                   </IonCardHeader>
                   <div class="ion-padding-bottom">
-                    <IonItem v-for="tu in thematicUnitis" :key="tu.id" lines="none">
+                    <IonItem v-for="tu in s.grades" :key="tu.thematicUnitId" lines="none">
                       <IonGrid class="ion-no-padding ion-padding-top">
                         <IonRow>
                           <IonCol style="display: flex;" size="6">
@@ -121,15 +136,12 @@ onMounted(async () => {
                               fill="outline"
                               mode="md"
                               style="zoom: 0.9;"
+                              :value="tu.value"
                             >
-                              <IonSelectOption value="pc">
-                                PC
-                              </IonSelectOption>
-                              <IonSelectOption value="pec">
-                                PEC
-                              </IonSelectOption>
-                              <IonSelectOption value="nt">
-                                NT
+                            <IonSelectOption v-for="conceptualType in conceptualTypes" :key="conceptualType.index" :value="conceptualType"
+                              selected="conceptualType === s.conceptualType"
+                            >
+                              {{ conceptualType }}
                               </IonSelectOption>
                             </IonSelect>
                           </IonCol>

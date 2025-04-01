@@ -23,4 +23,29 @@ export default class EvaluationRuleService extends BaseService<EvaluationRule> {
 
     return data
   }
+
+  async getConceptualGradesTypes(courseIds: string) {
+    const { data, error } = await this.client
+      .from(table)
+      .select(
+        `
+        conceptualLabel
+        `
+      )
+      .eq('courseId', courseIds)
+      .single()
+
+    console.log('EvaluationRulesService', data)
+
+    const labels = data?.conceptualLabel.map((item: any) => item.rotulo)
+
+    if (error) {
+      throw new Error(`Erro ao trazer os tipos de notas: ${error.message}`)
+    }
+    if (!data) {
+      throw new Error('Nenhum tipo de nota encontrado')
+    }
+
+    return labels
+  }
 }

@@ -13,6 +13,13 @@ export interface Thematics {
   disciplineId: string
 }
 
+export interface Grades {
+  thematicUnitId: string
+  name: string
+  value: string
+  gradeId: string
+}
+
 export interface FrequencyToSave {
   name: string
   classroomId: string
@@ -46,29 +53,43 @@ export interface NumericToSave {
   makeUp: Decimal
   grade: Decimal
 }
+export interface UpdatedGrades {
+  thematicUnitId: string
+  conceptualGradeId: string
+  grade: string
+}
 
 export interface ConceptualToSave {
+
+  name: string
+  situation: string
+  disability: boolean
   studentId: string
   enrollmentId: string
-  classroomId: string
-  disciplineId: string
   schoolId: string
+  seriesId: string
+  classroomId: string
+  disciplineId?: string
   stageId: string
-  thematics?: Thematics[]
+  conceptualGradeId?: string
+
+  grades: Grades[]
 }
 
 export interface MountedStudent {
   name: string
-  classroomId: string
-  studentId: string
-  teacherId: string
-  disciplineId?: string
-  status: string
-  stageId: string
-  schoolId: string
   situation: string
+  disability: boolean
+  studentId: string
   enrollmentId: string
-  disability: string
+  schoolId: string
+  seriesId: string
+  classroomId: string
+  disciplineId?: string
+  stageId: string
+  conceptualGradeId?: string
+
+  grades: Grades[]
 }
 
 export interface AttendanceWithFrequencies {

@@ -47,6 +47,8 @@ export default class EnrollmentService extends BaseService<Enrollment> {
 
     const enrollmentIds = enrollments.map((enrollment) => enrollment.id);
 
+    console.log('enrollments', enrollments)
+
     const { data: conceptualGrades, error: conceptualGradeError } = await this.client
       .from('conceptualGrade')
       .select(`
@@ -59,14 +61,16 @@ export default class EnrollmentService extends BaseService<Enrollment> {
           thematicUnit:thematicUnit (name)
         )
       `)
-      .in('enrollmentId', enrollmentIds)
       .eq('disciplineId', disciplineId)
       .eq('stageId', stageId)
-      .eq('schoolId', schoolId);
+      .eq('schoolId', schoolId)
+      .in('enrollmentId', enrollmentIds)
 
     if (conceptualGradeError) {
       throw new Error(`Erro ao buscar notas conceituais: ${conceptualGradeError.message}`);
     }
+
+    console.log('conceptualGrades', conceptualGrades)
     if (!conceptualGrades || conceptualGrades.length === 0) {
       const { data: emptyConceptualGrades, error: errorEmptyConceptualGrades } = await this.client
         .from('thematicUnit')
@@ -77,16 +81,17 @@ export default class EnrollmentService extends BaseService<Enrollment> {
         .eq('disciplineId', disciplineId)
         .eq('seriesId', seriesId)
 
+      console.log('emptyConceptualGrades', emptyConceptualGrades)
+
       if (errorEmptyConceptualGrades) {
         throw new Error(`Erro ao buscar notas conceituais: ${errorEmptyConceptualGrades}`);
       }
-
       const result = enrollments.map((enrollment) => {
         return {
           name: enrollment.name,
           situation: enrollment.situation,
-          // disability: enrollment.student?.disability ? true : false,
-          // studentId: enrollment.student?.id,
+          disability: enrollment.student?.disability ? true : false,
+          studentId: enrollment.student?.id,
           enrollmentId: enrollment.id,
           schoolId,
           classroomId,
@@ -109,8 +114,8 @@ export default class EnrollmentService extends BaseService<Enrollment> {
       return {
         name: enrollment.name,
         situation: enrollment.situation,
-        // disability: enrollment.student?.disability ? true : false,
-        // studentId: enrollment.student?.id,
+        disability: enrollment.student?.disability ? true : false,
+        studentId: enrollment.student?.id,
         enrollmentId: enrollment.id,
         schoolId,
         classroomId,
@@ -119,7 +124,7 @@ export default class EnrollmentService extends BaseService<Enrollment> {
         conceptualGradeId: conceptualGrade?.id || null,
         grades: conceptualGrade?.thematicUnits?.map((unit) => ({
           thematicUnitId: unit.thematicUnitId,
-          // name: unit.thematicUnit?.name || '',
+          name: unit.thematicUnit?.name || '',
           value: unit.grade,
           gradeId: unit.conceptualGradeId,
         })) || [],
