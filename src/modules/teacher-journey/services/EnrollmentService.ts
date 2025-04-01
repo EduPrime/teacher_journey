@@ -1,5 +1,6 @@
 import type { Enrollment } from '@prisma/client'
 import BaseService from '@/services/BaseService'
+import { QueryEnrollments, QueryGrades, QueryEmptyGrades } from '../types/types'
 
 const table = 'enrollment' as const
 
@@ -36,7 +37,7 @@ export default class EnrollmentService extends BaseService<Enrollment> {
         situation,
         student:student (id, disability)
       `)
-      .eq('classroomId', classroomId);
+      .eq('classroomId', classroomId) as unknown as QueryEnrollments
 
     if (enrollmentError) {
       throw new Error(`Erro ao buscar matrículas com dados dos alunos: ${enrollmentError.message}`);
@@ -64,7 +65,7 @@ export default class EnrollmentService extends BaseService<Enrollment> {
       .eq('disciplineId', disciplineId)
       .eq('stageId', stageId)
       .eq('schoolId', schoolId)
-      .in('enrollmentId', enrollmentIds)
+      .in('enrollmentId', enrollmentIds) as unknown as QueryGrades
 
     if (conceptualGradeError) {
       throw new Error(`Erro ao buscar notas conceituais: ${conceptualGradeError.message}`);
@@ -79,18 +80,16 @@ export default class EnrollmentService extends BaseService<Enrollment> {
       return !conceptualGrades?.some((cg) => cg.enrollmentId === enrollment.id)
     })
 
-    console.log('enrollmentsWithConceptualGrades', enrollmentsWithConceptualGrades)
-    console.log('enrollmentsWithoutConceptualGrades', enrollmentsWithoutConceptualGrades)
-    console.log('enrollmentIds', enrollmentIds)
+    // console.log('enrollmentsWithConceptualGrades', enrollmentsWithConceptualGrades)
+    // console.log('enrollmentsWithoutConceptualGrades', enrollmentsWithoutConceptualGrades)
+    // console.log('enrollmentIds', enrollmentIds)
     const result = enrollmentsWithConceptualGrades.map((enrollment) => {
       const conceptualGrade = conceptualGrades?.find((cg) => cg.enrollmentId === enrollment.id);
-
-
 
       return {
         name: enrollment.name,
         situation: enrollment.situation,
-        disability: enrollment.student?.disability ? true : false,
+        disability: (enrollment.student?.disability?.length ?? 0) > 0 ? true : false,
         studentId: enrollment.student?.id,
         enrollmentId: enrollment.id,
         schoolId,
@@ -115,7 +114,7 @@ export default class EnrollmentService extends BaseService<Enrollment> {
           name
         `)
         .eq('disciplineId', disciplineId)
-        .eq('seriesId', seriesId)
+        .eq('seriesId', seriesId) as unknown as QueryEmptyGrades
 
       console.log('emptyConceptualGrades', emptyConceptualGrades)
 
@@ -136,10 +135,10 @@ export default class EnrollmentService extends BaseService<Enrollment> {
           conceptualGradeId: null,
           grades: emptyConceptualGrades.map((unit) => ({
             thematicUnitId: unit.id,
-            name: unit.name || '',
+            name: unit.name,
             value: null,
             gradeId: null,
-          })) || [],
+          })),
         }
       }))
     }

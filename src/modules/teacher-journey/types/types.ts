@@ -16,8 +16,8 @@ export interface Thematics {
 export interface Grades {
   thematicUnitId: string
   name: string
-  value: string
-  gradeId: string
+  value: string | null
+  gradeId: string | null
 }
 
 export interface FrequencyToSave {
@@ -90,6 +90,50 @@ export interface MountedStudent {
   conceptualGradeId?: string
 
   grades: Grades[]
+}
+
+export interface QueryEnrollments {
+  data: {
+    id: string
+    name: string
+    situation: string
+    student: { id: string; disability: string[] | null }
+  }[]
+  error: {
+    message: string
+  }
+}
+
+export interface QueryGrades {
+  data: {
+    id: string
+    name: string
+    situation: string | null
+    enrollmentId: string
+    student: { id: string; disability: string[] | null }
+    thematicUnits: {
+      thematicUnitId: string
+      grade: string
+      value: string | null
+      conceptualGradeId: string
+      thematicUnit: {
+        name: string
+      }
+    }[]
+  }[]
+  error: {
+    message: string
+  }
+}
+
+export interface QueryEmptyGrades {
+  data: {
+    id: string
+    name: string
+  }[]
+  error: {
+    message: string
+  }
 }
 
 export interface AttendanceWithFrequencies {
