@@ -79,63 +79,69 @@ onMounted(async () => {
 
       <EduStageTabs v-model="currentStage" :stages="stages">
         <template v-for="stage in stages" :key="stage" #[stage.numberStage]>
-          <IonAccordionGroup v-if="studentList && studentList.length > 0" class="ion-no-margin" expand="inset">
-            <IonAccordion v-for="(s, i) in studentList" :key="i" :value="`${i}`" class="no-border-accordion">
-              <IonItem slot="header">
-                <IonLabel style="display: flex">
-                  <IonText color="secondary" class="" style="margin: auto 0 auto 0;" :style="s.situation !== 'CURSANDO' ? ' opacity: 0.4;' : ''">
-                    <b>{{ s.name }}</b>
-                  </IonText>
-                  <IonChip v-if="s.disability" class="ion-no-margin" style="margin: auto 0 auto auto;" mode="md" color="tertiary">
-                    PCD
-                  </IonChip>
-                </IonLabel>
-              </IonItem>
-              <div slot="content" class="ion-padding">
-                <div v-if="s.situation !== 'CURSANDO'" class="ion-padding-bottom">
-                  {{ s.situation }}
-                </div>
-                <IonCardHeader id="accordionContentHeader" class="ion-no-padding" style="padding: 8px;" :translucent="true">
-                  <div style="display: flex; align-items: center; height: 15px;">
-                    <IonIcon :icon="apps" style="margin-right: 10px;" />
-                    Unidades Temáticas
+          <div v-if="studentList && studentList.length > 0" style="padding: 1px; margin-top: -10px;">
+            <IonAccordionGroup expand="inset">
+              <IonAccordion v-for="(s, i) in studentList" :key="i" :value="`${i}`" class="no-border-accordion">
+                <IonItem slot="header">
+                  <IonLabel style="display: flex">
+                    <IonText color="secondary" class="" style="margin: auto 0 auto 0;" :style="s.situation !== 'CURSANDO' ? ' opacity: 0.4;' : ''">
+                      <b>{{ s.name }}</b>
+                    </IonText>
+                    <IonChip v-if="s.disability" class="ion-no-margin" style="margin: auto 0 auto auto;" mode="md" color="tertiary">
+                      PCD
+                    </IonChip>
+                  </IonLabel>
+                </IonItem>
+                <div slot="content" class="ion-padding">
+                  <div v-if="s.situation !== 'CURSANDO'" class="ion-padding-bottom">
+                    {{ s.situation }}
                   </div>
-                </IonCardHeader>
-                <div class="ion-padding-bottom">
-                  <IonItem v-for="tu in thematicUnitis" :key="tu.id" lines="none">
-                    <IonGrid class="ion-no-padding ion-padding-top">
-                      <IonRow>
-                        <IonCol style="display: flex;" size="6">
-                          <IonText color="primary" style="margin-top: auto; margin-bottom: auto;">
-                            {{ tu.name }}
-                          </IonText>
-                        </IonCol>
-                        <IonCol size="6">
-                          <IonSelect
-                            cancel-text="Cancelar"
-                            label="Avaliar"
-                            label-placement="floating"
-                            fill="outline"
-                            mode="md"
-                          >
-                            <IonSelectOption value="pc">
-                              PC
-                            </IonSelectOption>
-                            <IonSelectOption value="pec">
-                              PEC
-                            </IonSelectOption>
-                            <IonSelectOption value="nt">
-                              NT
-                            </IonSelectOption>
-                          </IonSelect>
-                        </IonCol>
-                      </IonRow>
-                    </IonGrid>
-                  </IonItem>
+                  <IonCardHeader id="accordionContentHeader" class="ion-no-padding" style="padding: 8px;" :translucent="true">
+                    <div style="display: flex; align-items: center; height: 15px;">
+                      <IonIcon :icon="apps" style="margin-right: 10px;" />
+                      Unidades Temáticas
+                    </div>
+                  </IonCardHeader>
+                  <div class="ion-padding-bottom">
+                    <IonItem v-for="tu in thematicUnitis" :key="tu.id" lines="none">
+                      <IonGrid class="ion-no-padding ion-padding-top">
+                        <IonRow>
+                          <IonCol style="display: flex;" size="6">
+                            <IonText color="primary" style="margin-top: auto; margin-bottom: auto;">
+                              {{ tu.name }}
+                            </IonText>
+                          </IonCol>
+                          <IonCol size="6">
+                            <IonSelect
+                              id="evaluation"
+                              justify="start"
+                              cancel-text="Cancelar"
+                              label="Registrar"
+                              label-placement="floating"
+                              fill="outline"
+                              mode="md"
+                              style="zoom: 0.9;"
+                            >
+                              <IonSelectOption value="pc">
+                                PC
+                              </IonSelectOption>
+                              <IonSelectOption value="pec">
+                                PEC
+                              </IonSelectOption>
+                              <IonSelectOption value="nt">
+                                NT
+                              </IonSelectOption>
+                            </IonSelect>
+                          </IonCol>
+                        </IonRow>
+                      </IonGrid>
+                    </IonItem>
+                  </div>
                 </div>
-              </div>
-            </IonAccordion>
-          </IonAccordionGroup>
+              </IonAccordion>
+            </IonAccordionGroup>
+          </div>
+
           <IonCard v-else color="warning">
             <IonCardHeader>
               <IonCardTitle>Alunos não encontrados</IonCardTitle>
@@ -186,8 +192,9 @@ ion-card-header#accordionContentHeader {
     --color: var(--ion-color-secondary);
   }
 
-ion-select{
- min-height: 48px
+ion-select#evaluation{
+ min-height: 48px;
+ --highlight-height: auto;
 }
 
 ion-content {
