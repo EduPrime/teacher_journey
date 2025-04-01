@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { IonLabel, IonSegment, IonSegmentButton, IonSegmentContent, IonSegmentView } from '@ionic/vue'
+import { IonSegment, IonSegmentButton, IonSegmentContent, IonSegmentView } from '@ionic/vue'
 
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 
 // interface Props {
 //   currentStage: string
@@ -47,44 +47,45 @@ function disabledStages(startDate: string): boolean {
   const hoje = new Date()
   const inicial = new Date(startDate)
 
-  return hoje >= inicial
+  return hoje < inicial
 }
 </script>
 
 <template>
-  <IonSegment
-    v-if="props.stages && props.stages.length > 0"
-    v-model="currentStage"
-    mode="ios"
-    :scrollable="true"
-    :value="currentStage"
-    style="margin: 0 10px 0 10px;"
-  >
-    <!-- :disabled="!disabledStages(stage.startDate)" esse atributo pertence ao bloco abaixo -->
-    <IonSegmentButton
-      v-for="stage in props.stages"
-      :key="stage.numberStage"
-      :value="stage.numberStage"
-      :disabled="!disabledStages(stage.startDate)"
-      :content-id="stage.numberStage"
-      @click="emits('update:modelValue', stage)"
+  <div v-if="props.stages && props.stages.length > 0">
+    <IonSegment
+      v-model="currentStage"
+      mode="ios"
+      :scrollable="true"
+      :value="currentStage"
+      style="margin: 0 10px 0 10px;"
     >
-      <span>{{ stage.numberStage }}º Etapa</span>
-    </IonSegmentButton>
-  </IonSegment>
+      <!-- :disabled="!disabledStages(stage.startDate)" esse atributo pertence ao bloco abaixo -->
+      <IonSegmentButton
+        v-for="stage in props.stages"
+        :key="stage.numberStage"
+        :value="stage.numberStage"
+        :content-id="!disabledStages(stage.startDate) ? stage.numberStage : undefined"
+        :disabled="disabledStages(stage.startDate)"
+        @click="emits('update:modelValue', stage)"
+      >
+        <span>{{ stage.numberStage }}º Etapa</span>
+      </IonSegmentButton>
+    </IonSegment>
 
-  <IonSegmentView
-    v-if="props.stages && props.stages.length > 0"
-    style="margin: 10px;"
-  >
-    <IonSegmentContent
-      v-for="stage in props.stages"
-      :id="stage.numberStage"
-      :key="stage.numberStage"
+    <IonSegmentView
+      style="margin: 10px;"
     >
-      <slot :name="stage.numberStage" />
-    </IonSegmentContent>
-  </IonSegmentView>
+      <IonSegmentContent
+        v-for="stage in props.stages.filter(i => !disabledStages(i.startDate))"
+        :id="stage.numberStage"
+        :key="stage.numberStage"
+        :disabled="disabledStages(stage.startDate)"
+      >
+        <slot :name="stage.numberStage" />
+      </IonSegmentContent>
+    </IonSegmentView>
+  </div>
 </template>
 
 <style scoped>
