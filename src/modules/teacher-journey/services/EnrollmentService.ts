@@ -71,45 +71,21 @@ export default class EnrollmentService extends BaseService<Enrollment> {
     }
 
     console.log('conceptualGrades', conceptualGrades)
-    if (!conceptualGrades || conceptualGrades.length === 0) {
-      const { data: emptyConceptualGrades, error: errorEmptyConceptualGrades } = await this.client
-        .from('thematicUnit')
-        .select(`
-          id,
-          name
-        `)
-        .eq('disciplineId', disciplineId)
-        .eq('seriesId', seriesId)
+    const enrollmentsWithConceptualGrades = enrollments.filter((enrollment) => {
+      return conceptualGrades?.some((cg) => cg.enrollmentId === enrollment.id)
+    })
 
-      console.log('emptyConceptualGrades', emptyConceptualGrades)
+    const enrollmentsWithoutConceptualGrades = enrollments.filter((enrollment) => {
+      return !conceptualGrades?.some((cg) => cg.enrollmentId === enrollment.id)
+    })
 
-      if (errorEmptyConceptualGrades) {
-        throw new Error(`Erro ao buscar notas conceituais: ${errorEmptyConceptualGrades}`);
-      }
-      const result = enrollments.map((enrollment) => {
-        return {
-          name: enrollment.name,
-          situation: enrollment.situation,
-          disability: enrollment.student?.disability ? true : false,
-          studentId: enrollment.student?.id,
-          enrollmentId: enrollment.id,
-          schoolId,
-          classroomId,
-          disciplineId,
-          stageId,
-          conceptualGradeId: null,
-          grades: emptyConceptualGrades.map((unit) => ({
-            thematicUnitId: unit.id,
-            name: unit.name || '',
-            value: null,
-            gradeId: null,
-          })) || [],
-        };
-      });
-      return result;
-    }
-    const result = enrollments.map((enrollment) => {
+    console.log('enrollmentsWithConceptualGrades', enrollmentsWithConceptualGrades)
+    console.log('enrollmentsWithoutConceptualGrades', enrollmentsWithoutConceptualGrades)
+    console.log('enrollmentIds', enrollmentIds)
+    const result = enrollmentsWithConceptualGrades.map((enrollment) => {
       const conceptualGrade = conceptualGrades?.find((cg) => cg.enrollmentId === enrollment.id);
+
+
 
       return {
         name: enrollment.name,
@@ -130,6 +106,43 @@ export default class EnrollmentService extends BaseService<Enrollment> {
         })) || [],
       };
     });
+    console.log('result', result)
+    if (conceptualGrades.length < enrollmentIds.length) {
+      const { data: emptyConceptualGrades, error: errorEmptyConceptualGrades } = await this.client
+        .from('thematicUnit')
+        .select(`
+          id,
+          name
+        `)
+        .eq('disciplineId', disciplineId)
+        .eq('seriesId', seriesId)
+
+      console.log('emptyConceptualGrades', emptyConceptualGrades)
+
+      if (errorEmptyConceptualGrades) {
+        throw new Error(`Erro ao buscar notas conceituais: ${errorEmptyConceptualGrades}`);
+      }
+      result.push(...enrollmentsWithoutConceptualGrades.map((enrollment) => {
+        return {
+          name: enrollment.name,
+          situation: enrollment.situation,
+          disability: enrollment.student?.disability ? true : false,
+          studentId: enrollment.student?.id,
+          enrollmentId: enrollment.id,
+          schoolId,
+          classroomId,
+          disciplineId,
+          stageId,
+          conceptualGradeId: null,
+          grades: emptyConceptualGrades.map((unit) => ({
+            thematicUnitId: unit.id,
+            name: unit.name || '',
+            value: null,
+            gradeId: null,
+          })) || [],
+        }
+      }))
+    }
 
     return result;
   }
