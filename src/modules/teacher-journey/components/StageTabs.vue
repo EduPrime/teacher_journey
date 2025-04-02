@@ -53,10 +53,6 @@ function disabledStages(startDate: string): boolean {
 </script>
 
 <template>
-  <pre>
-    stages: {{ stages }}
-    currentStage: {{ currentStage }}
-  </pre>
   <IonSegment v-if="props.stages && props.stages.length > 0" v-model="currentStage" mode="ios" :scrollable="true" :value="currentStage" style="margin: 0 10px 0 10px;">
     <!-- Adicionar esse atributo ( disabled ) abaixo quando finalizar a questão da tab selecionadisabledStages(stage.startDate)" ) -->
     <IonSegmentButton v-for="stage in props.stages" :key="stage.numberStage" :value="stage.numberStage" :content-id="stage.numberStage" @click="emits('update:modelValue', stage)">
