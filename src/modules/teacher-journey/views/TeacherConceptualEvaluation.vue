@@ -76,13 +76,20 @@ function compareGrades(oldGrades: Grades[], newGrades: Grades[], updatedGrades: 
     if (oldValue !== newGrade.value) {
       hasChanged = true
 
-      const exists = updatedGrades.some(
+      const existingGrade = updatedGrades.find(
         updated =>
-          updated.grade === newGrade.value
-          && updated.conceptualGradeId === newGrade.gradeId
+          updated.conceptualGradeId === newGrade.gradeId
           && updated.thematicUnitId === newGrade.thematicUnitId,
+
+        // updated.grade === newGrade.value
+        // && updated.conceptualGradeId === newGrade.gradeId
+        // && updated.thematicUnitId === newGrade.thematicUnitId,
       )
-      if (!exists) {
+
+      if (existingGrade) {
+        existingGrade.grade = newGrade.value
+      }
+      else {
         updatedGrades.push({
           grade: newGrade.value,
           conceptualGradeId: newGrade.gradeId,
