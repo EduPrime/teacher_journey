@@ -55,8 +55,8 @@ export interface NumericToSave {
 }
 export interface UpdatedGrades {
   thematicUnitId: string
-  conceptualGradeId: string
-  grade: string
+  conceptualGradeId: string | null
+  grade: string | null
 }
 
 export interface ConceptualToSave {
@@ -74,6 +74,13 @@ export interface ConceptualToSave {
   conceptualGradeId?: string
 
   grades: Grades[]
+}
+
+export interface RegisteredToSave {
+  teacherId: string,
+  classroomId: string,
+  disciplineId: string,
+  stageId: string
 }
 
 export interface MountedStudent {

@@ -1,76 +1,46 @@
 <script setup lang="ts">
-import type { MountedStudent } from '../types/types'
+import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol, IonGrid, IonIcon, IonItem, IonItemGroup, IonLabel, IonLoading, IonRadio, IonRadioGroup, IonRow, IonSegment, IonSegmentButton, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
+import { apps, text } from 'ionicons/icons'
+import { onMounted, ref, watch } from 'vue'
+
 import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
-
-import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol, IonGrid, IonIcon, IonItem, IonItemGroup, IonLabel, IonLoading, IonRadio, IonRadioGroup, IonRow, IonSegment, IonSegmentButton, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
-
-import { apps, text } from 'ionicons/icons'
-
-import { onMounted, onUpdated, ref, watch } from 'vue'
-
 import EduStageTabs from '../components/StageTabs.vue'
-
 import EnrollmentService from '../services/EnrollmentService'
-
 import StageService from '../services/StageService'
-
 import EvaluationRuleService from '../services/EvaluationRuleService'
+import RegisteredGradeService from '../services/RegisteredGradeService'
+import ConceptualGradeService from '../services/ConceptualGradeService'
+import type { ConceptualToSave, MountedStudent, UpdatedGrades, Grades, RegisteredToSave } from '../types/types'
+
 
 const stageService = new StageService()
-
 const evaluationRuleService = new EvaluationRuleService()
+const enrollmentService = new EnrollmentService()
+const registeredGradeService = new RegisteredGradeService()
+const conceptualGradeService = new ConceptualGradeService()
 
 const stages = ref()
-
-const enrollmentService = new EnrollmentService()
-
 const eduFProfile = ref()
-
 const currentStage = ref()
-const students = ref()
+const conceptualTypes = ref()
 const studentList = ref<MountedStudent[]>()
-
-// Dados estáticos para testes
-const thematicUnits = ref([{ name: 'Brincadeiras e jogos', id: '1' }, { name: 'Danças', id: '2' }, { name: 'Esportes', id: '3' }, { name: 'Lutas', id: '4' }])
-let conceptualTypes = ref()
-
-const oldList = ref<MountedStudent[]>([])
-
+const oldList = ref<MountedStudent[]>()
 const isLoading = ref(false)
 
 // Watcher que observa o filtro e o calendário para montar a listágem de alunos
 watch(eduFProfile, async (newValue) => {
   if (newValue && newValue?.disciplineId) {
-    // stage.value = await stageService.getCurrentStageWeekday(newSelectedDayInfo.selectedDate)
-
-    // students.value = await enrollmentService.getClassroomStudents(newValue.classroomId)
-    // studentList.value = students.value.map((i: any) => {
-    //   return {
-    //     name: i.name,
-    //     enrollmentId: i.id,
-    //     classroomId: newValue.classroomId,
-    //     disciplineId: newValue.disciplineId,
-    //     studentId: i.studentId,
-    //     schoolId: i.schoolId,
-    //     // stageId: stage.value?.stageId,
-    //     status: i.status,
-    //     situation: i.situation,
-    //     disability: i.student.disability,
-    //     teacherId: newValue.teacherId,
-    //   }
-    // })
-    console.log('currentStage', currentStage)
     studentList.value = await enrollmentService.getClassroomConceptualGrades(
       newValue.classroomId, newValue.schoolId, newValue.disciplineId, currentStage.value.id, newValue.seriesId,
     )
     conceptualTypes.value = await evaluationRuleService.getConceptualGradesTypes(newValue.courseIds)
 
     oldList.value = JSON.parse(JSON.stringify(studentList.value))
-    
   }
   else {
-    students.value = undefined
+    studentList.value = undefined
+    oldList.value = undefined
   }
 })
 
@@ -88,6 +58,63 @@ onMounted(async () => {
   stages.value = await stageService.getAllStages()
 })
 
+function compareGrades(oldGrades: Grades[], newGrades: Grades[], updatedGrades: UpdatedGrades[]) {
+  const oldGradesMap = new Map(oldGrades.map(grade => [grade.thematicUnitId, grade.value]))
+
+  let hasChanged = false
+
+  newGrades.forEach(newGrade => {
+    const oldValue = oldGradesMap.get(newGrade.thematicUnitId)
+
+    if (oldValue !== newGrade.value) {
+      hasChanged = true
+
+      const exists = updatedGrades.some(
+        updated =>
+          updated.grade === newGrade.value &&
+          updated.conceptualGradeId === newGrade.gradeId &&
+          updated.thematicUnitId === newGrade.thematicUnitId
+      )
+      if (!exists) {
+        updatedGrades.push({
+          grade: newGrade.value,
+          conceptualGradeId: newGrade.gradeId,
+          thematicUnitId: newGrade.thematicUnitId
+        })
+      }
+    }
+  })
+
+  return hasChanged
+}
+
+async function saveGrades(oldGrades: Grades[], newGrades: Grades[], updatedGrades: UpdatedGrades[], student: ConceptualToSave) {
+  try {
+    await conceptualGradeService.createConceptualGrade(updatedGrades, student)
+    oldGrades.forEach(oldGrade => {
+      const newGrade = newGrades.find(grade => grade.thematicUnitId === oldGrade.thematicUnitId)
+      if (newGrade) {
+        oldGrade.value = newGrade.value
+      }
+    })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+function cleanGrades(oldGrades: Grades[], newGrades: Grades[]) {
+  newGrades.forEach(newGrade => {
+    const oldGrade = oldGrades.find(grade => grade.thematicUnitId === newGrade.thematicUnitId)
+    if (oldGrade) {
+      newGrade.value = oldGrade.value
+    }
+  })
+}
+
+async function registerGrades(data: RegisteredToSave) {
+  await registeredGradeService.create(data)
+}
+
 </script>
 
 <template>
@@ -100,8 +127,7 @@ onMounted(async () => {
       </IonText>
     </h3>
 
-    <div v-if=" eduFProfile?.classroomId && (eduFProfile?.evaluation === 'conceitual' || eduFProfile?.disciplineId)">
-      <!--  -->
+    <div v-if="eduFProfile?.classroomId && (eduFProfile?.evaluation === 'conceitual' || eduFProfile?.disciplineId)">
 
       <EduStageTabs v-model="currentStage" :stages="stages">
         <template v-for="stage in stages" :key="stage" #[stage.numberStage]>
@@ -110,10 +136,12 @@ onMounted(async () => {
               <IonAccordion v-for="(s, i) in studentList" :key="i" :value="`${i}`" class="no-border-accordion">
                 <IonItem slot="header">
                   <IonLabel style="display: flex">
-                    <IonText color="secondary" class="" style="margin: auto 0 auto 0;" :style="s.situation !== 'CURSANDO' ? ' opacity: 0.4;' : ''">
+                    <IonText color="secondary" class="" style="margin: auto 0 auto 0;"
+                      :style="s.situation !== 'CURSANDO' ? ' opacity: 0.4;' : ''">
                       <b>{{ s.name }}</b>
                     </IonText>
-                    <IonChip v-if="s.disability" class="ion-no-margin" style="margin: auto 0 auto auto;" mode="md" color="tertiary">
+                    <IonChip v-if="s.disability" class="ion-no-margin" style="margin: auto 0 auto auto;" mode="md"
+                      color="tertiary">
                       PCD
                     </IonChip>
                   </IonLabel>
@@ -122,7 +150,8 @@ onMounted(async () => {
                   <div v-if="s.situation !== 'CURSANDO'" class="ion-padding-bottom">
                     {{ s.situation }}
                   </div>
-                  <IonCardHeader id="accordionContentHeader" class="ion-no-padding" style="padding: 8px;" :translucent="true">
+                  <IonCardHeader id="accordionContentHeader" class="ion-no-padding" style="padding: 8px;"
+                    :translucent="true">
                     <div style="display: flex; align-items: center; height: 15px;">
                       <IonIcon :icon="apps" style="margin-right: 10px;" />
                       Unidades Temáticas
@@ -138,21 +167,11 @@ onMounted(async () => {
                             </IonText>
                           </IonCol>
                           <IonCol size="6">
-                            <IonSelect
-                              id="evaluation"
-                              justify="start"
-                              cancel-text="Cancelar"
-                              label="Registrar"
-                              label-placement="floating"
-                              fill="outline"
-                              mode="md"
-                              style="zoom: 0.9;"
-                              :value="tu.value"
-                            >
-                            <IonSelectOption v-for="conceptualType in conceptualTypes" :key="conceptualType.index" :value="conceptualType"
-                              selected="conceptualType === s.conceptualType"
-                            >
-                              {{ conceptualType }}
+                            <IonSelect id="evaluation" justify="start" cancel-text="Cancelar" label="Registrar"
+                              label-placement="floating" fill="outline" mode="md" style="zoom: 0.9;" :value="tu.value">
+                              <IonSelectOption v-for="conceptualType in conceptualTypes" :key="conceptualType.index"
+                                :value="conceptualType" selected="conceptualType === s.conceptualType">
+                                {{ conceptualType }}
                               </IonSelectOption>
                             </IonSelect>
                           </IonCol>
@@ -172,7 +191,8 @@ onMounted(async () => {
 
             <IonCardContent>
               <IonText>
-                Nenhum aluno encontrado. Por favor entre em contato com a secretaria de sua escola para verificar se sua turma foi cadastrada corretamente.
+                Nenhum aluno encontrado. Por favor entre em contato com a secretaria de sua escola para verificar se sua
+                turma foi cadastrada corretamente.
               </IonText>
             </IonCardContent>
           </IonCard>
@@ -211,23 +231,25 @@ onMounted(async () => {
 
 <style scoped>
 ion-card-header#accordionContentHeader {
-    --background: rgba(var(--ion-color-secondary-rgb), 0.15);
-    --color: var(--ion-color-secondary);
-  }
+  --background: rgba(var(--ion-color-secondary-rgb), 0.15);
+  --color: var(--ion-color-secondary);
+}
 
-ion-select#evaluation{
- min-height: 48px;
- --highlight-height: auto;
+ion-select#evaluation {
+  min-height: 48px;
+  --highlight-height: auto;
 }
 
 ion-content {
   --padding-start: 10px;
   --padding-end: 10px;
 }
+
 .ion-content {
   padding-left: 10px;
   padding-right: 10px;
 }
+
 ion-accordion-group {
   margin-inline: 0 !important;
   margin-top: 16px;
@@ -242,21 +264,21 @@ ion-accordion-group {
 }
 
 ion-modal#cancel-modal {
-    --width: 400px;
-    --min-width: 400px;
-    --min-width: 250px;
-    --height: fit-content;
-    --border-radius: 6px;
-    --box-shadow: 0 28px 48px rgba(0, 0, 0, 0.4);
-  }
+  --width: 400px;
+  --min-width: 400px;
+  --min-width: 250px;
+  --height: fit-content;
+  --border-radius: 6px;
+  --box-shadow: 0 28px 48px rgba(0, 0, 0, 0.4);
+}
 
-  ion-modal#cancel-modal h1 {
-    margin: 20px 20px 10px 20px;
-  }
+ion-modal#cancel-modal h1 {
+  margin: 20px 20px 10px 20px;
+}
 
-  ion-modal#cancel-modal .wrapper {
-    margin-bottom: 10px;
-  }
+ion-modal#cancel-modal .wrapper {
+  margin-bottom: 10px;
+}
 
 .warning-close-date {
   margin-top: 5px;
