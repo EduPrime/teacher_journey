@@ -83,11 +83,11 @@ export interface MountedStudent {
   studentId: string
   enrollmentId: string
   schoolId: string
-  seriesId: string
+  seriesId?: string
   classroomId: string
   disciplineId?: string
   stageId: string
-  conceptualGradeId?: string
+  conceptualGradeId?: string | null
 
   grades: Grades[]
 }

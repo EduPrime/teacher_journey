@@ -48,8 +48,6 @@ export default class EnrollmentService extends BaseService<Enrollment> {
 
     const enrollmentIds = enrollments.map((enrollment) => enrollment.id);
 
-    console.log('enrollments', enrollments)
-
     const { data: conceptualGrades, error: conceptualGradeError } = await this.client
       .from('conceptualGrade')
       .select(`
@@ -71,7 +69,6 @@ export default class EnrollmentService extends BaseService<Enrollment> {
       throw new Error(`Erro ao buscar notas conceituais: ${conceptualGradeError.message}`);
     }
 
-    console.log('conceptualGrades', conceptualGrades)
     const enrollmentsWithConceptualGrades = enrollments.filter((enrollment) => {
       return conceptualGrades?.some((cg) => cg.enrollmentId === enrollment.id)
     })
@@ -80,9 +77,6 @@ export default class EnrollmentService extends BaseService<Enrollment> {
       return !conceptualGrades?.some((cg) => cg.enrollmentId === enrollment.id)
     })
 
-    // console.log('enrollmentsWithConceptualGrades', enrollmentsWithConceptualGrades)
-    // console.log('enrollmentsWithoutConceptualGrades', enrollmentsWithoutConceptualGrades)
-    // console.log('enrollmentIds', enrollmentIds)
     const result = enrollmentsWithConceptualGrades.map((enrollment) => {
       const conceptualGrade = conceptualGrades?.find((cg) => cg.enrollmentId === enrollment.id);
 
@@ -96,6 +90,7 @@ export default class EnrollmentService extends BaseService<Enrollment> {
         classroomId,
         disciplineId,
         stageId,
+        seriesId,
         conceptualGradeId: conceptualGrade?.id || null,
         grades: conceptualGrade?.thematicUnits?.map((unit) => ({
           thematicUnitId: unit.thematicUnitId,
@@ -105,7 +100,6 @@ export default class EnrollmentService extends BaseService<Enrollment> {
         })) || [],
       };
     });
-    console.log('result', result)
     if (conceptualGrades.length < enrollmentIds.length) {
       const { data: emptyConceptualGrades, error: errorEmptyConceptualGrades } = await this.client
         .from('thematicUnit')
@@ -115,8 +109,6 @@ export default class EnrollmentService extends BaseService<Enrollment> {
         `)
         .eq('disciplineId', disciplineId)
         .eq('seriesId', seriesId) as unknown as QueryEmptyGrades
-
-      console.log('emptyConceptualGrades', emptyConceptualGrades)
 
       if (errorEmptyConceptualGrades) {
         throw new Error(`Erro ao buscar notas conceituais: ${errorEmptyConceptualGrades}`);
@@ -132,17 +124,17 @@ export default class EnrollmentService extends BaseService<Enrollment> {
           classroomId,
           disciplineId,
           stageId,
+          seriesId,
           conceptualGradeId: null,
           grades: emptyConceptualGrades.map((unit) => ({
             thematicUnitId: unit.id,
             name: unit.name,
-            value: null,
-            gradeId: null,
+            value: '',
+            gradeId: '',
           })),
         }
       }))
     }
-
-    return result;
+    return result.sort((a, b) => a.name.localeCompare(b.name))
   }
 }

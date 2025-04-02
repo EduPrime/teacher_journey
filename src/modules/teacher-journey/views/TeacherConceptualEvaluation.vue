@@ -31,7 +31,7 @@ const currentStage = ref()
 const students = ref()
 const studentList = ref<MountedStudent[]>()
 
-// Dados estaticos para testes
+// Dados estáticos para testes
 const thematicUnits = ref([{ name: 'Brincadeiras e jogos', id: '1' }, { name: 'Danças', id: '2' }, { name: 'Esportes', id: '3' }, { name: 'Lutas', id: '4' }])
 let conceptualTypes = ref()
 
@@ -60,8 +60,9 @@ watch(eduFProfile, async (newValue) => {
     //     teacherId: newValue.teacherId,
     //   }
     // })
+    console.log('currentStage', currentStage)
     studentList.value = await enrollmentService.getClassroomConceptualGrades(
-      newValue.classroomId, newValue.schoolId, newValue.disciplineId, '149665ec-a230-439e-aeb2-4cb7bfc8ebb4', newValue.seriesId,
+      newValue.classroomId, newValue.schoolId, newValue.disciplineId, currentStage.value.id, newValue.seriesId,
     )
     conceptualTypes.value = await evaluationRuleService.getConceptualGradesTypes(newValue.courseIds)
 
@@ -70,6 +71,16 @@ watch(eduFProfile, async (newValue) => {
   }
   else {
     students.value = undefined
+  }
+})
+
+watch((currentStage), async (newValue) => {
+  if (newValue && eduFProfile.value.disciplineId) {
+    console.log('currentStage', currentStage)
+    studentList.value = await enrollmentService.getClassroomConceptualGrades(
+      eduFProfile.value.classroomId, eduFProfile.value.schoolId, eduFProfile.value.disciplineId, newValue.id, eduFProfile.value.seriesId,
+    )
+    oldList.value = JSON.parse(JSON.stringify(studentList.value))
   }
 })
 
