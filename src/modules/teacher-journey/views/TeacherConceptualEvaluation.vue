@@ -25,7 +25,9 @@ const currentStage = ref()
 const conceptualTypes = ref()
 const studentList = ref<MountedStudent[]>()
 const oldList = ref<MountedStudent[]>()
+const updatedGrades = ref<UpdatedGrades[]>([])
 const isLoading = ref(false)
+const hasButtonChanged = ref(false)
 
 // Watcher que observa o filtro e o calendário para montar a listágem de alunos
 watch(eduFProfile, async (newValue) => {
@@ -65,18 +67,17 @@ onMounted(async () => {
   stages.value = await stageService.getAllStages()
 })
 
-function compareGrades(oldGrades: Grades[], newGrades: Grades[], updatedGrades: UpdatedGrades[]) {
+function compareGrades(oldGrades: Grades[], newGrade: Grades) {
   const oldGradesMap = new Map(oldGrades.map(grade => [grade.thematicUnitId, grade.value]))
 
   let hasChanged = false
 
-  newGrades.forEach((newGrade) => {
     const oldValue = oldGradesMap.get(newGrade.thematicUnitId)
 
     if (oldValue !== newGrade.value) {
       hasChanged = true
 
-      const existingGrade = updatedGrades.find(
+      const existingGrade = updatedGrades.value.find(
         updated =>
           updated.conceptualGradeId === newGrade.gradeId
           && updated.thematicUnitId === newGrade.thematicUnitId,
@@ -90,21 +91,21 @@ function compareGrades(oldGrades: Grades[], newGrades: Grades[], updatedGrades: 
         existingGrade.grade = newGrade.value
       }
       else {
-        updatedGrades.push({
+        updatedGrades.value.push({
           grade: newGrade.value,
           conceptualGradeId: newGrade.gradeId,
           thematicUnitId: newGrade.thematicUnitId,
         })
       }
     }
-  })
 
   return hasChanged
 }
 
-async function saveGrades(oldGrades: Grades[], newGrades: Grades[], updatedGrades: UpdatedGrades[], student: ConceptualToSave) {
+async function saveGrades(oldGrades: Grades[], newGrades: Grades[], student: ConceptualToSave) {
   try {
-    await conceptualGradeService.createConceptualGrade(updatedGrades, student)
+    await conceptualGradeService.createConceptualGrade(updatedGrades.value, student)
+    updatedGrades.value = []
     oldGrades.forEach((oldGrade) => {
       const newGrade = newGrades.find(grade => grade.thematicUnitId === oldGrade.thematicUnitId)
       if (newGrade) {
@@ -127,7 +128,7 @@ function cleanGrades(oldGrades: Grades[], newGrades: Grades[]) {
 }
 
 async function registerGrades(data: RegisteredToSave) {
-  await registeredGradeService.create(data)
+  // await registeredGradeService.create(data)
 }
 </script>
 
@@ -148,6 +149,7 @@ async function registerGrades(data: RegisteredToSave) {
             <IonAccordionGroup expand="inset">
               <IonAccordion v-for="(s, i) in studentList" :key="i" :value="`${i}`" class="no-border-accordion">
                 <IonItem slot="header">
+
                   <IonLabel style="display: flex">
                     <IonText
                       color="secondary" class="" style="margin: auto 0 auto 0;"
@@ -203,7 +205,13 @@ async function registerGrades(data: RegisteredToSave) {
                     </div>
                   </div>
                   <div class="ion-content" style="display: flex;">
-                    <IonButton style="margin-left: auto; margin-right: 8px; text-transform: capitalize;" size="small" color="danger" @click="() => null">
+                    <IonButton style="margin-left: auto; margin-right: 8px; text-transform: capitalize;" size="small" color="danger"
+                      @click="() => {
+                        s.grades.forEach((tu) => {
+                          tu.value = ''
+                        })
+                      }"
+                      >
                       Limpar
                     </IonButton>
 
