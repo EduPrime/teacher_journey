@@ -10,6 +10,7 @@ import Decimal from 'decimal.js'
 
 import { apps, calculator } from 'ionicons/icons'
 
+import { ErrorMessage, Field, Form, useForm } from 'vee-validate'
 import { onMounted, ref, watch } from 'vue'
 
 import EduStageTabs from '../components/StageTabs.vue'
@@ -30,6 +31,12 @@ const numericGradeService = new NumericGradeSevice()
 
 const currentStage = ref()
 const students = ref()
+
+/* interface FormContext {
+  errors: Record<string, string>;
+  setFieldError: (field: string, message: string | undefined) => void;
+  validate: () => Promise<{ valid: boolean }>;
+} */
 
 interface StudentGrade extends MountedStudent {
   id: string
@@ -103,9 +110,38 @@ watch([eduFProfile, currentStage], async ([newEduFProfile, newCurrentStage]) => 
   }
 })
 
+/* watch(() => studentList.value, (newList) => {
+  if (newList) {
+    newList.forEach(student => {
+      const { validateField } = useForm();
+
+      watch([
+        () => student.at1,
+        () => student.at2,
+        () => student.at3,
+        () => student.at4,
+        () => student.at5
+      ], () => {
+
+        console.log('entrou aqui')
+
+        validateField("1ª Atividade");
+        validateField("2ª Atividade");
+        validateField("3ª Atividade");
+        validateField("4ª Atividade");
+        validateField("5ª Atividade");
+
+      }, { deep: true });
+    });
+  }
+}, { deep: true }); */
+
 async function handleSave(s: any) {
   try {
     isLoading.value = true
+
+    // const exam1 = computedEvaluationActivity(s)
+
     const payload = {
       classroomId: s.classroomId,
       disciplineId: s.disciplineId,
@@ -190,76 +226,114 @@ onMounted(async () => {
                 </IonLabel>
               </IonItem>
               <div slot="content" class="ion-padding">
-                <IonGrid>
-                  <!-- Linha 1 -->
-                  <IonRow>
-                    <IonCol size="6">
-                      <IonItem lines="none">
-                        <IonInput v-model="s.at1" class="input-rounded" label="1ª Atividade" label-placement="floating" placeholder="Digite a nota" />
-                      </IonItem>
-                    </IonCol>
-                    <IonCol size="6">
-                      <IonItem lines="none">
-                        <IonInput v-model="s.at2" class="input-rounded" label="2ª Atividade" label-placement="floating" placeholder="Digite a nota" />
-                      </IonItem>
-                    </IonCol>
-                  </IonRow>
+                <Form @submit="handleSave(s)">
+                  <IonGrid>
+                    <!-- Linha 1 -->
+                    <IonRow>
+                      <IonCol size="6">
+                        <IonItem lines="none">
+                          <Field v-slot="{ field }" name="1ª Atividade" rules="notaValida|somaAtividades">
+                            <IonInput v-bind="field" v-model="s.at1" class="input-rounded" label="1ª Atividade" label-placement="floating" placeholder="Digite a nota" />
+                          </Field>
+                        </IonItem>
+                        <ErrorMessage v-slot="{ message }" name="1ª Atividade">
+                          <span class="error-message">{{ message }}</span>
+                        </ErrorMessage>
+                      </IonCol>
+                      <IonCol size="6">
+                        <IonItem lines="none">
+                          <Field v-slot="{ field }" name="2ª Atividade" rules="notaValida|somaAtividades">
+                            <IonInput v-bind="field" v-model="s.at2" class="input-rounded" label="2ª Atividade" label-placement="floating" placeholder="Digite a nota" />
+                          </Field>
+                        </IonItem>
+                        <ErrorMessage v-slot="{ message }" name="2ª Atividade">
+                          <span class="error-message">{{ message }}</span>
+                        </ErrorMessage>
+                      </IonCol>
+                    </IonRow>
 
-                  <!-- Linha 2 -->
-                  <IonRow>
-                    <IonCol size="6">
-                      <IonItem lines="none">
-                        <IonInput v-model="s.at3" class="input-rounded" label="3ª Atividade" label-placement="floating" placeholder="Digite a nota" />
-                      </IonItem>
-                    </IonCol>
-                    <IonCol size="6">
-                      <IonItem lines="none">
-                        <IonInput v-model="s.at4" class="input-rounded" label="4ª Atividade" label-placement="floating" placeholder="Digite a nota" />
-                      </IonItem>
-                    </IonCol>
-                  </IonRow>
+                    <!-- Linha 2 -->
+                    <IonRow>
+                      <IonCol size="6">
+                        <IonItem lines="none">
+                          <Field v-slot="{ field }" name="3ª Atividade" rules="notaValida|somaAtividades">
+                            <IonInput v-bind="field" v-model="s.at3" class="input-rounded" label="3ª Atividade" label-placement="floating" placeholder="Digite a nota" />
+                          </Field>
+                        </IonItem>
+                        <ErrorMessage v-slot="{ message }" name="3ª Atividade">
+                          <span class="error-message">{{ message }}</span>
+                        </ErrorMessage>
+                      </IonCol>
+                      <IonCol size="6">
+                        <IonItem lines="none">
+                          <Field v-slot="{ field }" name="4ª Atividade" rules="notaValida|somaAtividades">
+                            <IonInput v-bind="field" v-model="s.at4" class="input-rounded" label="4ª Atividade" label-placement="floating" placeholder="Digite a nota" />
+                          </Field>
+                        </IonItem>
+                        <ErrorMessage v-slot="{ message }" name="4ª Atividade">
+                          <span class="error-message">{{ message }}</span>
+                        </ErrorMessage>
+                      </IonCol>
+                    </IonRow>
 
-                  <!-- Linha 3 -->
-                  <IonRow>
-                    <IonCol size="6">
-                      <IonItem lines="none">
-                        <IonInput v-model="s.at5" class="input-rounded" label="5ª Atividade" label-placement="floating" placeholder="Digite a nota" />
-                      </IonItem>
-                    </IonCol>
-                    <IonCol size="6">
-                      <IonItem lines="none">
-                        <IonInput v-model="s.makeUp" class="input-rounded" label="Recuperação Parcial" label-placement="floating" placeholder="Digite a nota" />
-                      </IonItem>
-                    </IonCol>
-                  </IonRow>
+                    <!-- Linha 3 -->
+                    <IonRow>
+                      <IonCol size="6">
+                        <IonItem lines="none">
+                          <Field v-slot="{ field }" name="5ª Atividade" rules="notaValida|somaAtividades">
+                            <IonInput v-bind="field" v-model="s.at5" class="input-rounded" label="5ª Atividade" label-placement="floating" placeholder="Digite a nota" />
+                          </Field>
+                        </IonItem>
+                        <ErrorMessage v-slot="{ message }" name="5ª Atividade">
+                          <span class="error-message">{{ message }}</span>
+                        </ErrorMessage>
+                      </IonCol>
+                      <IonCol size="6">
+                        <IonItem lines="none">
+                          <Field v-slot="{ field }" name="Recuperação Parcial" rules="notaValida|somaAtividades">
+                            <IonInput v-bind="field" v-model="s.makeUp" class="input-rounded" label="Recuperação Parcial" label-placement="floating" placeholder="Digite a nota" />
+                          </Field>
+                        </IonItem>
+                        <ErrorMessage v-slot="{ message }" name="Recuperação Parcial">
+                          <span class="error-message">{{ message }}</span>
+                        </ErrorMessage>
+                      </IonCol>
+                    </IonRow>
 
-                  <!-- Linha 4 (onde um campo está desabilitado) -->
-                  <IonRow>
-                    <IonCol size="6">
-                      <IonItem lines="none">
-                        <IonInput class="input-rounded" label="1ª Nota: Atividades" :value="s.exam1" disabled />
-                      </IonItem>
-                    </IonCol>
-                    <IonCol size="6">
-                      <IonItem lines="none">
-                        <IonInput v-model="s.grade" class="input-rounded" label="2ª Nota: Prova" label-placement="floating" placeholder="Digite a nota" />
-                      </IonItem>
-                    </IonCol>
-                  </IonRow>
-                  <!-- Linha dos botões -->
-                  <IonRow class="ion-margin-top">
-                    <IonCol size="6">
-                      <IonButton color="danger" expand="block" @click="handleClear(s)">
-                        Apagar
-                      </IonButton>
-                    </IonCol>
-                    <IonCol size="6">
-                      <IonButton color="secondary" expand="block" @click="handleSave(s)">
-                        Salvar
-                      </IonButton>
-                    </IonCol>
-                  </IonRow>
-                </IonGrid>
+                    <!-- Linha 4 (onde um campo está desabilitado) -->
+                    <IonRow>
+                      <IonCol size="6">
+                        <IonItem lines="none">
+                          <IonInput class="input-rounded" label="1ª Nota: Atividades" :value="computedEvaluationActivity(s).toFixed(2)" disabled />
+                        </IonItem>
+                      </IonCol>
+                      <IonCol size="6">
+                        <IonItem lines="none">
+                          <Field v-slot="{ field }" name="2ª Nota: Prova" rules="notaValida">
+                            <IonInput v-bind="field" v-model="s.exam2" class="input-rounded" label="2ª Nota: Prova" label-placement="floating" placeholder="Digite a nota" />
+                          </Field>
+                        </IonItem>
+                        <ErrorMessage v-slot="{ message }" name="2ª Nota: Prova">
+                          <span class="error-message">{{ message }}</span>
+                        </ErrorMessage>
+                      </IonCol>
+                    </IonRow>
+
+                    <!-- Linha dos botões -->
+                    <IonRow class="ion-margin-top">
+                      <IonCol size="6">
+                        <IonButton color="danger" expand="block" @click="handleClear(s)">
+                          Apagar
+                        </IonButton>
+                      </IonCol>
+                      <IonCol size="6">
+                        <IonButton color="secondary" expand="block" @click="handleSave(s)">
+                          Salvar
+                        </IonButton>
+                      </IonCol>
+                    </IonRow>
+                  </IonGrid>
+                </Form>
               </div>
             </IonAccordion>
           </IonAccordionGroup>
@@ -470,5 +544,12 @@ ion-modal#cancel-modal {
   transition: all 0.2s ease;
   margin-bottom: 12px;
   --color: #4F2974;
+}
+
+.error-message {
+  color: red;
+  font-size: 1rem;
+  margin-left: 1.2rem;
+  display: inline-block;
 }
 </style>
