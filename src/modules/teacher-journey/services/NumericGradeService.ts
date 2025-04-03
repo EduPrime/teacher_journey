@@ -85,7 +85,7 @@ export default class NumericGradeSevice extends BaseService<NumericGrade> {
     }
   }
 
-  async softDeleteNumericGrade(studentGrades: NumericGrade, userId: string) {
+  async softDeleteNumericGrade(studentGradesId: string, userId: string) {
     try {
       const { data, error } = await this.client
         .from(table)
@@ -93,7 +93,7 @@ export default class NumericGradeSevice extends BaseService<NumericGrade> {
           deletedAt: new Date().toISOString(),
           updatedBy: userId,
         })
-        .eq('id', studentGrades.id)
+        .eq('id', studentGradesId)
 
       if (error) {
         throw new Error(`Erro ao tentar apagar notas do aluno: ${error.message}`)

@@ -2,21 +2,21 @@
 import type { MountedStudent } from '../types/types'
 import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
+import showToast from '@/utils/toast-alert'
 
-import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol, IonGrid, IonIcon, IonItem, IonInput, IonLabel, IonLoading, IonRadio, IonRadioGroup, IonRow, IonSegment, IonSegmentButton, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
+import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol, IonGrid, IonIcon, IonInput, IonItem, IonLabel, IonLoading, IonRadio, IonRadioGroup, IonRow, IonSegment, IonSegmentButton, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
 
-import { apps, text } from 'ionicons/icons'
+import Decimal from 'decimal.js'
+
+import { apps, calculator } from 'ionicons/icons'
 
 import { onMounted, ref, watch } from 'vue'
 
 import EduStageTabs from '../components/StageTabs.vue'
-
 import EnrollmentService from '../services/EnrollmentService'
 
-import StageService from '../services/StageService'
 import NumericGradeSevice from '../services/NumericGradeService'
-
-import Decimal from 'decimal.js'
+import StageService from '../services/StageService'
 
 const stageService = new StageService()
 
@@ -32,6 +32,7 @@ const currentStage = ref()
 const students = ref()
 
 interface StudentGrade extends MountedStudent {
+  id: string
   at1: string
   at2: string
   at3: string
@@ -39,51 +40,66 @@ interface StudentGrade extends MountedStudent {
   at5: string
   makeUp: string
   exam1: string
-  exam2: string
+  grade: string
 }
 
 const studentList = ref<StudentGrade[]>()
+const numericStudentList = ref()
 
 const isLoading = ref(false)
 
-function computedEvaluationActivity (s: StudentGrade) {
-    const activityValues = [s.at1, s.at2, s.at3, s.at4, s.at5].map(value => parseFloat(value) || 0)
-    return activityValues.reduce((sum, val) => sum + val, 0)
+function computedEvaluationActivity(s: StudentGrade) {
+  const activityValues = [s.at1, s.at2, s.at3, s.at4, s.at5].map(value => Number.parseFloat(value) || 0)
+  return activityValues.reduce((sum, val) => sum + val, 0)
 }
 
 // Watcher que observa o filtro e o calendário para montar a listágem de alunos
-watch(eduFProfile, async (newValue) => {
-  if (newValue && newValue?.classroomId) {
-    // stage.value = await stageService.getCurrentStageWeekday(newSelectedDayInfo.selectedDate)
+watch([eduFProfile, currentStage], async ([newEduFProfile, newCurrentStage]) => {
+  numericStudentList.value = []
+  studentList.value = []
 
-    students.value = await enrollmentService.getClassroomStudents(newValue.classroomId)
+  if (newEduFProfile?.classroomId && newEduFProfile?.disciplineId) {
+    // Carrega as notas numéricas existentes
+    numericStudentList.value = await numericGradeService.getNumericGrade(newEduFProfile.classroomId, newEduFProfile.disciplineId)
+
+    // Carrega os alunos da turma
+    students.value = await enrollmentService.getClassroomStudents(newEduFProfile.classroomId)
+
+    // Mapeia os alunos com base nas notas numéricas e na etapa atual
     studentList.value = students.value.map((i: any) => {
+      const studentNumeric = numericStudentList.value.find((s: any) =>
+        s.studentId === i.studentId
+        && s.classroomId === newEduFProfile.classroomId
+        && s.disciplineId === newEduFProfile.disciplineId
+        && s.stageId === newCurrentStage?.id,
+      )
+
       return {
+        id: studentNumeric?.id || '',
         name: i.name,
         enrollmentId: i.id,
-        classroomId: newValue.classroomId,
-        disciplineId: newValue.disciplineId,
+        classroomId: newEduFProfile.classroomId,
+        disciplineId: newEduFProfile.disciplineId,
         studentId: i.studentId,
         schoolId: i.schoolId,
-        // stageId: stage.value?.stageId,
+        stageId: newCurrentStage?.id || '', // Atualiza o stageId com o currentStage
         status: i.status,
         situation: i.situation,
         disability: i.student.disability,
-        teacherId: newValue.teacherId,
-        at1: '',
-        at2: '',
-        at3: '',
-        at4: '',
-        at5: '',
-        makeUp: '',
-        // Esses campos não vão para o payload diretamente, mas serão usados para calcular a nota final:
-        exam1: '',
-        exam2: ''
+        teacherId: newEduFProfile.teacherId,
+        at1: studentNumeric?.at1 || '',
+        at2: studentNumeric?.at2 || '',
+        at3: studentNumeric?.at3 || '',
+        at4: studentNumeric?.at4 || '',
+        at5: studentNumeric?.at5 || '',
+        makeUp: studentNumeric?.makeUp || '',
+        grade: studentNumeric?.grade || '',
       }
     })
   }
   else {
     students.value = undefined
+    studentList.value = undefined
   }
 })
 
@@ -93,9 +109,9 @@ async function handleSave(s: any) {
     const payload = {
       classroomId: s.classroomId,
       disciplineId: s.disciplineId,
-      enrollmentId: s.id,
+      enrollmentId: s.enrollmentId,
       studentId: s.studentId,
-      stageId: currentStage.value?.stageId || '',
+      stageId: currentStage.value?.id || '',
       schoolId: s.schoolId,
       at1: new Decimal(s.at1 || 0),
       at2: new Decimal(s.at2 || 0),
@@ -103,30 +119,46 @@ async function handleSave(s: any) {
       at4: new Decimal(s.at4 || 0),
       at5: new Decimal(s.at5 || 0),
       makeUp: new Decimal(s.makeUp || 0),
-      grade: new Decimal(((parseFloat(s.exam1) || 0) + (parseFloat(s.exam2) || 0)) / 2)
+      grade: new Decimal(s.grade || 0),
+      // grade: new Decimal(((Number.parseFloat(s.exam1) || 0) + (Number.parseFloat(s.exam2) || 0)) / 2),
     }
     await numericGradeService.upsertNumericGrade(payload)
-  } catch (error: any) {
+    showToast('Nota salva com sucesso', 'top', 'success')
+  }
+  catch (error: any) {
+    showToast('Erro ao salvar nota', 'top', 'warning')
     console.error('Erro ao salvar notas: ', error.message)
-  } finally {
+  }
+  finally {
     isLoading.value = false
   }
 }
 
-function handleClear(s: StudentGrade) {
-  s.at2 = ''
-  s.at3 = ''
-  s.at4 = ''
-  s.at5 = ''
-  s.makeUp = ''
-  s.exam1 = ''
-  s.exam2 = ''
+async function handleClear(s: StudentGrade) {
+  try {
+    s.at1 = ''
+    s.at2 = ''
+    s.at3 = ''
+    s.at4 = ''
+    s.at5 = ''
+    s.makeUp = ''
+    s.exam1 = ''
+    s.grade = ''
+    await numericGradeService.softDeleteNumericGrade(s.id, s.teacherId)
+    showToast('Nota apagada com sucesso!', 'top', 'success')
+  }
+  catch (error: any) {
+    showToast('Erro ao apagar nota', 'top', 'warning')
+    console.error('Erro ao apagar notas: ', error.message)
+  }
+  finally {
+    isLoading.value = false
+  }
 }
 
 onMounted(async () => {
   stages.value = await stageService.getAllStages()
 })
-
 </script>
 
 <template>
@@ -134,7 +166,8 @@ onMounted(async () => {
     <EduFilterProfile :discipline="true" @update:filtered-ocupation="($event) => eduFProfile = $event" />
     <h3>
       <IonText color="secondary" class="ion-content ion-padding-bottom" style="display: flex; align-items: center;">
-        <IonIcon color="secondary" style="margin-right: 10px;" aria-hidden="true" :icon="text" />
+        <IonIcon color="secondary" style="margin-right: 10px;" aria-hidden="true" :icon="calculator" />
+        Registro Numérico
       </IonText>
     </h3>
 
@@ -158,82 +191,81 @@ onMounted(async () => {
               </IonItem>
               <div slot="content" class="ion-padding">
                 <IonGrid>
-                    <!-- Linha 1 -->
-                    <IonRow>
-                        <IonCol size="6">
-                        <IonItem lines="none">
-                            <IonInput class="input-rounded" label="1ª Atividade" label-placement="floating" placeholder="Digite a nota" v-model="s.at1"></IonInput>
-                        </IonItem>
-                        </IonCol>
-                        <IonCol size="6">
-                        <IonItem lines="none">
-                            <IonInput class="input-rounded" label="2ª Atividade" label-placement="floating" placeholder="Digite a nota" v-model="s.at2" />
-                        </IonItem>
-                        </IonCol>
-                    </IonRow>
+                  <!-- Linha 1 -->
+                  <IonRow>
+                    <IonCol size="6">
+                      <IonItem lines="none">
+                        <IonInput v-model="s.at1" class="input-rounded" label="1ª Atividade" label-placement="floating" placeholder="Digite a nota" />
+                      </IonItem>
+                    </IonCol>
+                    <IonCol size="6">
+                      <IonItem lines="none">
+                        <IonInput v-model="s.at2" class="input-rounded" label="2ª Atividade" label-placement="floating" placeholder="Digite a nota" />
+                      </IonItem>
+                    </IonCol>
+                  </IonRow>
 
-                    <!-- Linha 2 -->
-                    <IonRow>
-                        <IonCol size="6">
-                            <IonItem lines="none">
-                                <IonInput class="input-rounded" label="3ª Atividade" label-placement="floating" placeholder="Digite a nota" v-model="s.at3"/>
-                            </IonItem>
-                        </IonCol>
-                        <IonCol size="6">
-                        <IonItem lines="none">
-                            <IonInput class="input-rounded" label="4ª Atividade" label-placement="floating" placeholder="Digite a nota" v-model="s.at4" />
-                        </IonItem>
-                        </IonCol>
-                    </IonRow>
+                  <!-- Linha 2 -->
+                  <IonRow>
+                    <IonCol size="6">
+                      <IonItem lines="none">
+                        <IonInput v-model="s.at3" class="input-rounded" label="3ª Atividade" label-placement="floating" placeholder="Digite a nota" />
+                      </IonItem>
+                    </IonCol>
+                    <IonCol size="6">
+                      <IonItem lines="none">
+                        <IonInput v-model="s.at4" class="input-rounded" label="4ª Atividade" label-placement="floating" placeholder="Digite a nota" />
+                      </IonItem>
+                    </IonCol>
+                  </IonRow>
 
-                    <!-- Linha 3 -->
-                    <IonRow>
-                        <IonCol size="6">
-                        <IonItem lines="none">
-                            <IonInput class="input-rounded" label="5ª Atividade" label-placement="floating" placeholder="Digite a nota" v-model="s.at5" />
-                        </IonItem>
-                        </IonCol>
-                        <IonCol size="6">
-                        <IonItem lines="none">
-                            <IonInput class="input-rounded" label="Recuperação Parcial" label-placement="floating" placeholder="Digite a nota" v-model="s.makeUp" />
-                        </IonItem>
-                        </IonCol>
-                    </IonRow>
+                  <!-- Linha 3 -->
+                  <IonRow>
+                    <IonCol size="6">
+                      <IonItem lines="none">
+                        <IonInput v-model="s.at5" class="input-rounded" label="5ª Atividade" label-placement="floating" placeholder="Digite a nota" />
+                      </IonItem>
+                    </IonCol>
+                    <IonCol size="6">
+                      <IonItem lines="none">
+                        <IonInput v-model="s.makeUp" class="input-rounded" label="Recuperação Parcial" label-placement="floating" placeholder="Digite a nota" />
+                      </IonItem>
+                    </IonCol>
+                  </IonRow>
 
-                    <!-- Linha 4 (onde um campo está desabilitado) -->
-                    <IonRow>
-                        <IonCol size="6">
-                        <IonItem lines="none">
-                            <IonInput class="input-rounded" label="1ª Nota: Atividades" :value="s.exam1" disabled />
-                        </IonItem>
-                        </IonCol>
-                        <IonCol size="6">
-                        <IonItem lines="none">
-                            <IonInput class="input-rounded" label="2ª Nota: Prova" label-placement="floating" placeholder="Digite a nota" v-model="s.exam2" />
-                        </IonItem>
-                        </IonCol>
-                    </IonRow>
-
-                    <!-- Linha dos botões -->
-                    <IonRow class="ion-margin-top">
-                        <IonCol size="6">
-                        <IonButton color="danger" expand="block" @click="handleClear(s)">
-                            Apagar
-                        </IonButton>
-                        </IonCol>
-                        <IonCol size="6">
-                        <IonButton color="secondary" expand="block" @click="handleSave(s)">
-                            Salvar
-                        </IonButton>
-                        </IonCol>
-                    </IonRow>
-                    </IonGrid>
+                  <!-- Linha 4 (onde um campo está desabilitado) -->
+                  <IonRow>
+                    <IonCol size="6">
+                      <IonItem lines="none">
+                        <IonInput class="input-rounded" label="1ª Nota: Atividades" :value="s.exam1" disabled />
+                      </IonItem>
+                    </IonCol>
+                    <IonCol size="6">
+                      <IonItem lines="none">
+                        <IonInput v-model="s.grade" class="input-rounded" label="2ª Nota: Prova" label-placement="floating" placeholder="Digite a nota" />
+                      </IonItem>
+                    </IonCol>
+                  </IonRow>
+                  <!-- Linha dos botões -->
+                  <IonRow class="ion-margin-top">
+                    <IonCol size="6">
+                      <IonButton color="danger" expand="block" @click="handleClear(s)">
+                        Apagar
+                      </IonButton>
+                    </IonCol>
+                    <IonCol size="6">
+                      <IonButton color="secondary" expand="block" @click="handleSave(s)">
+                        Salvar
+                      </IonButton>
+                    </IonCol>
+                  </IonRow>
+                </IonGrid>
               </div>
             </IonAccordion>
           </IonAccordionGroup>
         </template>
       </EduStageTabs>
-      <IonAccordionGroup v-if="studentList && studentList.length > 0" class="ion-content" expand="inset">
+      <!-- <IonAccordionGroup v-if="studentList && studentList.length > 0" class="ion-content" expand="inset">
         <IonAccordion v-for="(s, i) in studentList" :key="i" :value="`${i}`" class="no-border-accordion">
           <IonItem slot="header">
             <IonLabel style="display: flex">
@@ -248,11 +280,10 @@ onMounted(async () => {
               </IonChip>
             </IonLabel>
           </IonItem>
-          <div slot="content" class="ion-padding">
-          </div>
+          <div slot="content" class="ion-padding" />
         </IonAccordion>
-      </IonAccordionGroup>
-      <IonCard v-else color="warning">
+      </IonAccordionGroup> -->
+      <!-- <IonCard v-else color="warning">
         <IonCardHeader>
           <IonCardTitle>Alunos não encontrados</IonCardTitle>
         </IonCardHeader>
@@ -262,7 +293,7 @@ onMounted(async () => {
             Nenhum aluno encontrado. Por favor entre em contato com a secretaria de sua escola para verificar se sua turma foi cadastrada corretamente.
           </IonText>
         </IonCardContent>
-      </IonCard>
+      </IonCard> -->
     </div>
 
     <IonCard v-else color="info">
