@@ -1,13 +1,13 @@
 import type { ConceptualGrade } from '@prisma/client'
 import BaseService from '@/services/BaseService'
-import type { ConceptualToSave, UpdatedGrades } from '../types/types'
+import type { MountedStudent, UpdatedGrades } from '../types/types'
 
 const table = 'conceptualGrade' as const
 export default class ConceptualGradeService extends BaseService<ConceptualGrade> {
   constructor() {
     super(table)
   }
-  async createConceptualGrade(updatedGrades: UpdatedGrades[] | [], conceptualGrade: ConceptualToSave) {
+  async createConceptualGrade(updatedGrades: UpdatedGrades[] | [], conceptualGrade: MountedStudent) {
     if (!conceptualGrade.conceptualGradeId) {
       const { grades, ...conceptualGradeData } = conceptualGrade;
       // Create a new conceptual grade

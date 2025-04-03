@@ -4,8 +4,8 @@ import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
 
 import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol, IonGrid, IonIcon, IonItem, IonItemGroup, IonLabel, IonLoading, IonRadio, IonRadioGroup, IonRow, IonSegment, IonSegmentButton, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
-import { apps, text } from 'ionicons/icons'
-import { onMounted, ref, watch } from 'vue'
+import { apps, text, checkmarkCircleOutline, checkmarkOutline, alertOutline, helpOutline, lockClosedOutline } from 'ionicons/icons'
+import { onMounted, ref, watch, computed } from 'vue'
 import EduStageTabs from '../components/StageTabs.vue'
 import ConceptualGradeService from '../services/ConceptualGradeService'
 import EnrollmentService from '../services/EnrollmentService'
@@ -28,6 +28,8 @@ const oldList = ref<MountedStudent[]>()
 const updatedGrades = ref<UpdatedGrades[]>([])
 const isLoading = ref(false)
 const hasButtonChanged = ref(false)
+const situation = ref('')
+const status = ref('')
 
 // Watcher que observa o filtro e o calendário para montar a listágem de alunos
 watch(eduFProfile, async (newValue) => {
@@ -67,16 +69,12 @@ onMounted(async () => {
   stages.value = await stageService.getAllStages()
 })
 
-function compareGrades(oldGrades: Grades[], newGrade: Grades) {
+function compareGrades(oldGrades: Grades[], newGrade: Grades, student: MountedStudent) {
   const oldGradesMap = new Map(oldGrades.map(grade => [grade.thematicUnitId, grade.value]))
-
-  let hasChanged = false
 
     const oldValue = oldGradesMap.get(newGrade.thematicUnitId)
 
     if (oldValue !== newGrade.value) {
-      hasChanged = true
-
       const existingGrade = updatedGrades.value.find(
         updated =>
           updated.conceptualGradeId === newGrade.gradeId
@@ -86,6 +84,7 @@ function compareGrades(oldGrades: Grades[], newGrade: Grades) {
         // && updated.conceptualGradeId === newGrade.gradeId
         // && updated.thematicUnitId === newGrade.thematicUnitId,
       )
+      student.status = 'PENDENTE'
 
       if (existingGrade) {
         existingGrade.grade = newGrade.value
@@ -98,38 +97,77 @@ function compareGrades(oldGrades: Grades[], newGrade: Grades) {
         })
       }
     }
-
-  return hasChanged
 }
 
-async function saveGrades(oldGrades: Grades[], newGrades: Grades[], student: ConceptualToSave) {
-  try {
-    await conceptualGradeService.createConceptualGrade(updatedGrades.value, student)
-    updatedGrades.value = []
-    oldGrades.forEach((oldGrade) => {
-      const newGrade = newGrades.find(grade => grade.thematicUnitId === oldGrade.thematicUnitId)
-      if (newGrade) {
-        oldGrade.value = newGrade.value
-      }
-    })
+async function saveGrades(oldGrades: Grades[], newGrades: Grades[], student: MountedStudent) {
+  if (student.isCleansed) {
+    // return conceptualGradeService.softDeleteConceptualGrade(student.conceptualGradeId)
   }
-  catch (error) {
-    console.error(error)
-  }
-}
-
-function cleanGrades(oldGrades: Grades[], newGrades: Grades[]) {
-  newGrades.forEach((newGrade) => {
-    const oldGrade = oldGrades.find(grade => grade.thematicUnitId === newGrade.thematicUnitId)
-    if (oldGrade) {
-      newGrade.value = oldGrade.value
+  else {
+    try {
+      const gradesToSave = updatedGrades.value.filter(
+        grade => grade.conceptualGradeId === student.conceptualGradeId
+      )
+      await conceptualGradeService.createConceptualGrade(gradesToSave, student)
+      updatedGrades.value = updatedGrades.value.filter(
+        grade => grade.conceptualGradeId !== student.conceptualGradeId
+      )
+      oldGrades.forEach((oldGrade) => {
+        const newGrade = newGrades.find(grade => grade.thematicUnitId === oldGrade.thematicUnitId)
+        if (newGrade) {
+          oldGrade.value = newGrade.value
+        }
+      });
+    } catch (error) {
+      console.error(error)
     }
+  }
+}
+
+function cleanGrades(student: MountedStudent) {
+  console.log('Limpar', student)
+  student.grades.forEach((tu) => {
+    tu.value = ''
   })
+  if (student.conceptualGradeId) {
+    student.status = 'PENDENTE'
+    student.isCleansed = true
+  }
+  else {
+    student.status = 'INCOMPLETO'
+  }
 }
 
 async function registerGrades(data: RegisteredToSave) {
   // await registeredGradeService.create(data)
 }
+
+const getStatusIcon = computed(() => (status: string) => {
+  switch (status) {
+    case 'CONCLUIDO':
+      return checkmarkOutline
+    case 'INCOMPLETO':
+      return helpOutline
+      case 'PENDENTE':
+        return alertOutline
+    case 'BLOQUEADO':
+      return lockClosedOutline
+  }
+})
+
+const getStatusColor = computed(() => (status: string) => {
+  switch (status) {
+    case 'CONCLUIDO':
+      return 'success'
+    case 'INCOMPLETO':
+      return 'danger'
+      case 'PENDENTE':
+        return 'warning'
+    case 'BLOQUEADO':
+      return 'light'
+  }
+})
+
 </script>
 
 <template>
@@ -148,10 +186,15 @@ async function registerGrades(data: RegisteredToSave) {
           <div v-if="studentList && studentList.length > 0" style="padding: 1px; margin-top: -10px;">
             <IonAccordionGroup expand="inset">
               <IonAccordion v-for="(s, i) in studentList" :key="i" :value="`${i}`" class="no-border-accordion">
-                <IonItem slot="header">
-
-                  <IonLabel style="display: flex">
-                    <IonText
+                <IonItem slot="header"
+                >
+                <IonIcon
+                  :color="getStatusColor(s.status)"
+                  style="margin-right: 6px; font-size: 24px;"
+                  :icon="getStatusIcon(s.status)"
+                />
+                <IonLabel style="display: flex">
+                  <IonText
                       color="secondary" class="" style="margin: auto 0 auto 0;"
                       :style="s.situation !== 'CURSANDO' ? ' opacity: 0.4;' : ''"
                     >
@@ -170,7 +213,8 @@ async function registerGrades(data: RegisteredToSave) {
                     {{ s.situation }}
                   </div>
                   <IonCardHeader
-                    id="accordionContentHeader" class="ion-no-padding" style="padding: 8px;"
+                    id="accordionContentHeader" class="ion-no-padding"style="padding: 8px;"
+                    
                     :translucent="true"
                   >
                     <div style="display: flex; align-items: center; height: 15px;">
@@ -182,7 +226,7 @@ async function registerGrades(data: RegisteredToSave) {
                     <div v-for="tu in s.grades" :key="tu.thematicUnitId">
                       <IonGrid class="ion-no-padding ion-padding-top">
                         <IonRow>
-                          <IonCol style="display: flex;" size="6">
+                          <IonCol style="display: flex;" size="6" >
                             <IonText color="primary" style="margin-top: auto; margin-bottom: auto;">
                               {{ tu.name }}
                             </IonText>
@@ -190,11 +234,12 @@ async function registerGrades(data: RegisteredToSave) {
                           <IonCol size="6">
                             <IonSelect
                               id="evaluation" justify="start" cancel-text="Cancelar" label="Registrar"
-                              label-placement="floating" fill="outline" mode="md" style="zoom: 0.9;" :value="tu.value"
+                              label-placement="floating" fill="outline" mode="md" style="zoom: 0.9;"
+                              v-model="tu.value"
                             >
                               <IonSelectOption
                                 v-for="conceptualType in conceptualTypes" :key="conceptualType.index"
-                                :value="conceptualType" selected="conceptualType === s.conceptualType"
+                                :value="conceptualType"
                               >
                                 {{ conceptualType }}
                               </IonSelectOption>
@@ -206,12 +251,7 @@ async function registerGrades(data: RegisteredToSave) {
                   </div>
                   <div class="ion-content" style="display: flex;">
                     <IonButton style="margin-left: auto; margin-right: 8px; text-transform: capitalize;" size="small" color="danger"
-                      @click="() => {
-                        s.grades.forEach((tu) => {
-                          tu.value = ''
-                        })
-                      }"
-                      >
+                      @click="cleanGrades(s)">
                       Limpar
                     </IonButton>
 

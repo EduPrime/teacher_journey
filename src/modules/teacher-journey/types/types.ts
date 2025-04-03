@@ -97,6 +97,8 @@ export interface MountedStudent {
   conceptualGradeId?: string | null
 
   grades: Grades[]
+  status: string
+  isCleansed?: boolean
 }
 
 export interface QueryEnrollments {

@@ -1,4 +1,4 @@
-import type { Enrollment } from '@prisma/client'
+import { status, type Enrollment } from '@prisma/client'
 import BaseService from '@/services/BaseService'
 import { QueryEnrollments, QueryGrades, QueryEmptyGrades } from '../types/types'
 
@@ -98,6 +98,7 @@ export default class EnrollmentService extends BaseService<Enrollment> {
           value: unit.grade,
           gradeId: unit.conceptualGradeId,
         })) || [],
+        status: enrollment.situation !== 'CURSANDO' ? 'BLOQUEADO' : conceptualGrade?.thematicUnits?.length === conceptualGrade?.thematicUnits?.filter((grade) => grade.grade != '').length ? 'CONCLUIDO' : 'INCOMPLETO',
       };
     });
     if (conceptualGrades.length < enrollmentIds.length) {
@@ -132,6 +133,7 @@ export default class EnrollmentService extends BaseService<Enrollment> {
             value: '',
             gradeId: '',
           })),
+          status: enrollment.situation !== 'CURSANDO' ? 'BLOQUEADO' : 'INCOMPLETO',
         }
       }))
     }

@@ -44,7 +44,7 @@ function compararDatas(stage: { startDate: string, endDate: string, numberStage:
 }
 
 function disabledStages(startDate: string): boolean {
-  const hoje = new Date('2025-12-06')
+  const hoje = new Date('2025-06-06')
   const inicial = new Date(startDate)
 
   return hoje < inicial
@@ -77,7 +77,7 @@ function disabledStages(startDate: string): boolean {
       style="margin: 10px;"
     >
       <IonSegmentContent
-        v-for="stage in props.stages.filter(i => !disabledStages(i.startDate))"
+        v-for="stage in props.stages"
         :id="stage.numberStage"
         :key="stage.numberStage"
         :disabled="disabledStages(stage.startDate)"
