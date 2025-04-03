@@ -1,60 +1,91 @@
 import type { ConceptualGrade } from '@prisma/client'
 import BaseService from '@/services/BaseService'
-import type { MountedStudent, UpdatedGrades } from '../types/types'
+import type { Grades, MountedStudent } from '../types/types'
 
 const table = 'conceptualGrade' as const
 export default class ConceptualGradeService extends BaseService<ConceptualGrade> {
   constructor() {
     super(table)
   }
-  async createConceptualGrade(updatedGrades: UpdatedGrades[] | [], conceptualGrade: MountedStudent) {
-    if (!conceptualGrade.conceptualGradeId) {
-      const { grades, ...conceptualGradeData } = conceptualGrade;
-      // Create a new conceptual grade
-      const { data: conceptualGradeResult, error: conceptualGradeError } = await this.client
-        .from(table)
-        .insert(
+  async createConceptualGrade(student: MountedStudent) {
+    const { grades, ...conceptualGradeData } = student;
+    // Create a new conceptual grade
+    const { data: conceptualGradeResult, error: conceptualGradeError } = await this.client
+      .from(table)
+      .insert(
+        {
+          studentId: conceptualGradeData.studentId,
+          enrollmentId: conceptualGradeData.enrollmentId,
+          classroomId: conceptualGradeData.classroomId,
+          disciplineId: conceptualGradeData.disciplineId,
+          schoolId: conceptualGradeData.schoolId,
+          stageId: conceptualGradeData.stageId
+        }
+      )
+      .select()
+      .single()
+
+    const { data: conceptualGradeByThematicUnitData, error: conceptualGradeByThematicUnitError } = await this.client
+      .from('conceptualGradeByThematicUnit')
+      .insert(
+        {
+          grades
+        }
+      )
+      .select()
+
+    if (conceptualGradeByThematicUnitError) {
+      throw new Error(`Erro ao criar nota conceitual por unidade temática: ${conceptualGradeByThematicUnitError.message}`);
+    }
+
+    if (!conceptualGradeByThematicUnitData) {
+      throw new Error('Falha ao criar nota conceitual por unidade temática');
+    }
+
+    if (conceptualGradeError) {
+      throw new Error(`Erro ao criar nota conceitual: ${conceptualGradeError.message}`);
+    }
+    if (!conceptualGradeResult || conceptualGradeResult.length === 0) {
+      throw new Error('Falha ao criar nota conceitual');
+    }
+    return conceptualGradeByThematicUnitData
+  }
+  async updateConceptualGrade(grades: Grades[]) {
+    for (const grade of grades) {
+      const { error: updateGradeError } = await this.client
+        .from('conceptualGradeByThematicUnit')
+        .update(
           {
-            studentId: conceptualGradeData.studentId,
-            enrollmentId: conceptualGradeData.enrollmentId,
-            classroomId: conceptualGradeData.classroomId,
-            disciplineId: conceptualGradeData.disciplineId,
-            schoolId: conceptualGradeData.schoolId,
-            stageId: conceptualGradeData.stageId
+            grade: grade.grade
           }
         )
-        .select()
-        .single();
+        .eq('thematicUnitId', grade.thematicUnitId)
+        .eq('conceptualGradeId', grade.conceptualGradeId)
 
-      for (const grade of grades) {
-
-        await this.client
-          .from('conceptualGradeByThematicUnit')
-          .insert(
-            {
-              thematicUnitId: grade.thematicUnitId,
-              conceptualGradeId: conceptualGradeResult.id,
-              grade: grade.value
-            }
-          )
-      }
-      if (conceptualGradeError) {
-        throw new Error(`Erro ao criar nota conceitual: ${conceptualGradeError.message}`);
-      }
-      if (!conceptualGradeResult || conceptualGradeResult.length === 0) {
-        throw new Error('Falha ao criar nota conceitual');
+      if (updateGradeError) {
+        throw new Error(`Erro ao atualizar nota conceitual: ${updateGradeError.message}`);
       }
     }
-    else {
-      for (const updatedGrade of updatedGrades) {
-        await this.client
-          .from('conceptualGradeByThematicUnit')
-          .update({
-            grade: updatedGrade.grade
-          })
-          .eq('conceptualGradeId', updatedGrade.conceptualGradeId)
-          .eq('thematicUnitId', updatedGrade.thematicUnitId);
+  }
+
+  async softDeleteConceptualGrade(conceptualGradeId: string) {
+    const { error: deleteConceptualGradeError } = await this.client
+      .from(table)
+      .update({ deletedAt: new Date() })
+      .eq('id', conceptualGradeId)
+
+    if (deleteConceptualGradeError) {
+      throw new Error(`Erro ao deletar nota conceitual: ${deleteConceptualGradeError.message}`);
+    } else {
+      const { error: deleteConceptualGradeByThematicUnitError } = await this.client
+        .from('conceptualGradeByThematicUnit')
+        .update({ deletedAt: new Date() })
+        .eq('conceptualGradeId', conceptualGradeId)
+
+      if (deleteConceptualGradeByThematicUnitError) {
+        throw new Error(`Erro ao deletar nota conceitual por unidade temática: ${deleteConceptualGradeByThematicUnitError.message}`);
       }
     }
+
   }
 }

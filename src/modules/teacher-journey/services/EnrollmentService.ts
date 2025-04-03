@@ -63,7 +63,8 @@ export default class EnrollmentService extends BaseService<Enrollment> {
       .eq('disciplineId', disciplineId)
       .eq('stageId', stageId)
       .eq('schoolId', schoolId)
-      .in('enrollmentId', enrollmentIds) as unknown as QueryGrades
+      .in('enrollmentId', enrollmentIds)
+      .is('deletedAt', null) as unknown as QueryGrades
 
     if (conceptualGradeError) {
       throw new Error(`Erro ao buscar notas conceituais: ${conceptualGradeError.message}`);
@@ -95,8 +96,8 @@ export default class EnrollmentService extends BaseService<Enrollment> {
         grades: conceptualGrade?.thematicUnits?.map((unit) => ({
           thematicUnitId: unit.thematicUnitId,
           name: unit.thematicUnit?.name || '',
-          value: unit.grade,
-          gradeId: unit.conceptualGradeId,
+          grade: unit.grade,
+          conceptualGradeId: unit.conceptualGradeId,
         })) || [],
         status: enrollment.situation !== 'CURSANDO' ? 'BLOQUEADO' : conceptualGrade?.thematicUnits?.length === conceptualGrade?.thematicUnits?.filter((grade) => grade.grade != '').length ? 'CONCLUIDO' : 'INCOMPLETO',
       };
@@ -130,8 +131,8 @@ export default class EnrollmentService extends BaseService<Enrollment> {
           grades: emptyConceptualGrades.map((unit) => ({
             thematicUnitId: unit.id,
             name: unit.name,
-            value: '',
-            gradeId: '',
+            grade: '',
+            conceptualGradeId: '',
           })),
           status: enrollment.situation !== 'CURSANDO' ? 'BLOQUEADO' : 'INCOMPLETO',
         }

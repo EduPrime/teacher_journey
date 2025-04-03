@@ -14,10 +14,10 @@ export interface Thematics {
 }
 
 export interface Grades {
+  grade: string | null
   thematicUnitId: string
-  name: string
-  value: string | null
-  gradeId: string | null
+  conceptualGradeId: string | null
+  name?: string
 }
 
 export interface FrequencyToSave {
@@ -77,9 +77,10 @@ export interface ConceptualToSave {
 }
 
 export interface RegisteredToSave {
-  teacherId: string,
-  classroomId: string,
-  disciplineId: string,
+  isCompleted: boolean
+  teacherId: string | null
+  classroomId: string
+  disciplineId: string
   stageId: string
 }
 
@@ -95,7 +96,6 @@ export interface MountedStudent {
   disciplineId?: string
   stageId: string
   conceptualGradeId?: string | null
-
   grades: Grades[]
   status: string
   isCleansed?: boolean
