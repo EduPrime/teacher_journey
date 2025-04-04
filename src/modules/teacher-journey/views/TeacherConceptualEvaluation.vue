@@ -165,7 +165,7 @@ function cleanGrades(student: MountedStudent) {
 }
 
 async function registerGrades(registeredToSave: RegisteredToSave) {
-  const isGradesFilled = studentList.value?.every((item) => item.grades.every((tu) => !tu.grade)) ?? false
+  const isGradesFilled = studentList.value?.every((item) => item.situation !== 'CURSANDO' || item.grades.every((tu) => tu.grade))
   if (isGradesFilled) {
     registeredToSave.isCompleted = true
     await registeredGradeService.upsertRegisteredGrade(registeredToSave)
@@ -176,7 +176,7 @@ async function registerGrades(registeredToSave: RegisteredToSave) {
   }
 }
 
- const computedRegisteredGrade = computed(() => ({
+const computedRegisteredGrade = computed(() => ({
   isCompleted: registeredToSave.value.isCompleted,
   teacherId: registeredToSave.value.teacherId,
   classroomId: eduFProfile.value?.classroomId || '',
@@ -222,7 +222,7 @@ const getStatusColor = computed(() => (status: string) => {
       </IonText>
     </h3>
 
-    <div v-if="eduFProfile?.classroomId && (eduFProfile?.evaluation === 'conceitual' || eduFProfile?.disciplineId)">
+    <div v-if="eduFProfile?.classroomId && eduFProfile?.disciplineId">
       <EduStageTabs v-model="currentStage" :stages="stages">
         <template v-for="stage in stages" :key="stage" #[stage.numberStage]>
           <div v-if="studentList && studentList.length > 0" style="padding: 1px; margin-top: -10px;">
@@ -240,12 +240,12 @@ const getStatusColor = computed(() => (status: string) => {
                       color="tertiary">
                       PCD
                     </IonChip>
+                    <IonChip v-if="s.situation !== 'CURSANDO'" style="margin: auto 0 auto auto;" mode="md">
+                      {{s.situation.toLowerCase().replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase())}}
+                    </IonChip>
                   </IonLabel>
                 </IonItem>
                 <div slot="content" class="ion-padding">
-                  <div v-if="s.situation !== 'CURSANDO'" class="ion-padding-bottom">
-                    {{ s.situation }}
-                  </div>
                   <IonCardHeader id="accordionContentHeader" class="ion-no-padding" style="padding: 8px;"
                     :translucent="true">
                     <div style="display: flex; align-items: center; height: 15px;">
@@ -265,14 +265,12 @@ const getStatusColor = computed(() => (status: string) => {
                           <IonCol size="6">
                             <IonSelect id="evaluation" justify="start" cancel-text="Cancelar" label="Registrar"
                               label-placement="floating" fill="outline" mode="md" style="zoom: 0.9;" v-model="tu.grade"
-                              :disabled="s.status === 'BLOQUEADO'"
-                              @ionChange="(e) => {
+                              :disabled="s.status === 'BLOQUEADO'" @ionChange="(e) => {
                                 tu.grade = e.detail.value
                                 compareGrades(oldList?.find((item) => item.enrollmentId === s.enrollmentId)?.grades || [], s)
                               }">
                               <IonSelectOption v-for="conceptualType in conceptualTypes" :key="conceptualType.index"
-                                :value="conceptualType"
-                              >
+                                :value="conceptualType">
                                 {{ conceptualType }}
                               </IonSelectOption>
                             </IonSelect>
@@ -283,19 +281,15 @@ const getStatusColor = computed(() => (status: string) => {
                   </div>
                   <div class="ion-content" style="display: flex;">
                     <IonButton style="margin-left: auto; margin-right: 8px; text-transform: capitalize;" size="small"
-                      :disabled="s.status === 'BLOQUEADO'"
-                      color="danger" @click="cleanGrades(s)">
+                      :disabled="s.status === 'BLOQUEADO'" color="danger" @click="cleanGrades(s)">
                       Limpar
                     </IonButton>
 
-                    <IonButton color="tertiary" size="small" style="text-transform: capitalize;"
-                      :disabled="
-                        s.status === 'BLOQUEADO' ||
-                        s.status === 'CONCLUÍDO' ||
-                        s.status === 'INCOMPLETO'
+                    <IonButton color="tertiary" size="small" style="text-transform: capitalize;" :disabled="s.status === 'BLOQUEADO' ||
+                      s.status === 'CONCLUÍDO' ||
+                      s.status === 'INCOMPLETO'
                       "
-                      @click="saveGrades(oldList?.find((item) => item.enrollmentId === s.enrollmentId)?.grades || [], s)"
-                      >
+                      @click="saveGrades(oldList?.find((item) => item.enrollmentId === s.enrollmentId)?.grades || [], s)">
                       Salvar
                     </IonButton>
                   </div>
@@ -322,12 +316,13 @@ const getStatusColor = computed(() => (status: string) => {
 
     <IonCard v-else color="info">
       <IonCardHeader>
-        <IonCardTitle>Selecione a turma</IonCardTitle>
+        <IonCardTitle>Selecione a turma e disciplina</IonCardTitle>
       </IonCardHeader>
 
       <IonCardContent>
         <IonText>
-          Olá, por favor selecione qual a <b>turma</b> na qual deseja fazer o lançamento de notas conceituais
+          Olá, por favor selecione qual a <b>turma</b> e <b>disciplina</b> na qual deseja fazer o lançamento de notas
+          conceituais
         </IonText>
       </IonCardContent>
     </IonCard>
