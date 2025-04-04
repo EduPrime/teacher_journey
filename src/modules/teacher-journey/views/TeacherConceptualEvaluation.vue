@@ -3,7 +3,7 @@ import type { ConceptualToSave, Grades, MountedStudent, RegisteredToSave, Update
 import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
 
-import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol, IonGrid, IonIcon, IonItem, IonItemGroup, IonLabel, IonLoading, IonModal, IonRadio, IonRadioGroup, IonRow, IonSegment, IonSegmentButton, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
+import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol, IonGrid, IonIcon, IonItem, IonItemGroup, IonLabel, IonLoading, IonModal, IonRadio, IonRadioGroup, IonRow, IonSegment, IonAlert, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
 import { alertOutline, apps, checkmarkCircleOutline, checkmarkOutline, helpOutline, lockClosedOutline, text } from 'ionicons/icons'
 import { computed, onMounted, onUpdated, ref, watch } from 'vue'
 import EduStageTabs from '../components/StageTabs.vue'
@@ -12,6 +12,7 @@ import EnrollmentService from '../services/EnrollmentService'
 import EvaluationRuleService from '../services/EvaluationRuleService'
 import RegisteredGradeService from '../services/RegisteredGradeService'
 import StageService from '../services/StageService'
+import showToast from '@/utils/toast-alert'
 
 const stageService = new StageService()
 const evaluationRuleService = new EvaluationRuleService()
@@ -28,6 +29,7 @@ const conceptualTypes = ref()
 const studentList = ref<MountedStudent[]>()
 const oldList = ref<MountedStudent[]>()
 const isLoading = ref(false)
+const showAlert = ref(false)
 const registeredToSave = ref<RegisteredToSave>({
   isCompleted: false,
   teacherId: localStorage.getItem('teacherId'),
@@ -36,9 +38,35 @@ const registeredToSave = ref<RegisteredToSave>({
   stageId: '',
 })
 
+const registroToDelete = ref<string | null>(null)
+
+async function softDeleteDataContent(id: string): Promise<void> {
+  registroToDelete.value = id
+  showAlert.value = true
+}
+
+async function confirmDeleteContent() {
+  if (registroToDelete.value) {
+    try {
+      const userId = JSON.parse(localStorage.getItem('userLocal') || '{}').id || ''
+      await conceptualGradeService.softDeleteConceptualGrade(registroToDelete.value)
+      studentList.value = studentList.value?.filter(student => student.conceptualGradeId !== registroToDelete.value)
+      showToast('Nota conceitual deletada com sucesso', 'top', 'success')
+    }
+    catch (error: unknown | any) {
+      console.error('Erro ao deletar a nota conceitual:', error.message)
+    }
+    finally {
+      registroToDelete.value = null
+      showAlert.value = false
+    }
+  }
+}
+
 // Watcher que observa o filtro e o calendário para montar a listagem de alunos
 watch(eduFProfile, async (newValue) => {
   if (newValue && newValue?.disciplineId) {
+    conceptualTypes.value = await evaluationRuleService.getConceptualGradesTypes(newValue.courseIds)
     studentList.value = await enrollmentService.getClassroomConceptualGrades(
       newValue.classroomId,
       newValue.schoolId,
@@ -46,7 +74,6 @@ watch(eduFProfile, async (newValue) => {
       currentStage.value.id,
       newValue.seriesId,
     )
-    conceptualTypes.value = await evaluationRuleService.getConceptualGradesTypes(newValue.courseIds)
 
     oldList.value = JSON.parse(JSON.stringify(studentList.value))
   }
@@ -58,7 +85,7 @@ watch(eduFProfile, async (newValue) => {
 
 watch((currentStage), async (newValue) => {
   if (newValue && eduFProfile.value.disciplineId) {
-    console.log('currentStage', currentStage)
+    conceptualTypes.value = await evaluationRuleService.getConceptualGradesTypes(eduFProfile.value.courseIds)
     studentList.value = await enrollmentService.getClassroomConceptualGrades(
       eduFProfile.value.classroomId,
       eduFProfile.value.schoolId,
@@ -167,7 +194,9 @@ function cleanGrades(student: MountedStudent) {
     student.status = 'INCOMPLETO'
   }
 }
-
+function preRegisterGrades() {
+  
+}
 async function registerGrades(itemToSave: RegisteredToSave) {
   const isGradesFilled = studentList.value?.every(item => item.situation !== 'CURSANDO' || item.grades.every(tu => tu.grade))
   if (isGradesFilled) {
@@ -225,7 +254,7 @@ const getStatusColor = computed(() => (status: string) => {
       </IonText>
     </h3>
 
-    <div v-if="eduFProfile?.classroomId && eduFProfile?.disciplineId && stages">
+    <div v-if="eduFProfile?.classroomId && eduFProfile?.disciplineId">
       <EduStageTabs v-model="currentStage" :stages="stages">
         <template v-for="stage in stages" :key="stage" #[stage?.numberStage]>
           <div v-if="studentList && studentList.length > 0" style="padding: 1px; margin-top: -10px;">
@@ -380,6 +409,22 @@ const getStatusColor = computed(() => (status: string) => {
       </IonCard>
     </IonModal>
 
+    <IonAlert
+      :is-open="showAlert"
+      header="Há registros incompletos! Deseja finalizar assim mesmo?"
+      :buttons="[
+        {
+          text: 'Não',
+          role: 'cancel',
+          handler: () => { showAlert = false },
+        },
+        {
+          text: 'Sim',
+          handler: confirmDeleteContent,
+        },
+      ]"
+    />
+
     <div style="height: 64px;" />
     <template #footer>
       <IonToolbar>
@@ -388,7 +433,7 @@ const getStatusColor = computed(() => (status: string) => {
             <IonCol size="12">
               <IonButton
                 :disabled="isLoading || !eduFProfile?.disciplineId" color="secondary" expand="full"
-                @click="registerGrades(computedRegisteredGrade)"
+                @click="!showAlert"
               >
                 Finalizar
               </IonButton>
