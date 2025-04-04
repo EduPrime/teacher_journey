@@ -3,7 +3,7 @@ import type { ConceptualToSave, Grades, MountedStudent, RegisteredToSave, Update
 import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
 
-import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol, IonGrid, IonIcon, IonItem, IonItemGroup, IonLabel, IonLoading, IonRadio, IonRadioGroup, IonRow, IonSegment, IonSegmentButton, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
+import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol, IonGrid, IonIcon, IonItem, IonItemGroup, IonLabel, IonLoading, IonModal, IonRadio, IonRadioGroup, IonRow, IonSegment, IonSegmentButton, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
 import { alertOutline, apps, checkmarkCircleOutline, checkmarkOutline, helpOutline, lockClosedOutline, text } from 'ionicons/icons'
 import { computed, onMounted, onUpdated, ref, watch } from 'vue'
 import EduStageTabs from '../components/StageTabs.vue'
@@ -19,6 +19,8 @@ const enrollmentService = new EnrollmentService()
 const registeredGradeService = new RegisteredGradeService()
 const conceptualGradeService = new ConceptualGradeService()
 
+const cleanModal = ref(false)
+const selectedStudent = ref()
 const stages = ref()
 const eduFProfile = ref()
 const currentStage = ref()
@@ -71,6 +73,7 @@ watch((currentStage), async (newValue) => {
 
 onMounted(async () => {
   stages.value = await stageService.getAllStages()
+  console.log(stages.value)
 })
 
 function updateOldGrades(oldGrades: Grades[], newGrades: Grades[]) {
@@ -222,9 +225,9 @@ const getStatusColor = computed(() => (status: string) => {
       </IonText>
     </h3>
 
-    <div v-if="eduFProfile?.classroomId && eduFProfile?.disciplineId">
+    <div v-if="eduFProfile?.classroomId && eduFProfile?.disciplineId && stages">
       <EduStageTabs v-model="currentStage" :stages="stages">
-        <template v-for="stage in stages" :key="stage" #[stage.numberStage]>
+        <template v-for="stage in stages" :key="stage" #[stage?.numberStage]>
           <div v-if="studentList && studentList.length > 0" style="padding: 1px; margin-top: -10px;">
             <IonAccordionGroup expand="inset">
               <IonAccordion v-for="(s, i) in studentList" :key="i" :value="`${i}`" class="no-border-accordion">
@@ -273,7 +276,7 @@ const getStatusColor = computed(() => (status: string) => {
                           <IonCol size="6">
                             <IonSelect
                               id="evaluation" v-model="tu.grade" justify="start" cancel-text="Cancelar"
-                              label="Registrar" label-placement="floating" fill="outline" mode="md" style="zoom: 0.9;"
+                              label="Registrar" label-placement="stacked" fill="outline" mode="md" style="zoom: 0.9;"
                               :disabled="s.status === 'BLOQUEADO'" @ion-change="(e) => {
                                 tu.grade = e.detail.value
                                 compareGrades(oldList?.find((item) => item.enrollmentId === s.enrollmentId)?.grades || [], s)
@@ -294,7 +297,7 @@ const getStatusColor = computed(() => (status: string) => {
                   <div class="ion-content" style="display: flex;">
                     <IonButton
                       style="margin-left: auto; margin-right: 8px; text-transform: capitalize;" size="small"
-                      :disabled="s.status === 'BLOQUEADO'" color="danger" @click="cleanGrades(s)"
+                      :disabled="s.status === 'BLOQUEADO'" color="danger" @click="() => { selectedStudent = s; cleanModal = true }"
                     >
                       Limpar
                     </IonButton>
@@ -343,6 +346,40 @@ const getStatusColor = computed(() => (status: string) => {
       </IonCardContent>
     </IonCard>
 
+    <IonModal id="clean-modal" :is-open="cleanModal" trigger="open-custom-dialog" @ion-modal-did-dismiss="cleanModal = false">
+      <IonCard class="ion-no-margin">
+        <IonCardHeader>
+          <IonCardTitle>Limpar notas</IonCardTitle>
+          <IonText class="ion-padding-vertical">
+            Tem certeza de que deseja limpar as notas?
+          </IonText>
+          <div style="display: flex;">
+            <IonButton
+              style="margin-left: auto; margin-right: 8px;  text-transform: capitalize;"
+              size="small"
+              color="danger"
+              @click="() => {
+                cleanGrades(selectedStudent);
+                cleanModal = false
+              }"
+            >
+              Confirmar
+            </IonButton>
+            <IonButton
+              size="small"
+              style=" text-transform: capitalize;"
+              color="secondary"
+              @click="() => {
+                cleanModal = false
+              }"
+            >
+              Cancelar
+            </IonButton>
+          </div>
+        </IonCardHeader>
+      </IonCard>
+    </IonModal>
+
     <div style="height: 64px;" />
     <template #footer>
       <IonToolbar>
@@ -364,6 +401,33 @@ const getStatusColor = computed(() => (status: string) => {
 </template>
 
 <style scoped>
+ion-modal#clean-modal {
+    --width: fit-content;
+    --min-width: 250px;
+    --height: fit-content;
+    --border-radius: 6px;
+    --box-shadow: 0 28px 48px rgba(0, 0, 0, 0.4);
+  }
+
+  ion-modal#clean-modal h1 {
+    margin: 20px 20px 10px 20px;
+  }
+
+  ion-modal#clean-modal ion-icon {
+    margin-right: 6px;
+
+    width: 48px;
+    height: 48px;
+
+    padding: 4px 0;
+
+    color: #aaaaaa;
+  }
+
+  ion-modal#clean-modal .wrapper {
+    margin-bottom: 10px;
+  }
+
 ion-card-header#accordionContentHeader {
   --background: rgba(var(--ion-color-secondary-rgb), 0.15);
   --color: var(--ion-color-secondary);
