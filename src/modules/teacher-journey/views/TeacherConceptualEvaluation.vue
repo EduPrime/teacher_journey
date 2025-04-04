@@ -3,15 +3,16 @@ import type { ConceptualToSave, Grades, MountedStudent, RegisteredToSave, Update
 import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
 
-import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol, IonGrid, IonIcon, IonItem, IonItemGroup, IonLabel, IonLoading, IonRadio, IonRadioGroup, IonRow, IonSegment, IonSegmentButton, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
-import { apps, text, checkmarkCircleOutline, checkmarkOutline, alertOutline, helpOutline, lockClosedOutline } from 'ionicons/icons'
-import { onMounted, ref, watch, computed, onUpdated } from 'vue'
+import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol, IonGrid, IonIcon, IonItem, IonItemGroup, IonLabel, IonLoading, IonModal, IonRadio, IonRadioGroup, IonRow, IonSegment, IonAlert, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
+import { alertOutline, apps, checkmarkCircleOutline, checkmarkOutline, helpOutline, lockClosedOutline, text } from 'ionicons/icons'
+import { computed, onMounted, onUpdated, ref, watch } from 'vue'
 import EduStageTabs from '../components/StageTabs.vue'
 import ConceptualGradeService from '../services/ConceptualGradeService'
 import EnrollmentService from '../services/EnrollmentService'
 import EvaluationRuleService from '../services/EvaluationRuleService'
 import RegisteredGradeService from '../services/RegisteredGradeService'
 import StageService from '../services/StageService'
+import showToast from '@/utils/toast-alert'
 
 const stageService = new StageService()
 const evaluationRuleService = new EvaluationRuleService()
@@ -19,6 +20,8 @@ const enrollmentService = new EnrollmentService()
 const registeredGradeService = new RegisteredGradeService()
 const conceptualGradeService = new ConceptualGradeService()
 
+const cleanModal = ref(false)
+const selectedStudent = ref()
 const stages = ref()
 const eduFProfile = ref()
 const currentStage = ref()
@@ -26,18 +29,44 @@ const conceptualTypes = ref()
 const studentList = ref<MountedStudent[]>()
 const oldList = ref<MountedStudent[]>()
 const isLoading = ref(false)
+const showAlert = ref(false)
 const registeredToSave = ref<RegisteredToSave>({
   isCompleted: false,
   teacherId: localStorage.getItem('teacherId'),
   classroomId: '',
   disciplineId: '',
-  stageId: ''
+  stageId: '',
 })
 
+const registroToDelete = ref<string | null>(null)
+
+async function softDeleteDataContent(id: string): Promise<void> {
+  registroToDelete.value = id
+  showAlert.value = true
+}
+
+async function confirmDeleteContent() {
+  if (registroToDelete.value) {
+    try {
+      const userId = JSON.parse(localStorage.getItem('userLocal') || '{}').id || ''
+      await conceptualGradeService.softDeleteConceptualGrade(registroToDelete.value)
+      studentList.value = studentList.value?.filter(student => student.conceptualGradeId !== registroToDelete.value)
+      showToast('Nota conceitual deletada com sucesso', 'top', 'success')
+    }
+    catch (error: unknown | any) {
+      console.error('Erro ao deletar a nota conceitual:', error.message)
+    }
+    finally {
+      registroToDelete.value = null
+      showAlert.value = false
+    }
+  }
+}
 
 // Watcher que observa o filtro e o calendário para montar a listagem de alunos
 watch(eduFProfile, async (newValue) => {
   if (newValue && newValue?.disciplineId) {
+    conceptualTypes.value = await evaluationRuleService.getConceptualGradesTypes(newValue.courseIds)
     studentList.value = await enrollmentService.getClassroomConceptualGrades(
       newValue.classroomId,
       newValue.schoolId,
@@ -45,7 +74,6 @@ watch(eduFProfile, async (newValue) => {
       currentStage.value.id,
       newValue.seriesId,
     )
-    conceptualTypes.value = await evaluationRuleService.getConceptualGradesTypes(newValue.courseIds)
 
     oldList.value = JSON.parse(JSON.stringify(studentList.value))
   }
@@ -57,7 +85,7 @@ watch(eduFProfile, async (newValue) => {
 
 watch((currentStage), async (newValue) => {
   if (newValue && eduFProfile.value.disciplineId) {
-    console.log('currentStage', currentStage)
+    conceptualTypes.value = await evaluationRuleService.getConceptualGradesTypes(eduFProfile.value.courseIds)
     studentList.value = await enrollmentService.getClassroomConceptualGrades(
       eduFProfile.value.classroomId,
       eduFProfile.value.schoolId,
@@ -72,6 +100,7 @@ watch((currentStage), async (newValue) => {
 
 onMounted(async () => {
   stages.value = await stageService.getAllStages()
+  console.log(stages.value)
 })
 
 function updateOldGrades(oldGrades: Grades[], newGrades: Grades[]) {
@@ -86,7 +115,7 @@ function updateOldGrades(oldGrades: Grades[], newGrades: Grades[]) {
 function compareGrades(oldGrades: Grades[], student: MountedStudent) {
   const key = 'grade'
   const equal = oldGrades.every((item, index) => item[key] === student.grades[index][key])
-  const isNotEmpty = student.grades.every((item) => item[key])
+  const isNotEmpty = student.grades.every(item => item[key])
   if (equal && isNotEmpty) {
     student.status = 'CONCLUÍDO'
   }
@@ -116,19 +145,20 @@ async function saveGrades(oldGrades: Grades[], student: MountedStudent) {
     }
   }
   else {
-    const isNotEmpty = student.grades.every((item) => item[key])
+    const isNotEmpty = student.grades.every(item => item[key])
     try {
       if (!student.conceptualGradeId) {
         const response = await conceptualGradeService.createConceptualGrade(student)
 
         student.conceptualGradeId = response[0].conceptualGradeId
         student.grades.forEach((item) => {
-          item.grade = response.find((r) => r.thematicUnitId === item.thematicUnitId)?.grade
+          item.grade = response.find(r => r.thematicUnitId === item.thematicUnitId)?.grade
         })
         if (isNotEmpty) {
           student.status = 'CONCLUÍDO'
           student.isFull = true
-        } else {
+        }
+        else {
           student.status = 'INCOMPLETO'
         }
         updateOldGrades(oldGrades, student.grades)
@@ -144,7 +174,8 @@ async function saveGrades(oldGrades: Grades[], student: MountedStudent) {
           student.status = 'INCOMPLETO'
         }
       }
-    } catch (error) {
+    }
+    catch (error) {
       console.error(error)
     }
   }
@@ -163,16 +194,18 @@ function cleanGrades(student: MountedStudent) {
     student.status = 'INCOMPLETO'
   }
 }
-
-async function registerGrades(registeredToSave: RegisteredToSave) {
-  const isGradesFilled = studentList.value?.every((item) => item.situation !== 'CURSANDO' || item.grades.every((tu) => tu.grade))
+function preRegisterGrades() {
+  
+}
+async function registerGrades(itemToSave: RegisteredToSave) {
+  const isGradesFilled = studentList.value?.every(item => item.situation !== 'CURSANDO' || item.grades.every(tu => tu.grade))
   if (isGradesFilled) {
-    registeredToSave.isCompleted = true
-    await registeredGradeService.upsertRegisteredGrade(registeredToSave)
+    itemToSave.isCompleted = true
+    await registeredGradeService.upsertRegisteredGrade(itemToSave)
   }
   else {
-    registeredToSave.isCompleted = false
-    await registeredGradeService.upsertRegisteredGrade(registeredToSave)
+    itemToSave.isCompleted = false
+    await registeredGradeService.upsertRegisteredGrade(itemToSave)
   }
 }
 
@@ -181,7 +214,7 @@ const computedRegisteredGrade = computed(() => ({
   teacherId: registeredToSave.value.teacherId,
   classroomId: eduFProfile.value?.classroomId || '',
   disciplineId: eduFProfile.value?.disciplineId || '',
-  stageId: currentStage.value?.id || ''
+  stageId: currentStage.value?.id || '',
 }))
 
 const getStatusIcon = computed(() => (status: string) => {
@@ -209,7 +242,6 @@ const getStatusColor = computed(() => (status: string) => {
       return 'light'
   }
 })
-
 </script>
 
 <template>
@@ -224,30 +256,38 @@ const getStatusColor = computed(() => (status: string) => {
 
     <div v-if="eduFProfile?.classroomId && eduFProfile?.disciplineId">
       <EduStageTabs v-model="currentStage" :stages="stages">
-        <template v-for="stage in stages" :key="stage" #[stage.numberStage]>
+        <template v-for="stage in stages" :key="stage" #[stage?.numberStage]>
           <div v-if="studentList && studentList.length > 0" style="padding: 1px; margin-top: -10px;">
             <IonAccordionGroup expand="inset">
               <IonAccordion v-for="(s, i) in studentList" :key="i" :value="`${i}`" class="no-border-accordion">
                 <IonItem slot="header">
-                  <IonIcon :color="getStatusColor(s.status)" style="margin-right: 6px; font-size: 24px;"
-                    :icon="getStatusIcon(s.status)" />
+                  <IonIcon
+                    :color="getStatusColor(s.status)" style="margin-right: 6px; font-size: 24px;"
+                    :icon="getStatusIcon(s.status)"
+                  />
                   <IonLabel style="display: flex">
-                    <IonText color="secondary" class="" style="margin: auto 0 auto 0;"
-                      :style="s.situation !== 'CURSANDO' ? ' opacity: 0.4;' : ''">
+                    <IonText
+                      color="secondary" class="" style="margin: auto 0 auto 0;"
+                      :style="s.situation !== 'CURSANDO' ? ' opacity: 0.4;' : ''"
+                    >
                       <b>{{ s.name }}</b>
                     </IonText>
-                    <IonChip v-if="s.disability" class="ion-no-margin" style="margin: auto 0 auto auto;" mode="md"
-                      color="tertiary">
+                    <IonChip
+                      v-if="s.disability" class="ion-no-margin" style="margin: auto 0 auto auto;" mode="md"
+                      color="tertiary"
+                    >
                       PCD
                     </IonChip>
                     <IonChip v-if="s.situation !== 'CURSANDO'" style="margin: auto 0 auto auto;" mode="md">
-                      {{s.situation.toLowerCase().replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase())}}
+                      {{ s.situation.toLowerCase().replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase()) }}
                     </IonChip>
                   </IonLabel>
                 </IonItem>
                 <div slot="content" class="ion-padding">
-                  <IonCardHeader id="accordionContentHeader" class="ion-no-padding" style="padding: 8px;"
-                    :translucent="true">
+                  <IonCardHeader
+                    id="accordionContentHeader" class="ion-no-padding" style="padding: 8px;"
+                    :translucent="true"
+                  >
                     <div style="display: flex; align-items: center; height: 15px;">
                       <IonIcon :icon="apps" style="margin-right: 10px;" />
                       Unidades Temáticas
@@ -263,14 +303,18 @@ const getStatusColor = computed(() => (status: string) => {
                             </IonText>
                           </IonCol>
                           <IonCol size="6">
-                            <IonSelect id="evaluation" justify="start" cancel-text="Cancelar" label="Registrar"
-                              label-placement="floating" fill="outline" mode="md" style="zoom: 0.9;" v-model="tu.grade"
-                              :disabled="s.status === 'BLOQUEADO'" @ionChange="(e) => {
+                            <IonSelect
+                              id="evaluation" v-model="tu.grade" justify="start" cancel-text="Cancelar"
+                              label="Registrar" label-placement="stacked" fill="outline" mode="md" style="zoom: 0.9;"
+                              :disabled="s.status === 'BLOQUEADO'" @ion-change="(e) => {
                                 tu.grade = e.detail.value
                                 compareGrades(oldList?.find((item) => item.enrollmentId === s.enrollmentId)?.grades || [], s)
-                              }">
-                              <IonSelectOption v-for="conceptualType in conceptualTypes" :key="conceptualType.index"
-                                :value="conceptualType">
+                              }"
+                            >
+                              <IonSelectOption
+                                v-for="conceptualType in conceptualTypes" :key="conceptualType.index"
+                                :value="conceptualType"
+                              >
                                 {{ conceptualType }}
                               </IonSelectOption>
                             </IonSelect>
@@ -280,16 +324,20 @@ const getStatusColor = computed(() => (status: string) => {
                     </div>
                   </div>
                   <div class="ion-content" style="display: flex;">
-                    <IonButton style="margin-left: auto; margin-right: 8px; text-transform: capitalize;" size="small"
-                      :disabled="s.status === 'BLOQUEADO'" color="danger" @click="cleanGrades(s)">
+                    <IonButton
+                      style="margin-left: auto; margin-right: 8px; text-transform: capitalize;" size="small"
+                      :disabled="s.status === 'BLOQUEADO'" color="danger" @click="() => { selectedStudent = s; cleanModal = true }"
+                    >
                       Limpar
                     </IonButton>
 
-                    <IonButton color="tertiary" size="small" style="text-transform: capitalize;" :disabled="s.status === 'BLOQUEADO' ||
-                      s.status === 'CONCLUÍDO' ||
-                      s.status === 'INCOMPLETO'
+                    <IonButton
+                      color="tertiary" size="small" style="text-transform: capitalize;" :disabled="s.status === 'BLOQUEADO'
+                        || s.status === 'CONCLUÍDO'
+                        || s.status === 'INCOMPLETO'
                       "
-                      @click="saveGrades(oldList?.find((item) => item.enrollmentId === s.enrollmentId)?.grades || [], s)">
+                      @click="saveGrades(oldList?.find((item) => item.enrollmentId === s.enrollmentId)?.grades || [], s)"
+                    >
                       Salvar
                     </IonButton>
                   </div>
@@ -327,14 +375,66 @@ const getStatusColor = computed(() => (status: string) => {
       </IonCardContent>
     </IonCard>
 
+    <IonModal id="clean-modal" :is-open="cleanModal" trigger="open-custom-dialog" @ion-modal-did-dismiss="cleanModal = false">
+      <IonCard class="ion-no-margin">
+        <IonCardHeader>
+          <IonCardTitle>Limpar notas</IonCardTitle>
+          <IonText class="ion-padding-vertical">
+            Tem certeza de que deseja limpar as notas?
+          </IonText>
+          <div style="display: flex;">
+            <IonButton
+              style="margin-left: auto; margin-right: 8px;  text-transform: capitalize;"
+              size="small"
+              color="danger"
+              @click="() => {
+                cleanGrades(selectedStudent);
+                cleanModal = false
+              }"
+            >
+              Confirmar
+            </IonButton>
+            <IonButton
+              size="small"
+              style=" text-transform: capitalize;"
+              color="secondary"
+              @click="() => {
+                cleanModal = false
+              }"
+            >
+              Cancelar
+            </IonButton>
+          </div>
+        </IonCardHeader>
+      </IonCard>
+    </IonModal>
+
+    <IonAlert
+      :is-open="showAlert"
+      header="Há registros incompletos! Deseja finalizar assim mesmo?"
+      :buttons="[
+        {
+          text: 'Não',
+          role: 'cancel',
+          handler: () => { showAlert = false },
+        },
+        {
+          text: 'Sim',
+          handler: confirmDeleteContent,
+        },
+      ]"
+    />
+
     <div style="height: 64px;" />
     <template #footer>
       <IonToolbar>
         <IonGrid>
           <IonRow>
             <IonCol size="12">
-              <IonButton :disabled="isLoading || !eduFProfile?.disciplineId" color="secondary" expand="full"
-                @click="registerGrades(computedRegisteredGrade)">
+              <IonButton
+                :disabled="isLoading || !eduFProfile?.disciplineId" color="secondary" expand="full"
+                @click="!showAlert"
+              >
                 Finalizar
               </IonButton>
             </IonCol>
@@ -346,6 +446,33 @@ const getStatusColor = computed(() => (status: string) => {
 </template>
 
 <style scoped>
+ion-modal#clean-modal {
+    --width: fit-content;
+    --min-width: 250px;
+    --height: fit-content;
+    --border-radius: 6px;
+    --box-shadow: 0 28px 48px rgba(0, 0, 0, 0.4);
+  }
+
+  ion-modal#clean-modal h1 {
+    margin: 20px 20px 10px 20px;
+  }
+
+  ion-modal#clean-modal ion-icon {
+    margin-right: 6px;
+
+    width: 48px;
+    height: 48px;
+
+    padding: 4px 0;
+
+    color: #aaaaaa;
+  }
+
+  ion-modal#clean-modal .wrapper {
+    margin-bottom: 10px;
+  }
+
 ion-card-header#accordionContentHeader {
   --background: rgba(var(--ion-color-secondary-rgb), 0.15);
   --color: var(--ion-color-secondary);
