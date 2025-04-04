@@ -46,7 +46,7 @@ watch(eduFProfile, async (newValue) => {
       newValue.seriesId,
     )
     conceptualTypes.value = await evaluationRuleService.getConceptualGradesTypes(newValue.courseIds)
-
+    console.log('conceptualTypes', conceptualTypes.value)
     oldList.value = JSON.parse(JSON.stringify(studentList.value))
   }
   else {
@@ -270,8 +270,8 @@ const getStatusColor = computed(() => (status: string) => {
                                 compareGrades(oldList?.find((item) => item.enrollmentId === s.enrollmentId)?.grades || [], s)
                               }">
                               <IonSelectOption v-for="conceptualType in conceptualTypes" :key="conceptualType.index"
-                                :value="conceptualType">
-                                {{ conceptualType }}
+                                :value="conceptualType.rotulo">
+                                {{ conceptualType.rotulo }}
                               </IonSelectOption>
                             </IonSelect>
                           </IonCol>
