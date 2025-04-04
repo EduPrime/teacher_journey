@@ -77,6 +77,7 @@ export interface ConceptualToSave {
 }
 
 export interface RegisteredToSave {
+  id?: string
   isCompleted: boolean
   teacherId: string | null
   classroomId: string
@@ -89,6 +90,7 @@ export interface MountedStudent {
   situation: string
   disability: boolean
   studentId: string
+  isFull?: boolean
   enrollmentId: string
   schoolId: string
   seriesId?: string

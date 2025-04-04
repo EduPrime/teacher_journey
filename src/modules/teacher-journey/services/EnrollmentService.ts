@@ -65,6 +65,7 @@ export default class EnrollmentService extends BaseService<Enrollment> {
       .eq('schoolId', schoolId)
       .in('enrollmentId', enrollmentIds)
       .is('deletedAt', null) as unknown as QueryGrades
+    // .is('thematicUnits.deletedAt', null)
 
     if (conceptualGradeError) {
       throw new Error(`Erro ao buscar notas conceituais: ${conceptualGradeError.message}`);
@@ -86,6 +87,7 @@ export default class EnrollmentService extends BaseService<Enrollment> {
         situation: enrollment.situation,
         disability: (enrollment.student?.disability?.length ?? 0) > 0 ? true : false,
         studentId: enrollment.student?.id,
+        isFull: conceptualGrade?.thematicUnits.every((unit) => unit.grade != ''),
         enrollmentId: enrollment.id,
         schoolId,
         classroomId,
@@ -99,7 +101,7 @@ export default class EnrollmentService extends BaseService<Enrollment> {
           grade: unit.grade,
           conceptualGradeId: unit.conceptualGradeId,
         })) || [],
-        status: enrollment.situation !== 'CURSANDO' ? 'BLOQUEADO' : conceptualGrade?.thematicUnits?.length === conceptualGrade?.thematicUnits?.filter((grade) => grade.grade != '').length ? 'CONCLUIDO' : 'INCOMPLETO',
+        status: enrollment.situation !== 'CURSANDO' ? 'BLOQUEADO' : conceptualGrade?.thematicUnits?.length === conceptualGrade?.thematicUnits?.filter((grade) => grade.grade).length ? 'CONCLUÍDO' : 'INCOMPLETO',
       };
     });
     if (conceptualGrades.length < enrollmentIds.length) {
@@ -121,6 +123,7 @@ export default class EnrollmentService extends BaseService<Enrollment> {
           situation: enrollment.situation,
           disability: enrollment.student?.disability ? true : false,
           studentId: enrollment.student?.id,
+          isFull: false,
           enrollmentId: enrollment.id,
           schoolId,
           classroomId,

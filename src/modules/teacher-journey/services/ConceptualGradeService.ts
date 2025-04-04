@@ -24,13 +24,21 @@ export default class ConceptualGradeService extends BaseService<ConceptualGrade>
       )
       .select()
       .single()
+    console.log(conceptualGradeResult)
+    if (!conceptualGradeResult || !conceptualGradeResult.id) {
+      throw new Error('Falha ao obter ID da nota conceitual criada');
+    }
+
+    const formattedGrades = grades.map(({ thematicUnitId, grade }) => ({
+      thematicUnitId,
+      grade,
+      conceptualGradeId: conceptualGradeResult.id
+    }));
 
     const { data: conceptualGradeByThematicUnitData, error: conceptualGradeByThematicUnitError } = await this.client
       .from('conceptualGradeByThematicUnit')
       .insert(
-        {
-          grades
-        }
+        formattedGrades
       )
       .select()
 

@@ -35,18 +35,33 @@ export default class RegisteredGradeService extends BaseService<RegisteredGrade>
     return data
   }
 
-  async createRegisteredGrade(registeredGrade: RegisteredToSave) {
+  // async createRegisteredGrade(registeredGrade: RegisteredToSave) {
+  //   const { data, error } = await this.client
+  //     .from('registeredGrade')
+  //     .insert(registeredGrade)
+  //     .select()
+  //     .single()
+
+  //   if (error) {
+  //     throw new Error(`Erro ao criar nota registrada: ${error.message}`)
+  //   }
+  //   if (!data) {
+  //     throw new Error('Falha ao criar nota registrada')
+  //   }
+
+  //   return data
+
+  // }
+  async upsertRegisteredGrade(registeredGrade: RegisteredToSave) {
     const { data, error } = await this.client
       .from('registeredGrade')
-      .insert(registeredGrade)
-      .select()
-      .single()
+      .upsert(registeredGrade, { onConflict: 'teacherId, classroomId, disciplineId, stageId' })
 
     if (error) {
-      throw new Error(`Erro ao criar nota registrada: ${error.message}`)
+      throw new Error(`Erro ao criar ou atualizar nota registrada: ${error.message}`)
     }
     if (!data) {
-      throw new Error('Falha ao criar nota registrada')
+      throw new Error('Falha ao criar ou atualizar nota registrada')
     }
 
     return data

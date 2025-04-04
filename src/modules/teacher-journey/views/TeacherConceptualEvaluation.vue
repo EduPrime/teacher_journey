@@ -5,7 +5,7 @@ import ContentLayout from '@/components/theme/ContentLayout.vue'
 
 import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol, IonGrid, IonIcon, IonItem, IonItemGroup, IonLabel, IonLoading, IonRadio, IonRadioGroup, IonRow, IonSegment, IonSegmentButton, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
 import { apps, text, checkmarkCircleOutline, checkmarkOutline, alertOutline, helpOutline, lockClosedOutline } from 'ionicons/icons'
-import { onMounted, ref, watch, computed } from 'vue'
+import { onMounted, ref, watch, computed, onUpdated } from 'vue'
 import EduStageTabs from '../components/StageTabs.vue'
 import ConceptualGradeService from '../services/ConceptualGradeService'
 import EnrollmentService from '../services/EnrollmentService'
@@ -66,6 +66,7 @@ watch((currentStage), async (newValue) => {
       eduFProfile.value.seriesId,
     )
     oldList.value = JSON.parse(JSON.stringify(studentList.value))
+    console.log('studentList, watch', studentList.value)
   }
 })
 
@@ -85,11 +86,11 @@ function updateOldGrades(oldGrades: Grades[], newGrades: Grades[]) {
 function compareGrades(oldGrades: Grades[], student: MountedStudent) {
   const key = 'grade'
   const equal = oldGrades.every((item, index) => item[key] === student.grades[index][key])
-  const notnull = student.grades.every((item) => item[key] != null)
-  if (equal && notnull) {
-    student.status = 'CONCLUIDO'
+  const isNotEmpty = student.grades.every((item) => item[key])
+  if (equal && isNotEmpty) {
+    student.status = 'CONCLUÍDO'
   }
-  else if (equal && !notnull) {
+  else if (equal && !isNotEmpty) {
     student.status = 'INCOMPLETO'
   }
   else {
@@ -99,12 +100,15 @@ function compareGrades(oldGrades: Grades[], student: MountedStudent) {
 }
 
 async function saveGrades(oldGrades: Grades[], student: MountedStudent) {
+  const key = 'grade'
   if (student.isCleansed && student.conceptualGradeId) {
     try {
       await conceptualGradeService.softDeleteConceptualGrade(student.conceptualGradeId)
       student.conceptualGradeId = null
+      // student.grades.conceptualGradeId = null
       student.status = 'INCOMPLETO'
       student.isCleansed = false
+      student.isFull = false
       updateOldGrades(oldGrades, student.grades)
     }
     catch (error) {
@@ -112,17 +116,33 @@ async function saveGrades(oldGrades: Grades[], student: MountedStudent) {
     }
   }
   else {
+    const isNotEmpty = student.grades.every((item) => item[key])
     try {
       if (!student.conceptualGradeId) {
         const response = await conceptualGradeService.createConceptualGrade(student)
 
         student.conceptualGradeId = response[0].conceptualGradeId
-        student.grades = response
+        student.grades.forEach((item) => {
+          item.grade = response.find((r) => r.thematicUnitId === item.thematicUnitId)?.grade
+        })
+        if (isNotEmpty) {
+          student.status = 'CONCLUÍDO'
+          student.isFull = true
+        } else {
+          student.status = 'INCOMPLETO'
+        }
         updateOldGrades(oldGrades, student.grades)
       }
       else {
         await conceptualGradeService.updateConceptualGrade(student.grades)
         updateOldGrades(oldGrades, student.grades)
+        if (isNotEmpty) {
+          student.status = 'CONCLUÍDO'
+          student.isFull = true
+        }
+        else {
+          student.status = 'INCOMPLETO'
+        }
       }
     } catch (error) {
       console.error(error)
@@ -145,9 +165,16 @@ function cleanGrades(student: MountedStudent) {
 }
 
 async function registerGrades(registeredToSave: RegisteredToSave) {
-  await registeredGradeService.createRegisteredGrade(registeredToSave)
- }
-
+  const isGradesFilled = studentList.value?.every((item) => item.grades.every((tu) => !tu.grade)) ?? false
+  if (isGradesFilled) {
+    registeredToSave.isCompleted = true
+    await registeredGradeService.upsertRegisteredGrade(registeredToSave)
+  }
+  else {
+    registeredToSave.isCompleted = false
+    await registeredGradeService.upsertRegisteredGrade(registeredToSave)
+  }
+}
 
  const computedRegisteredGrade = computed(() => ({
   isCompleted: registeredToSave.value.isCompleted,
@@ -159,7 +186,7 @@ async function registerGrades(registeredToSave: RegisteredToSave) {
 
 const getStatusIcon = computed(() => (status: string) => {
   switch (status) {
-    case 'CONCLUIDO':
+    case 'CONCLUÍDO':
       return checkmarkOutline
     case 'INCOMPLETO':
       return helpOutline
@@ -172,7 +199,7 @@ const getStatusIcon = computed(() => (status: string) => {
 
 const getStatusColor = computed(() => (status: string) => {
   switch (status) {
-    case 'CONCLUIDO':
+    case 'CONCLUÍDO':
       return 'success'
     case 'INCOMPLETO':
       return 'danger'
@@ -264,7 +291,7 @@ const getStatusColor = computed(() => (status: string) => {
                     <IonButton color="tertiary" size="small" style="text-transform: capitalize;"
                       :disabled="
                         s.status === 'BLOQUEADO' ||
-                        s.status === 'CONCLUIDO' ||
+                        s.status === 'CONCLUÍDO' ||
                         s.status === 'INCOMPLETO'
                       "
                       @click="saveGrades(oldList?.find((item) => item.enrollmentId === s.enrollmentId)?.grades || [], s)"
@@ -311,7 +338,7 @@ const getStatusColor = computed(() => (status: string) => {
         <IonGrid>
           <IonRow>
             <IonCol size="12">
-              <IonButton :disabled="isLoading" color="secondary" expand="full"
+              <IonButton :disabled="isLoading || !eduFProfile?.disciplineId" color="secondary" expand="full"
                 @click="registerGrades(computedRegisteredGrade)">
                 Finalizar
               </IonButton>
