@@ -53,7 +53,7 @@ interface StudentGrade extends MountedStudent {
   at4: string
   at5: string
   makeUp: string
-  exam1: string
+  //exam1: string
   grade: string
 }
 
@@ -65,6 +65,19 @@ const isLoading = ref(false)
 function computedEvaluationActivity(s: StudentGrade) {
   const activityValues = [s.at1, s.at2, s.at3, s.at4, s.at5].map(value => Number.parseFloat(value) || 0)
   return activityValues.reduce((sum, val) => sum + val, 0)
+}
+
+function computedMeanWithMakeUp(s: StudentGrade): number {
+    const activityEvaluation = computedEvaluationActivity(s)
+    const exam2Evaluation = parseFloat(s.grade || '0')
+    const makeUpEvaluation = parseFloat(s.makeUp || '0') 
+
+    const minorEvaluation = Math.min(activityEvaluation, exam2Evaluation)
+    const hightestEvaluation = Math.max(activityEvaluation, exam2Evaluation)
+
+    if (makeUpEvaluation > minorEvaluation) return (makeUpEvaluation + hightestEvaluation)/2
+
+    return (activityEvaluation + exam2Evaluation)/2
 }
 
 // Watcher que observa o filtro e o calendário para montar a listágem de alunos
@@ -145,9 +158,16 @@ watch([eduFProfile, currentStage], async ([newEduFProfile, newCurrentStage]) => 
 
 async function handleSave(s: any) {
   try {
+
     isLoading.value = true
 
     // const exam1 = computedEvaluationActivity(s)
+    const atividadesSum = computedEvaluationActivity(s)
+
+    if (atividadesSum > 10) {
+      showToast('A soma das atividades não pode ser maior que 10', 'top', 'warning')
+      return false
+    }
 
     const payload = {
       classroomId: s.classroomId,
@@ -179,15 +199,20 @@ async function handleSave(s: any) {
 
 async function handleClear(s: StudentGrade) {
   try {
+
+    if (s.id) {
+      await numericGradeService.softDeleteNumericGrade(s.id, s.teacherId)
+    }
+
     s.at1 = ''
     s.at2 = ''
     s.at3 = ''
     s.at4 = ''
     s.at5 = ''
     s.makeUp = ''
-    s.exam1 = ''
+    //s.exam1 = ''
     s.grade = ''
-    await numericGradeService.softDeleteNumericGrade(s.id, s.teacherId)
+    
     showToast('Nota apagada com sucesso!', 'top', 'success')
   }
   catch (error: any) {
@@ -220,14 +245,22 @@ onMounted(async () => {
           <IonAccordionGroup v-if="studentList && studentList.length > 0" class="ion-content" expand="inset">
             <IonAccordion v-for="(s, i) in studentList" :key="i" :value="`${i}`" class="no-border-accordion">
               <IonItem slot="header">
-                <IonLabel style="display: flex">
-                  <IonText color="secondary" style="margin: auto 0 auto 0;">
+                <IonLabel style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
+                  <IonText color="secondary">
                     {{ s.name }}
                   </IonText>
-                  <IonChip v-if="s.situation === 'CURSANDO'" class="ion-no-margin" style="margin: auto 0 auto auto;" :style="!s.disability ? 'margin-right: 0px;' : ''" mode="md" color="light">
-                    {{ s.situation.toLowerCase() }}
-                  </IonChip>
-                  <IonChip v-if="!s.disability" class="ion-no-margin" style="margin: auto 0 auto auto;" :style=" s.situation === 'CURSANDO' ? 'margin-left: 0px;' : ''" mode="md" color="tertiary">
+                  <IonChip mode="md" color="secondary" :style="{
+                        background: computedMeanWithMakeUp(s) >= 7
+                        ? 'rgba(56, 142, 60, 0.15)' 
+                        : 'rgba(79, 41, 116, 0.1)', 
+                        color: computedMeanWithMakeUp(s) >= 7
+                        ? '#388E3C'
+                        : '#4F2974',
+                        fontWeight: 'bold'
+                    }">
+                    Média: {{ computedMeanWithMakeUp(s).toFixed(1) }}
+                   </IonChip>
+                  <IonChip v-if="!s.disability" class="ion-no-margin" style="margin: auto 0 auto auto;" :style=" s.situation === 'CURSANDO' ? 'margin-right: 0px;' : ''" mode="md" color="tertiary">
                     PCD
                   </IonChip>
                 </IonLabel>
@@ -240,7 +273,7 @@ onMounted(async () => {
                       <IonCol size="6">
                         <IonItem lines="none">
                           <Field v-slot="{ field }" name="1ª Atividade" rules="notaValida">
-                            <IonInput v-bind="field" v-model="s.at1" class="input-rounded" label="1ª Atividade" label-placement="floating" placeholder="Digite a nota" />
+                            <IonInput v-bind="field" v-model="s.at1" class="input-rounded" title="1ª Atividade" label="1ª Atividade" label-placement="floating" placeholder="Digite a nota" />
                           </Field>
                         </IonItem>
                         <ErrorMessage v-slot="{ message }" name="1ª Atividade">
@@ -248,9 +281,10 @@ onMounted(async () => {
                         </ErrorMessage>
                       </IonCol>
                       <IonCol size="6">
+                        <!-- Para no mobile uma linha com cada campo mais largo <IonCol size="8" size-md="6">-->
                         <IonItem lines="none">
                           <Field v-slot="{ field }" name="2ª Atividade" rules="notaValida">
-                            <IonInput v-bind="field" v-model="s.at2" class="input-rounded" label="2ª Atividade" label-placement="floating" placeholder="Digite a nota" />
+                            <IonInput v-bind="field" v-model="s.at2" class="input-rounded" title="2ª Atividade" label="2ª Atividade" label-placement="floating" placeholder="Digite a nota" />
                           </Field>
                         </IonItem>
                         <ErrorMessage v-slot="{ message }" name="2ª Atividade">
@@ -264,7 +298,7 @@ onMounted(async () => {
                       <IonCol size="6">
                         <IonItem lines="none">
                           <Field v-slot="{ field }" name="3ª Atividade" rules="notaValida">
-                            <IonInput v-bind="field" v-model="s.at3" class="input-rounded" label="3ª Atividade" label-placement="floating" placeholder="Digite a nota" />
+                            <IonInput v-bind="field" v-model="s.at3" class="input-rounded" title="3ª Atividade" label="3ª Atividade" label-placement="floating" placeholder="Digite a nota" />
                           </Field>
                         </IonItem>
                         <ErrorMessage v-slot="{ message }" name="3ª Atividade">
@@ -274,7 +308,7 @@ onMounted(async () => {
                       <IonCol size="6">
                         <IonItem lines="none">
                           <Field v-slot="{ field }" name="4ª Atividade" rules="notaValida">
-                            <IonInput v-bind="field" v-model="s.at4" class="input-rounded" label="4ª Atividade" label-placement="floating" placeholder="Digite a nota" />
+                            <IonInput v-bind="field" v-model="s.at4" class="input-rounded" title="4ª Atividade" label="4ª Atividade" label-placement="floating" placeholder="Digite a nota" />
                           </Field>
                         </IonItem>
                         <ErrorMessage v-slot="{ message }" name="4ª Atividade">
@@ -288,7 +322,7 @@ onMounted(async () => {
                       <IonCol size="6">
                         <IonItem lines="none">
                           <Field v-slot="{ field }" name="5ª Atividade" rules="notaValida">
-                            <IonInput v-bind="field" v-model="s.at5" class="input-rounded" label="5ª Atividade" label-placement="floating" placeholder="Digite a nota" />
+                            <IonInput v-bind="field" v-model="s.at5" class="input-rounded" title="5ª Atividade" label="5ª Atividade" label-placement="floating" placeholder="Digite a nota" />
                           </Field>
                         </IonItem>
                         <ErrorMessage v-slot="{ message }" name="5ª Atividade">
@@ -298,7 +332,7 @@ onMounted(async () => {
                       <IonCol size="6">
                         <IonItem lines="none">
                           <Field v-slot="{ field }" name="Recuperação Parcial" rules="notaValida">
-                            <IonInput v-bind="field" v-model="s.makeUp" class="input-rounded" label="Recuperação Parcial" label-placement="floating" placeholder="Digite a nota" />
+                            <IonInput v-bind="field" v-model="s.makeUp" class="input-rounded" title="Recuperação Parcial" label="Recuperação Parcial" label-placement="floating" placeholder="Digite a nota" />
                           </Field>
                         </IonItem>
                         <ErrorMessage v-slot="{ message }" name="Recuperação Parcial">
@@ -311,12 +345,14 @@ onMounted(async () => {
                     <IonRow>
                     <IonCol size="6">
                         <IonItem lines="none">
-                        <IonInput
-                            class="input-rounded"
-                            label="1ª Nota: Atividades"
-                            :value="computedEvaluationActivity(s).toFixed(2)"
-                            disabled
-                        />
+                            <IonInput
+                                class="input-rounded"
+                                title="1ª Nota: Atividade"
+                                label="1ª Nota: Atividades"
+                                label-placement="floating"
+                                :value="computedEvaluationActivity(s).toFixed(2)"
+                                disabled
+                            />
                         </IonItem>
                         <div v-if="computedEvaluationActivity(s) > 10" class="error-message" style="margin-top: 4px;">
                         A soma das notas das atividades não pode ultrapassar 10.
@@ -329,6 +365,7 @@ onMounted(async () => {
                                 v-bind="field"
                                 v-model="s.grade"
                                 class="input-rounded"
+                                title="2ª Nota: Prova"
                                 label="2ª Nota: Prova"
                                 label-placement="floating"
                                 placeholder="Digite a nota"
@@ -345,11 +382,11 @@ onMounted(async () => {
                     <IonRow class="ion-margin-top">
                       <IonCol size="6">
                         <IonButton color="danger" expand="block" @click="() => { currentStudentToDelete = s; showDeleteConfirm = true; }">
-                          Apagar
+                          Limpar
                         </IonButton>
                       </IonCol>
                       <IonCol size="6">
-                        <IonButton type="submit" color="secondary" expand="block" @click="() => { currentStudentToSave = s; showSaveConfirm = true; }">
+                        <IonButton color="secondary" expand="block" @click="() => { currentStudentToSave = s; showSaveConfirm = true; }">
                           Salvar
                         </IonButton>
                       </IonCol>

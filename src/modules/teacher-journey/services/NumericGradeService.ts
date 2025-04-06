@@ -58,7 +58,7 @@ export default class NumericGradeSevice extends BaseService<NumericGrade> {
     return data
   }
 
-  async upsertNumericGrade(studentGrades: NumericToSave) {
+  /*async upsertNumericGrade(studentGrades: NumericToSave) {
     try {
       // Adiciona o campo deletedAt = null ao objeto antes de enviar, para evitar erro de conflito caso o professor já tenha apagado alguma nota para o aluno
       const studentGradesWithDeletedAt = {
@@ -83,7 +83,49 @@ export default class NumericGradeSevice extends BaseService<NumericGrade> {
     catch (error) {
       throw new Error(`Erro inesperado ao atualizar ou inserir nota: ${(error as Error).message}`)
     }
-  }
+  }*/
+    async upsertNumericGrade(studentGrades: NumericToSave) {
+      try {
+        const studentGradesWithDeletedAt = {
+          ...studentGrades,
+          deletedAt: null,
+        };
+  
+        const { data: existing, error: findError } = await this.client
+          .from(table)
+          .select('id')
+          .eq('studentId', studentGrades.studentId)
+          .eq('classroomId', studentGrades.classroomId)
+          .eq('enrollmentId', studentGrades.enrollmentId)
+          .eq('stageId', studentGrades.stageId)
+          .eq('disciplineId', studentGrades.disciplineId)
+          .is('deletedAt', null)
+          .maybeSingle();
+  
+        if (findError) throw new Error(`Erro ao buscar nota: ${findError.message}`);
+  
+        if (existing) {
+          const { data, error } = await this.client
+            .from(table)
+            .update(studentGradesWithDeletedAt)
+            .eq('id', existing.id)
+            .select('*');
+  
+          if (error) throw new Error(`Erro ao atualizar nota: ${error.message}`);
+          return data;
+        }
+  
+        const { data, error } = await this.client
+          .from(table)
+          .insert(studentGradesWithDeletedAt)
+          .select('*');
+  
+        if (error) throw new Error(`Erro ao inserir nota: ${error.message}`);
+        return data;
+      } catch (error) {
+        throw new Error(`Erro inesperado: ${(error as Error).message}`);
+      }
+    }
 
   async softDeleteNumericGrade(studentGradesId: string, userId: string) {
     try {
