@@ -67,6 +67,57 @@ function computedEvaluationActivity(s: StudentGrade) {
   return activityValues.reduce((sum, val) => sum + val, 0)
 }
 
+/*function evaluationValidate(s:StudentGrade): boolean {
+  const evaluationValues = [s.at1, s.at2, s.at3, s.at4, s.at5, s.makeUp, s.grade].map(value => Number.parseFloat(value) || 0)
+
+  console.log('evaluationValues dentro da função', evaluationValues)
+
+  for (const evaluation of evaluationValues) {
+    console.log('evaluation', evaluation)
+
+    if (Number.isNaN(evaluation) || evaluation < 0 || evaluation > 10) {
+      console.log('entrou')
+      return false
+    }
+  }
+  return true
+}*/
+
+function evaluationValidate(s: StudentGrade): boolean {
+  const evaluationFields = [
+    { value: s.at1, name: '1ª Atividade' },
+    { value: s.at2, name: '2ª Atividade' },
+    { value: s.at3, name: '3ª Atividade' },
+    { value: s.at4, name: '4ª Atividade' },
+    { value: s.at5, name: '5ª Atividade' },
+    { value: s.makeUp, name: 'Recuperação Parcial' },
+    { value: s.grade, name: '2ª Nota: Prova' }
+  ]
+
+  for (const field of evaluationFields) {
+    if (field.value === '') continue
+    
+    const numericValue = Number.parseFloat(field.value)
+    
+    if (Number.isNaN(numericValue)) {
+      showToast(`${field.name}: Valor inválido (não é um número)`, 'top', 'warning');
+      return false
+    }
+    
+    if (numericValue < 0) {
+      showToast(`${field.name}: A nota não pode ser negativa`, 'top', 'warning');
+      return false
+    }
+    
+    if (numericValue > 10) {
+      showToast(`${field.name}: A nota não pode ser maior que 10`, 'top', 'warning');
+      return false
+    }
+  }
+  
+  return true
+}
+
 function computedMeanWithMakeUp(s: StudentGrade): number {
     const activityEvaluation = computedEvaluationActivity(s)
     const exam2Evaluation = parseFloat(s.grade || '0')
@@ -160,6 +211,10 @@ async function handleSave(s: any) {
   try {
 
     isLoading.value = true
+
+    if (!evaluationValidate(s)) {
+      return false
+    } 
 
     // const exam1 = computedEvaluationActivity(s)
     const atividadesSum = computedEvaluationActivity(s)
