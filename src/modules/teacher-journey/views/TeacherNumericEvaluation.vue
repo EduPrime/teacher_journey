@@ -469,8 +469,8 @@ onMounted(async () => {
 
                     <IonAlert 
                     :is-open="showDeleteConfirm" 
-                    header="Confirmação de Exclusão"
-                    message="Deseja apagar as notas para este aluno?"
+                    header="Confirmação de Limpeza"
+                    message="Deseja limpar as notas para este aluno?"
                     :buttons="[
                         { text: 'Cancelar', role: 'cancel' },
                         { 
