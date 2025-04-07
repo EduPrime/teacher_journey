@@ -13,6 +13,13 @@ export interface Thematics {
   disciplineId: string
 }
 
+export interface Grades {
+  grade: string | null
+  thematicUnitId: string
+  conceptualGradeId: string | null
+  name?: string
+}
+
 export interface FrequencyToSave {
   name: string
   classroomId: string
@@ -46,29 +53,98 @@ export interface NumericToSave {
   makeUp: Decimal
   grade: Decimal
 }
+export interface UpdatedGrades {
+  thematicUnitId: string
+  conceptualGradeId: string | null
+  grade: string | null
+}
 
 export interface ConceptualToSave {
+
+  name: string
+  situation: string
+  disability: boolean
   studentId: string
   enrollmentId: string
+  schoolId: string
+  seriesId: string
+  classroomId: string
+  disciplineId?: string
+  stageId: string
+  conceptualGradeId?: string
+
+  grades: Grades[]
+}
+
+export interface RegisteredToSave {
+  id?: string
+  isCompleted: boolean
+  teacherId: string | null
   classroomId: string
   disciplineId: string
-  schoolId: string
   stageId: string
-  thematics?: Thematics[]
 }
 
 export interface MountedStudent {
   name: string
-  classroomId: string
-  studentId: string
-  teacherId: string
-  disciplineId?: string
-  status: string
-  stageId: string
-  schoolId: string
   situation: string
+  disability: boolean
+  studentId: string
+  isFull?: boolean
   enrollmentId: string
-  disability: string
+  schoolId: string
+  seriesId?: string
+  classroomId: string
+  disciplineId?: string
+  stageId: string
+  conceptualGradeId?: string | null
+  grades: Grades[]
+  status: string
+  isCleansed?: boolean
+}
+
+export interface QueryEnrollments {
+  data: {
+    id: string
+    name: string
+    situation: string
+    student: { id: string; disability: string[] | null }
+  }[]
+  error: {
+    message: string
+  }
+}
+
+export interface QueryGrades {
+  data: {
+    id: string
+    name: string
+    situation: string | null
+    enrollmentId: string
+    student: { id: string; disability: string[] | null }
+    thematicUnits: {
+      thematicUnitId: string
+      grade: string
+      value: string | null
+      conceptualGradeId: string
+      thematicUnit: {
+        name: string
+      }
+    }[]
+  }[]
+  error: {
+    message: string
+  }
+}
+
+export interface QueryEmptyGrades {
+  data: {
+    id: string
+    name: string
+  }[]
+  error: {
+    message: string
+  }
 }
 
 export interface AttendanceWithFrequencies {

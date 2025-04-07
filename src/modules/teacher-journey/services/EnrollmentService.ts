@@ -1,5 +1,6 @@
-import type { Enrollment } from '@prisma/client'
+import { status, type Enrollment } from '@prisma/client'
 import BaseService from '@/services/BaseService'
+import { QueryEnrollments, QueryGrades, QueryEmptyGrades } from '../types/types'
 
 const table = 'enrollment' as const
 
@@ -36,7 +37,7 @@ export default class EnrollmentService extends BaseService<Enrollment> {
         situation,
         student:student (id, disability)
       `)
-      .eq('classroomId', classroomId);
+      .eq('classroomId', classroomId) as unknown as QueryEnrollments
 
     if (enrollmentError) {
       throw new Error(`Erro ao buscar matrículas com dados dos alunos: ${enrollmentError.message}`);
@@ -59,15 +60,51 @@ export default class EnrollmentService extends BaseService<Enrollment> {
           thematicUnit:thematicUnit (name)
         )
       `)
-      .in('enrollmentId', enrollmentIds)
       .eq('disciplineId', disciplineId)
       .eq('stageId', stageId)
-      .eq('schoolId', schoolId);
+      .eq('schoolId', schoolId)
+      .in('enrollmentId', enrollmentIds)
+      .is('deletedAt', null) as unknown as QueryGrades
+    // .is('thematicUnits.deletedAt', null)
 
     if (conceptualGradeError) {
       throw new Error(`Erro ao buscar notas conceituais: ${conceptualGradeError.message}`);
     }
-    if (!conceptualGrades || conceptualGrades.length === 0) {
+
+    const enrollmentsWithConceptualGrades = enrollments.filter((enrollment) => {
+      return conceptualGrades?.some((cg) => cg.enrollmentId === enrollment.id)
+    })
+
+    const enrollmentsWithoutConceptualGrades = enrollments.filter((enrollment) => {
+      return !conceptualGrades?.some((cg) => cg.enrollmentId === enrollment.id)
+    })
+
+    const result = enrollmentsWithConceptualGrades.map((enrollment) => {
+      const conceptualGrade = conceptualGrades?.find((cg) => cg.enrollmentId === enrollment.id);
+
+      return {
+        name: enrollment.name,
+        situation: enrollment.situation,
+        disability: (enrollment.student?.disability?.length ?? 0) > 0 ? true : false,
+        studentId: enrollment.student?.id,
+        isFull: conceptualGrade?.thematicUnits.every((unit) => unit.grade != ''),
+        enrollmentId: enrollment.id,
+        schoolId,
+        classroomId,
+        disciplineId,
+        stageId,
+        seriesId,
+        conceptualGradeId: conceptualGrade?.id || null,
+        grades: conceptualGrade?.thematicUnits?.map((unit) => ({
+          thematicUnitId: unit.thematicUnitId,
+          name: unit.thematicUnit?.name || '',
+          grade: unit.grade,
+          conceptualGradeId: unit.conceptualGradeId,
+        })) || [],
+        status: enrollment.situation !== 'CURSANDO' ? 'BLOQUEADO' : conceptualGrade?.thematicUnits?.length === conceptualGrade?.thematicUnits?.filter((grade) => grade.grade).length ? 'CONCLUÍDO' : 'INCOMPLETO',
+      };
+    });
+    if (conceptualGrades.length < enrollmentIds.length) {
       const { data: emptyConceptualGrades, error: errorEmptyConceptualGrades } = await this.client
         .from('thematicUnit')
         .select(`
@@ -75,57 +112,35 @@ export default class EnrollmentService extends BaseService<Enrollment> {
           name
         `)
         .eq('disciplineId', disciplineId)
-        .eq('seriesId', seriesId)
+        .eq('seriesId', seriesId) as unknown as QueryEmptyGrades
 
       if (errorEmptyConceptualGrades) {
         throw new Error(`Erro ao buscar notas conceituais: ${errorEmptyConceptualGrades}`);
       }
-
-      const result = enrollments.map((enrollment) => {
+      result.push(...enrollmentsWithoutConceptualGrades.map((enrollment) => {
         return {
           name: enrollment.name,
           situation: enrollment.situation,
-          // disability: enrollment.student?.disability ? true : false,
-          // studentId: enrollment.student?.id,
+          disability: enrollment.student?.disability ? true : false,
+          studentId: enrollment.student?.id,
+          isFull: false,
           enrollmentId: enrollment.id,
           schoolId,
           classroomId,
           disciplineId,
           stageId,
+          seriesId,
           conceptualGradeId: null,
           grades: emptyConceptualGrades.map((unit) => ({
             thematicUnitId: unit.id,
-            name: unit.name || '',
-            value: null,
-            gradeId: null,
-          })) || [],
-        };
-      });
-      return result;
+            name: unit.name,
+            grade: '',
+            conceptualGradeId: '',
+          })),
+          status: enrollment.situation !== 'CURSANDO' ? 'BLOQUEADO' : 'INCOMPLETO',
+        }
+      }))
     }
-    const result = enrollments.map((enrollment) => {
-      const conceptualGrade = conceptualGrades?.find((cg) => cg.enrollmentId === enrollment.id);
-
-      return {
-        name: enrollment.name,
-        situation: enrollment.situation,
-        // disability: enrollment.student?.disability ? true : false,
-        // studentId: enrollment.student?.id,
-        enrollmentId: enrollment.id,
-        schoolId,
-        classroomId,
-        disciplineId,
-        stageId,
-        conceptualGradeId: conceptualGrade?.id || null,
-        grades: conceptualGrade?.thematicUnits?.map((unit) => ({
-          thematicUnitId: unit.thematicUnitId,
-          // name: unit.thematicUnit?.name || '',
-          value: unit.grade,
-          gradeId: unit.conceptualGradeId,
-        })) || [],
-      };
-    });
-
-    return result;
+    return result.sort((a, b) => a.name.localeCompare(b.name))
   }
 }
