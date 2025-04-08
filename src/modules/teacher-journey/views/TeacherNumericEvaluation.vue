@@ -38,6 +38,9 @@ const currentStudentToDelete = ref<StudentGrade | null>(null)
 const studentList = ref<StudentGrade[]>()
 const oldList = ref<StudentGrade[]>()
 
+const saveModal = ref(false)
+const deleteModal = ref(false)
+
 /* interface FormContext {
   errors: Record<string, string>;
   setFieldError: (field: string, message: string | undefined) => void;
@@ -557,46 +560,20 @@ onMounted(async () => {
                     <IonRow class="ion-margin-top">
                       <IonCol size="6">
                         <IonButton color="danger" expand="block"
-                          @click="() => { currentStudentToDelete = s; showDeleteConfirm = true; }"
+                          @click="() => { currentStudentToDelete = s; deleteModal = true; }"
                           :disabled="s.status === 'BLOQUEADO'">
                           Limpar
                         </IonButton>
                       </IonCol>
                       <IonCol size="6">
                         <IonButton color="secondary" expand="block"
-                          @click="() => { currentStudentToSave = s; showSaveConfirm = true; }"
+                          @click="() => { currentStudentToSave = s; saveModal = true; }"
                           :disabled="s.status === 'BLOQUEADO'">
                           Salvar
                         </IonButton>
                       </IonCol>
                     </IonRow>
                   </IonGrid>
-
-                  <IonAlert :is-open="showSaveConfirm" header="Confirmação de Salvamento"
-                    message="Deseja salvar as alterações para este aluno?" :buttons="[
-                      { text: 'Cancelar', role: 'cancel' },
-                      {
-                        text: 'Confirmar',
-                        handler: () => {
-                          if (currentStudentToSave) {
-                            handleSave(currentStudentToSave)
-                          }
-                        }
-                      }
-                    ]" @did-dismiss="showSaveConfirm = false" cssClass="my-custom-alert" />
-
-                  <IonAlert :is-open="showDeleteConfirm" header="Confirmação de Limpeza"
-                    message="Deseja limpar as notas para este aluno?" :buttons="[
-                      { text: 'Cancelar', role: 'cancel' },
-                      {
-                        text: 'Confirmar',
-                        handler: () => {
-                          if (currentStudentToDelete) {
-                            handleClear(currentStudentToDelete)
-                          }
-                        }
-                      }
-                    ]" @did-dismiss="showDeleteConfirm = false" cssClass="my-custom-alert" />
 
                   <IonAlert :is-open="showFinalizeConfirm" header="Finalizar envio de notas"
                     message="Tem certeza de que deseja finalizar o envio das notas?" :buttons="[
@@ -655,6 +632,78 @@ onMounted(async () => {
       </IonCardContent>
     </IonCard>
 
+    <IonModal id="save-modal" :is-open="saveModal" trigger="open-custom-dialog" @ion-modal-did-dismiss="saveModal = false">
+                    <IonCard class="ion-no-margin">
+                      <IonCardHeader>
+                        <IonCardTitle>Salvar notas</IonCardTitle>
+                        <IonText class="ion-padding-vertical">
+                          Tem certeza de que deseja salvar as alterações para este aluno?
+                        </IonText>
+                        <div style="display: flex;">
+                          <IonButton
+                            size="small"
+                            style="margin-left: auto; margin-right: 8px; text-transform: capitalize;"
+                            color="medium"
+                            @click="() => {
+                              saveModal = false
+                            }"
+                          >
+                            Cancelar
+                          </IonButton>
+                          <IonButton
+                            style="text-transform: capitalize;"
+                            size="small"
+                            color="secondary"
+                            @click="() => {
+                              if (currentStudentToSave) {
+                                handleSave(currentStudentToSave)
+                              }
+                              saveModal = false
+                            }"
+                          >
+                            Confirmar
+                          </IonButton>
+                        </div>
+                      </IonCardHeader>
+                    </IonCard>
+                  </IonModal>
+
+                  <IonModal id="delete-modal" :is-open="deleteModal" trigger="open-custom-dialog" @ion-modal-did-dismiss="deleteModal = false">
+                    <IonCard class="ion-no-margin">
+                      <IonCardHeader>
+                        <IonCardTitle>Limpar notas</IonCardTitle>
+                        <IonText class="ion-padding-vertical">
+                          Tem certeza de que deseja limpar as notas?
+                        </IonText>
+                        <div style="display: flex;">
+                          <IonButton
+                            size="small"
+                            style="margin-left: auto; margin-right: 8px; text-transform: capitalize;"
+                            color="secondary"
+                            @click="() => {
+                              deleteModal = false
+                            }"
+                          >
+                            Cancelar
+                          </IonButton>
+                          <IonButton
+                            style="text-transform: capitalize;"
+                            size="small"
+                            color="danger"
+                            @click="() => {
+                              if (currentStudentToDelete) {
+                                handleClear(currentStudentToDelete)
+                              }
+                              deleteModal = false
+                            }"
+                          >
+                            Confirmar
+                          </IonButton>
+                        </div>
+                      </IonCardHeader>
+                    </IonCard>
+                  </IonModal>
+
     <div style="height: 64px;" />
     <template #footer>
       <IonToolbar>
@@ -674,6 +723,34 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+
+ion-modal {
+    --width: fit-content;
+    --min-width: 250px;
+    --height: fit-content;
+    --border-radius: 6px;
+    --box-shadow: 0 28px 48px rgba(0, 0, 0, 0.4);
+  }
+
+  ion-modal h1 {
+    margin: 20px 20px 10px 20px;
+  }
+
+  ion-modal ion-icon {
+    margin-right: 6px;
+
+    width: 48px;
+    height: 48px;
+
+    padding: 4px 0;
+
+    color: #aaaaaa;
+  }
+
+  ion-modal .wrapper {
+    margin-bottom: 10px;
+  }
+
 :global(ion-alert.my-custom-alert) {
   --backdrop-opacity: 0;
 }
