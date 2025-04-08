@@ -19,7 +19,9 @@ import EnrollmentService from '../services/EnrollmentService'
 import NumericGradeSevice from '../services/NumericGradeService'
 import StageService from '../services/StageService'
 
+
 import { IonAlert } from '@ionic/vue'
+import RegisteredGradeService from '../services/RegisteredGradeService'
 
 const showSaveConfirm = ref(false)
 const showDeleteConfirm = ref(false)
@@ -38,6 +40,9 @@ const numericGradeService = new NumericGradeSevice()
 
 const currentStage = ref()
 const students = ref()
+
+const showFinalizeConfirm = ref(false)
+const registeredGradeService = new RegisteredGradeService()
 
 /* interface FormContext {
   errors: Record<string, string>;
@@ -207,12 +212,62 @@ watch([eduFProfile, currentStage], async ([newEduFProfile, newCurrentStage]) => 
   }
 }, { deep: true }); */
 
+/*async function handleFinalize() {
+  if (!eduFProfile.value || !currentStage.value) return
+
+  try {
+    isLoading.value = true
+
+    export interface RegisteredToSave {
+      id?: string
+      isCompleted: boolean
+      teacherId: string | null
+      classroomId: string
+      disciplineId: string
+      stageId: string
+    }
+
+    await registeredGradeService.upsertRegisteredGrade(payload)
+    showToast('Notas finalizadas com sucesso!', 'top', 'success')
+  } catch (err: any) {
+    showToast(`Erro ao finalizar: ${err.message}`, 'top', 'danger')
+    console.error(err)
+  } finally {
+    isLoading.value = false
+  }
+}*/
+
+function isMinimumEvaluationFilled(s: StudentGrade): boolean {
+  const activityFields = [s.at1, s.at2, s.at3, s.at4, s.at5]
+  const validActivities = activityFields.filter((val) => {
+    const parsed = parseFloat(val)
+    return !isNaN(parsed) && parsed >= 0 && parsed <= 10
+  })
+
+  const gradeValid = (() => {
+    const gradeValue = parseFloat(s.grade)
+    return !isNaN(gradeValue) && gradeValue >= 0 && gradeValue <= 10
+  })()
+
+  if (validActivities.length < 3) {
+    showToast('Distribua a nota ao menos 3 atividades com notas válidas (0 a 10)', 'top', 'warning')
+    return false
+  }
+
+  if (!gradeValid) {
+    showToast('A " 2ª Nota: Prova " deve ser preenchida com um valor entre 0 e 10', 'top', 'warning')
+    return false
+  }
+
+  return true
+}
+
 async function handleSave(s: any) {
   try {
 
     isLoading.value = true
 
-    if (!evaluationValidate(s)) {
+    if (!evaluationValidate(s) || !isMinimumEvaluationFilled(s)) {
       return false
     } 
 
@@ -485,6 +540,21 @@ onMounted(async () => {
                     @did-dismiss="showDeleteConfirm = false" 
                     cssClass="my-custom-alert"
                     />
+
+                    <IonAlert 
+                      :is-open="showFinalizeConfirm" 
+                      header="Finalizar envio de notas"
+                      message="Tem certeza de que deseja finalizar o envio das notas?"
+                      :buttons="[
+                        { text: 'Cancelar', role: 'cancel' },
+                        { 
+                          text: 'Confirmar', 
+                          handler: handleFinalize
+                        }
+                      ]"
+                      @did-dismiss="showFinalizeConfirm = false" 
+                      css-class="my-custom-alert"
+                    />
                 </Form>
               </div>
             </IonAccordion>
@@ -540,7 +610,7 @@ onMounted(async () => {
         <IonGrid>
           <IonRow>
             <IonCol size="12">
-              <IonButton :disabled="isLoading" color="secondary" expand="full" @click="($event) => $event">
+              <IonButton :disabled="isLoading" color="secondary" expand="full" @click="() => showFinalizeConfirm = true">
                 Finalizar
               </IonButton>
             </IonCol>
