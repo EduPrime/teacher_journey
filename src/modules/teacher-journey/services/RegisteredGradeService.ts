@@ -60,9 +60,6 @@ export default class RegisteredGradeService extends BaseService<RegisteredGrade>
     if (error) {
       throw new Error(`Erro ao criar ou atualizar nota registrada: ${error.message}`)
     }
-    if (!data) {
-      throw new Error('Falha ao criar ou atualizar nota registrada')
-    }
 
     return data
   }

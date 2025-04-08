@@ -580,12 +580,12 @@ ion-modal#cancel-modal {
     align-items: start;
     font-size: 15px;
   }
+}
 
-  ion-loading.custom-save-loading {
-    --background: #e3edff;
-    --spinner-color: var(--ion-color-warning);
+ion-loading.custom-save-loading {
+  --background: #e3edff;
+  --spinner-color: var(--ion-color-warning);
 
-    color: var(--ion-color-info);
-  }
+  color: var(--ion-color-info);
 }
 </style>
