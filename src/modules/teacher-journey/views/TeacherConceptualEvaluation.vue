@@ -4,7 +4,7 @@ import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
 
 import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol, IonGrid, IonIcon, IonItem, IonItemGroup, IonLabel, IonLoading, IonModal, IonRadio, IonRadioGroup, IonRow, IonSegment, IonAlert, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
-import { alertOutline, apps, checkmarkCircleOutline, checkmarkOutline, helpOutline, lockClosedOutline, text } from 'ionicons/icons'
+import { alertOutline, apps, checkmarkCircleOutline, checkmarkOutline, helpOutline, lockClosedOutline, text, warningOutline } from 'ionicons/icons'
 import { computed, onMounted, onUpdated, ref, watch } from 'vue'
 import EduStageTabs from '../components/StageTabs.vue'
 import ConceptualGradeService from '../services/ConceptualGradeService'
@@ -29,8 +29,11 @@ const conceptualTypes = ref()
 const studentList = ref<MountedStudent[]>()
 const oldList = ref<MountedStudent[]>()
 const isLoading = ref(false)
+const isLoadingWarning = ref(true)
+const isWarningInformation = ref(null)
 const showAlert = ref(false)
 let isGradesFilled = ref(false)
+let diffDays = ref(0)
 const registeredToSave = ref<RegisteredToSave>({
   isCompleted: false,
   teacherId: localStorage.getItem('teacherId'),
@@ -211,6 +214,17 @@ const computedRegisteredGrade = computed(() => ({
   stageId: currentStage.value?.id || '',
 }))
 
+const deadline = computed(() => {
+  const currentDate = new Date()
+  const deadlineDate = new Date(currentStage.value?.endDate)
+  if (isNaN(deadlineDate.getTime())) {
+    return false
+  }
+  const diffTime = Math.abs(deadlineDate.getTime() - currentDate.getTime())
+  diffDays.value = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  return diffDays.value <= 10
+})
+
 const getStatusIcon = computed(() => (status: string) => {
   switch (status) {
     case 'CONCLUÍDO':
@@ -251,6 +265,31 @@ const getStatusColor = computed(() => (status: string) => {
     <div v-if="eduFProfile?.classroomId && eduFProfile?.disciplineId">
       <EduStageTabs v-model="currentStage" :stages="stages">
         <template v-for="stage in stages" :key="stage" #[stage?.numberStage]>
+            <div v-if="diffDays <= 10 && registeredToSave.isCompleted" class="warning-close-information">
+            {{ stage }}
+            <div class="title">
+              Registro irregular
+            </div>
+            <div class="text">
+              <IonIcon :icon="warningOutline" size="large" />
+              <div>
+                Olá professor, o prazo de preenchimento se encerra em {{ diffDays }} {{ diffDays === 1 ? 'dia' : 'dias' }}, caso haja pendência será necessária entrar em contato com a secretaria.
+              </div>
+            </div>
+          </div>
+          <div v-else class="warning-close-information">
+            {{diffDays <= 10 }}
+            {{registeredToSave.isCompleted}}
+            <div class="title">
+              Registro irregular
+            </div>
+            <div class="text">
+              <IonIcon :icon="warningOutline" size="large" />
+              <div>
+                Olá professor, o prazo de preenchimento se encerra em {{ diffDays }} {{ diffDays === 1 ? 'dia' : 'dias' }}, caso haja pendência será necessária entrar em contato com a secretaria.
+              </div>
+            </div>
+          </div>
           <div v-if="studentList && studentList.length > 0" style="padding: 1px; margin-top: -10px;">
             <IonAccordionGroup expand="inset">
               <IonAccordion v-for="(s, i) in studentList" :key="i" :value="`${i}`" class="no-border-accordion">
@@ -527,63 +566,35 @@ ion-modal#cancel-modal .wrapper {
   margin-bottom: 10px;
 }
 
-.warning-close-date {
-  margin-top: 5px;
-  margin-bottom: 5px;
+.warning-close-information {
+  margin-top: 0px;
+  margin-bottom: 0px;
   background-color: #F5C228E6;
   color: #000000B3;
-  padding: 6px 6px 6px 6px;
+  padding: 15px 18px 16px 6px;
   border-radius: 3px;
-  margin-left: 10px;
-  margin-right: 10px;
 
   .title {
     font-size: 17px;
+    word-spacing: -2px;
     font-weight: 600;
-    padding-left: 34px;
+    padding: 0px 0px 8px 22px;
   }
 
   .text {
     ion-icon {
-      width: 30px;
+      width: 45px;
       margin-right: 5px;
-      margin-top: -18px;
+      margin-top: -3px;
     }
 
-    font-weight: 300;
     display: flex;
-    align-items: start;
-    font-size: 15px;
-  }
-}
-
-.success-close-date {
-  margin-top: 5px;
-  margin-bottom: 5px;
-  background-color: var(--ion-color-success-shade);
-  color: #000000B3;
-  padding: 6px 6px 6px 6px;
-  border-radius: 3px;
-  margin-left: 10px;
-  margin-right: 10px;
-
-  .title {
-    font-size: 17px;
-    font-weight: 600;
-    padding-left: 34px;
-  }
-
-  .text {
-    ion-icon {
-      width: 30px;
-      margin-right: 5px;
-      margin-top: -18px;
-    }
-
     font-weight: 300;
-    display: flex;
+    text-align: justify;
+    word-spacing: -1px;
+    letter-spacing: -1px;
     align-items: start;
-    font-size: 15px;
+    font-size: 14px;
   }
 }
 
