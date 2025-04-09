@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import type { ConceptualToSave, Grades, MountedStudent, RegisteredToSave, UpdatedGrades } from '../types/types'
+import type { MountedStudent, RegisteredToSave } from '../types/types'
 import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
 
-import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol, IonGrid, IonIcon, IonItem, IonItemGroup, IonLabel, IonLoading, IonModal, IonRadio, IonRadioGroup, IonRow, IonSegment, IonAlert, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
-import { alertOutline, apps, checkmarkCircleOutline, checkmarkOutline, helpOutline, lockClosedOutline, text, warningOutline } from 'ionicons/icons'
-import { computed, onMounted, onUpdated, ref, watch } from 'vue'
+import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol, IonGrid, IonIcon, IonItem, IonLabel, IonLoading, IonModal, IonRow, IonAlert, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
+import { alertOutline, apps, checkmarkOutline, helpOutline, lockClosedOutline, text, warningOutline } from 'ionicons/icons'
+import { computed, onMounted, ref, watch } from 'vue'
 import EduStageTabs from '../components/StageTabs.vue'
 import ConceptualGradeService from '../services/ConceptualGradeService'
 import EnrollmentService from '../services/EnrollmentService'
@@ -26,14 +26,11 @@ const stages = ref()
 const eduFProfile = ref()
 const currentStage = ref()
 const conceptualTypes = ref()
-const studentList = ref<MountedStudent[]>()
-const oldList = ref<MountedStudent[]>()
 const isLoading = ref(false)
-const isLoadingWarning = ref(true)
-const isWarningInformation = ref(null)
 const showAlert = ref(false)
 let isGradesFilled = ref(false)
 let diffDays = ref(0)
+const studentList = ref<MountedStudent[]>()
 const registeredToSave = ref<RegisteredToSave>({
   isCompleted: false,
   teacherId: localStorage.getItem('teacherId'),
@@ -53,11 +50,9 @@ watch(eduFProfile, async (newValue) => {
       currentStage.value.id,
       newValue.seriesId,
     )
-    oldList.value = JSON.parse(JSON.stringify(studentList.value))
   }
   else {
     studentList.value = undefined
-    oldList.value = undefined
   }
 })
 
@@ -71,8 +66,6 @@ watch((currentStage), async (newValue) => {
       newValue.id,
       eduFProfile.value.seriesId,
     )
-    oldList.value = JSON.parse(JSON.stringify(studentList.value))
-    console.log('studentList, watch', studentList.value)
   }
 })
 
@@ -81,42 +74,14 @@ onMounted(async () => {
   console.log(stages.value)
 })
 
-function updateOldGrades(oldGrades: Grades[], newGrades: Grades[]) {
-  oldGrades.forEach((oldGrade) => {
-    const newGrade = newGrades.find(grade => grade.thematicUnitId === oldGrade.thematicUnitId)
-    if (newGrade) {
-      oldGrade.grade = newGrade.grade
-    }
-  })
-}
-
-function compareGrades(oldGrades: Grades[], student: MountedStudent) {
-  const key = 'grade'
-  const equal = oldGrades.every((item, index) => item[key] === student.grades[index][key])
-  const isNotEmpty = student.grades.every(item => item[key])
-  if (equal && isNotEmpty) {
-    student.status = 'CONCLUÍDO'
-  }
-  else if (equal && !isNotEmpty) {
-    student.status = 'INCOMPLETO'
-  }
-  else {
-    student.status = 'PENDENTE'
-  }
-  student.isCleansed = false
-}
-
-async function saveGrades(oldGrades: Grades[], student: MountedStudent) {
-  const key = 'grade'
+async function saveGrades(student: MountedStudent) {
   if (student.isCleansed && student.conceptualGradeId) {
     try {
       await conceptualGradeService.softDeleteConceptualGrade(student.conceptualGradeId)
       student.conceptualGradeId = null
-      // student.grades.conceptualGradeId = null
       student.status = 'INCOMPLETO'
       student.isCleansed = false
       student.isFull = false
-      updateOldGrades(oldGrades, student.grades)
       showToast('Notas limpas com sucesso', 'top', 'success')
     }
     catch (error) {
@@ -124,7 +89,7 @@ async function saveGrades(oldGrades: Grades[], student: MountedStudent) {
     }
   }
   else {
-    const isNotEmpty = student.grades.every(item => item[key])
+    const isNotEmpty = student.grades.every(item => item['grade'])
     try {
       if (!student.conceptualGradeId) {
         const response = await conceptualGradeService.createConceptualGrade(student)
@@ -142,11 +107,9 @@ async function saveGrades(oldGrades: Grades[], student: MountedStudent) {
           student.status = 'INCOMPLETO'
           showToast('Notas salvas com sucesso', 'top', 'success')
         }
-        updateOldGrades(oldGrades, student.grades)
       }
       else {
         await conceptualGradeService.updateConceptualGrade(student.grades)
-        updateOldGrades(oldGrades, student.grades)
         if (isNotEmpty) {
           student.status = 'CONCLUÍDO'
           student.isFull = true
@@ -340,7 +303,8 @@ const getStatusColor = computed(() => (status: string) => {
                               label="Registrar" label-placement="stacked" fill="outline" mode="md" style="zoom: 0.9;"
                               :disabled="s.status === 'BLOQUEADO'" @ion-change="(e) => {
                                 tu.grade = e.detail.value
-                                compareGrades(oldList?.find((item) => item.enrollmentId === s.enrollmentId)?.grades || [], s)
+                                s.status = 'PENDENTE'
+                                s.isCleansed = false
                               }">
                               <IonSelectOption v-for="conceptualType in conceptualTypes" :key="conceptualType.index"
                                 :value="conceptualType.rotulo">
@@ -365,7 +329,7 @@ const getStatusColor = computed(() => (status: string) => {
                         || s.status === 'CONCLUÍDO'
                         || s.status === 'INCOMPLETO'
                       "
-                      @click="saveGrades(oldList?.find((item) => item.enrollmentId === s.enrollmentId)?.grades || [], s)"
+                      @click="saveGrades(s)"
                     >
                       Salvar
                     </IonButton>
