@@ -59,6 +59,7 @@ export default class ConceptualGradeService extends BaseService<ConceptualGrade>
     return conceptualGradeByThematicUnitData
   }
   async updateConceptualGrade(grades: Grades[]) {
+    grades = grades.filter((grade) => grade.grade)
     for (const grade of grades) {
       const { error: updateGradeError } = await this.client
         .from('conceptualGradeByThematicUnit')

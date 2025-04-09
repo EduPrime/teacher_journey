@@ -51,7 +51,7 @@ function compararDatas(stage: { startDate: string, endDate: string, numberStage:
 }
 
 function disabledStages(startDate: string): boolean {
-  const hoje = new Date('2025-06-06')
+  const hoje = new Date()
   const inicial = new Date(startDate)
 
   return hoje < inicial
