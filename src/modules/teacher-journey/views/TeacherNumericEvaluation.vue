@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol, IonGrid, IonIcon, IonInput, IonItem, IonLabel, IonAlert, IonLoading, IonRadio, IonRadioGroup, IonRow, IonSegment, IonSegmentButton, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
+import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol, IonGrid, IonIcon, IonInput, IonItem, IonLabel, IonAlert, IonLoading, IonRadio, IonRadioGroup, IonRow, IonSegment, IonSegmentButton, IonSelect, IonSelectOption, IonText, IonToolbar, IonModal } from '@ionic/vue'
 import { calculator, checkmarkOutline, helpOutline, alertOutline, lockClosedOutline } from 'ionicons/icons'
 import Decimal from 'decimal.js'
 import { ErrorMessage, Field, Form, useForm } from 'vee-validate'
@@ -9,15 +9,23 @@ import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
 import showToast from '@/utils/toast-alert'
 
-import type { MountedStudent } from '../types/types'
+import type { MountedStudent, RegisteredToSave } from '../types/types'
 import EduStageTabs from '../components/StageTabs.vue'
 
 import EnrollmentService from '../services/EnrollmentService'
 import NumericGradeSevice from '../services/NumericGradeService'
 import StageService from '../services/StageService'
 import RegisteredGradeService from '../services/RegisteredGradeService'
-import { r } from 'better-auth/dist/index-4d8GiU4g'
 
+
+const decimalOptions = {
+  mask: Number,
+  radix: ',',
+  scale: 2,
+  padFractionalZeros: true,
+  normalizeZeros: false,
+  lazy: false,
+}
 
 const enrollmentService = new EnrollmentService()
 const stageService = new StageService()
@@ -41,6 +49,16 @@ const oldList = ref<StudentGrade[]>()
 const saveModal = ref(false)
 const deleteModal = ref(false)
 
+const showAlert = ref(false)
+
+const registeredToSave = ref<RegisteredToSave>({
+  isCompleted: false,
+  teacherId: localStorage.getItem('teacherId'),
+  classroomId: '',
+  disciplineId: '',
+  stageId: '',
+})
+
 /* interface FormContext {
   errors: Record<string, string>;
   setFieldError: (field: string, message: string | undefined) => void;
@@ -60,6 +78,9 @@ interface StudentGrade extends MountedStudent {
   teacherId: string
 }
 
+const gradesAreFilled = computed (() => studentList.value?.every(item =>
+  item.situation !== 'CURSANDO' || (checkMinimalActivities(item) && checkMinimalGrade(item))
+) ?? false)
 
 const getStatusIcon = computed(() => (status: string) => {
   switch (status) {
@@ -120,11 +141,11 @@ function evaluationValidate(s: StudentGrade): boolean {
   ]
 
   for (const field of evaluationFields) {
-    if (field.value === null) continue
+    if (field.value === '') continue
 
-    const numericValue = Number.parseFloat(field.value)
+    const numericValue = Number.parseFloat(String(field.value).replace(',', '.'))
 
-    if (numericValue !== null && Number.isNaN(numericValue)) {
+    if (Number.isNaN(numericValue)) {
       showToast(`${field.name}: Valor inválido (não é um número)`, 'top', 'warning');
       return false
     }
@@ -164,6 +185,19 @@ function calculateStatus(s: StudentGrade, grade: any): string {
     return 'CONCLUÍDO'
   }
   return 'INCOMPLETO'
+}
+
+function convertToDecimal(value: any): Decimal {
+  if (
+    value === null ||
+    value === undefined ||
+    String(value).trim() === ""
+  ) {
+    return new Decimal(0);
+  }
+  const strValue = String(value);
+  const sanitizedValue = strValue.replace(',', '.');
+  return new Decimal(sanitizedValue);
 }
 
 // Watcher que observa o filtro e o calendário para montar a listágem de alunos
@@ -217,32 +251,6 @@ watch([eduFProfile, currentStage], async ([newEduFProfile, newCurrentStage]) => 
   }
 })
 
-/* watch(() => studentList.value, (newList) => {
-  if (newList) {
-    newList.forEach(student => {
-      const { validateField } = useForm();
-
-      watch([
-        () => student.at1,
-        () => student.at2,
-        () => student.at3,
-        () => student.at4,
-        () => student.at5
-      ], () => {
-
-        console.log('entrou aqui')
-
-        validateField("1ª Atividade");
-        validateField("2ª Atividade");
-        validateField("3ª Atividade");
-        validateField("4ª Atividade");
-        validateField("5ª Atividade");
-
-      }, { deep: true });
-    });
-  }
-}, { deep: true }); */
-
 /*async function handleFinalize() {
   if (!eduFProfile.value || !currentStage.value) return
 
@@ -287,29 +295,12 @@ function checkMinimalGrade(s: StudentGrade): boolean {
   return gradeValid
 }
 
-function isMinimumEvaluationFilled(s: StudentGrade): boolean {
-
-  const validActivities = checkMinimalActivities(s)
-  const gradeValid = checkMinimalGrade(s)
-  if (!validActivities) {
-    showToast('Distribua a nota ao menos 3 atividades com notas válidas (0 a 10)', 'top', 'warning')
-    return false
-  }
-
-  if (!gradeValid) {
-    showToast('A " 2ª Nota: Prova " deve ser preenchida com um valor entre 0 e 10', 'top', 'warning')
-    return false
-  }
-
-  return true
-}
-
 async function handleSave(s: any) {
   try {
 
     isLoading.value = true
 
-    if (!evaluationValidate(s) || !isMinimumEvaluationFilled(s)) {
+    if (!evaluationValidate(s)) {
       return false
     }
 
@@ -327,14 +318,13 @@ async function handleSave(s: any) {
       studentId: s.studentId,
       stageId: currentStage.value?.id || '',
       schoolId: s.schoolId,
-      at1: new Decimal(s.at1) || '',
-      at2: new Decimal(s.at2) || '',
-      at3: new Decimal(s.at3) || '',
-      at4: new Decimal(s.at4) || '',
-      at5: new Decimal(s.at5) || '',
-      makeUp: new Decimal(s.makeUp) || '',
-      grade: new Decimal(s.grade) || '',
-      // grade: new Decimal(((Number.parseFloat(s.exam1) || 0) + (Number.parseFloat(s.exam2) || 0)) / 2),
+      at1: convertToDecimal(s.at1),
+      at2: convertToDecimal(s.at2),
+      at3: convertToDecimal(s.at3),
+      at4: convertToDecimal(s.at4),
+      at5: convertToDecimal(s.at5),
+      makeUp: convertToDecimal(s.makeUp),
+      grade: convertToDecimal(s.grade),
     }
     await numericGradeService.upsertNumericGrade(payload)
     const student = studentList.value?.find((s: any) => s.enrollmentId === payload.enrollmentId)
@@ -378,6 +368,41 @@ async function handleClear(s: StudentGrade) {
     isLoading.value = false
   }
 }
+
+async function registerGrades(itemToSave: RegisteredToSave) {
+  showAlert.value = false;
+  isLoading.value = true;
+
+  try {    
+    console.log('studentList.value', studentList.value)
+
+    itemToSave.isCompleted = gradesAreFilled.value
+    
+    await registeredGradeService.upsertRegisteredGrade(itemToSave);
+    
+    showToast(
+      gradesAreFilled.value
+        ? 'Registro de notas completas finalizado com sucesso!'
+        : 'Registro de notas incompletas finalizado com sucesso!',
+      'top',
+      'success'
+    );
+  } catch (error: any) {
+    console.error('Erro ao registrar notas:', error);
+    showToast('Ocorreu um erro ao finalizar o registro de notas.', 'top', 'danger');
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+
+const computedRegisteredGrade = computed(() => ({
+  isCompleted: registeredToSave.value.isCompleted,
+  teacherId: registeredToSave.value.teacherId,
+  classroomId: eduFProfile.value?.classroomId || '',
+  disciplineId: eduFProfile.value?.disciplineId || '',
+  stageId: currentStage.value?.id || '',
+}))
 
 function compareGrades(oldStudents: StudentGrade[] | undefined, newStudent: StudentGrade) {
   const oldStudent = oldStudents?.find((s) => s.enrollmentId === newStudent.enrollmentId)
@@ -450,7 +475,7 @@ onMounted(async () => {
                       <IonCol size="6">
                         <IonItem lines="none">
                           <Field v-slot="{ field }" name="1ª Atividade" rules="notaValida">
-                            <IonInput v-bind="field" v-model="s.at1" class="input-rounded" title="1ª Atividade"
+                            <IonInput v-bind="field" v-model="s.at1" v-imask="decimalOptions"  class="input-rounded" title="1ª Atividade"
                               label="1ª Atividade" label-placement="floating" placeholder="Digite a nota"
                               :disabled="s.status === 'BLOQUEADO'" @ion-change="compareGrades(oldList, s)" />
                           </Field>
@@ -463,7 +488,7 @@ onMounted(async () => {
                         <!-- Para no mobile uma linha com cada campo mais largo <IonCol size="8" size-md="6">-->
                         <IonItem lines="none">
                           <Field v-slot="{ field }" name="2ª Atividade" rules="notaValida">
-                            <IonInput v-bind="field" v-model="s.at2" class="input-rounded" title="2ª Atividade"
+                            <IonInput v-bind="field" v-model="s.at2" v-imask="decimalOptions" class="input-rounded" title="2ª Atividade"
                               label="2ª Atividade" label-placement="floating" placeholder="Digite a nota"
                               :disabled="s.status === 'BLOQUEADO'" @ion-change="compareGrades(oldList, s)" />
                           </Field>
@@ -479,7 +504,7 @@ onMounted(async () => {
                       <IonCol size="6">
                         <IonItem lines="none">
                           <Field v-slot="{ field }" name="3ª Atividade" rules="notaValida">
-                            <IonInput v-bind="field" v-model="s.at3" class="input-rounded" title="3ª Atividade"
+                            <IonInput v-bind="field" v-model="s.at3" v-imask="decimalOptions" class="input-rounded" title="3ª Atividade"
                               label="3ª Atividade" label-placement="floating" placeholder="Digite a nota"
                               :disabled="s.status === 'BLOQUEADO'" @ion-change="compareGrades(oldList, s)" />
                           </Field>
@@ -491,7 +516,7 @@ onMounted(async () => {
                       <IonCol size="6">
                         <IonItem lines="none">
                           <Field v-slot="{ field }" name="4ª Atividade" rules="notaValida">
-                            <IonInput v-bind="field" v-model="s.at4" class="input-rounded" title="4ª Atividade"
+                            <IonInput v-bind="field" v-model="s.at4" v-imask="decimalOptions" class="input-rounded" title="4ª Atividade"
                               label="4ª Atividade" label-placement="floating" placeholder="Digite a nota"
                               :disabled="s.status === 'BLOQUEADO'" @ion-change="compareGrades(oldList, s)" />
                           </Field>
@@ -507,7 +532,7 @@ onMounted(async () => {
                       <IonCol size="6">
                         <IonItem lines="none">
                           <Field v-slot="{ field }" name="5ª Atividade" rules="notaValida">
-                            <IonInput v-bind="field" v-model="s.at5" class="input-rounded" title="5ª Atividade"
+                            <IonInput v-bind="field" v-model="s.at5" v-imask="decimalOptions" class="input-rounded" title="5ª Atividade"
                               label="5ª Atividade" label-placement="floating" placeholder="Digite a nota"
                               :disabled="s.status === 'BLOQUEADO'" @ion-change="compareGrades(oldList, s)" />
                           </Field>
@@ -519,7 +544,7 @@ onMounted(async () => {
                       <IonCol size="6">
                         <IonItem lines="none">
                           <Field v-slot="{ field }" name="Recuperação Parcial" rules="notaValida">
-                            <IonInput v-bind="field" v-model="s.makeUp" class="input-rounded"
+                            <IonInput v-bind="field" v-model="s.makeUp" v-imask="decimalOptions" class="input-rounded"
                               title="Recuperação Parcial" label="Recuperação Parcial" label-placement="floating"
                               placeholder="Digite a nota" :disabled="s.status === 'BLOQUEADO'"
                               @ion-change="compareGrades(oldList, s)" />
@@ -545,7 +570,7 @@ onMounted(async () => {
                       <IonCol size="6">
                         <IonItem lines="none">
                           <Field v-slot="{ field }" name="2ª Nota: Prova" rules="notaValida">
-                            <IonInput v-bind="field" v-model="s.grade" class="input-rounded" title="2ª Nota: Prova"
+                            <IonInput v-bind="field" v-model="s.grade" v-imask="decimalOptions" class="input-rounded" title="2ª Nota: Prova"
                               label="2ª Nota: Prova" label-placement="floating" placeholder="Digite a nota"
                               :disabled="s.status === 'BLOQUEADO'" @ion-change="compareGrades(oldList, s)" />
                           </Field>
@@ -574,15 +599,6 @@ onMounted(async () => {
                       </IonCol>
                     </IonRow>
                   </IonGrid>
-
-                  <IonAlert :is-open="showFinalizeConfirm" header="Finalizar envio de notas"
-                    message="Tem certeza de que deseja finalizar o envio das notas?" :buttons="[
-                      { text: 'Cancelar', role: 'cancel' },
-                      {
-                        text: 'Confirmar',
-                        handler: handleFinalize
-                      }
-                    ]" @did-dismiss="showFinalizeConfirm = false" css-class="my-custom-alert" />
                 </Form>
               </div>
             </IonAccordion>
@@ -704,6 +720,25 @@ onMounted(async () => {
                     </IonCard>
                   </IonModal>
 
+                  <IonAlert class="custom-alert"
+                    :is-open="showAlert"
+                    :header="gradesAreFilled ? 'Deseja finalizar os registros?' : 'Registros incompletos'"
+                    :subHeader="gradesAreFilled ? '' : 'Deseja finalizar assim mesmo?'"
+                    :buttons="[
+                      {
+                        text: 'Não',
+                        role: 'cancel',
+                        cssClass: 'alert-button-cancel',
+                        handler: () => { showAlert = false },
+                      },
+                      {
+                        text: 'Sim',
+                        cssClass: 'alert-button-confirm',
+                        handler: () => registerGrades(computedRegisteredGrade),
+                      },
+                    ]"
+                  />
+
     <div style="height: 64px;" />
     <template #footer>
       <IonToolbar>
@@ -711,7 +746,7 @@ onMounted(async () => {
           <IonRow>
             <IonCol size="12">
               <IonButton :disabled="isLoading" color="secondary" expand="full"
-                @click="() => showFinalizeConfirm = true">
+                @click="showAlert = true">
                 Finalizar
               </IonButton>
             </IonCol>
