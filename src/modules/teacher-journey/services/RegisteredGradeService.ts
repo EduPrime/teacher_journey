@@ -8,50 +8,40 @@ export default class RegisteredGradeService extends BaseService<RegisteredGrade>
     super(table)
   }
 
-  async getRegisteredGradesByEnrollmentId(enrollmentId: string) {
+  async getRegisteredGradesIsCompletedStatus(teacherId: string | null, classroomId: string, disciplineId: string, stageId: string,) {
     const { data, error } = await this.client
       .from('registeredGrade')
       .select(`
-        *,
-        student:student (disability),
-        classroom:classroom (name),
-        stage:stage (name),
-        discipline:discipline (name),
-        registeredGradeByThematicUnit:registeredGradeByThematicUnit (
-          thematicUnitId,
-          grade,
-          thematicUnit:thematicUnit (name)
-        )
+        isCompleted
       `)
-      .eq('enrollmentId', enrollmentId)
+      .eq('teacherId', teacherId)
+      .eq('classroomId', classroomId)
+      .eq('disciplineId', disciplineId)
+      .eq('stageId', stageId)
 
     if (error) {
-      throw new Error(`Erro ao buscar notas registradas por matrícula: ${error.message}`)
+      throw new Error(`Erro ao buscar validação de preenchimento: ${error.message}`)
     }
-    if (!data) {
-      throw new Error('Nenhuma nota registrada encontrada')
+    return data[0] && data[0].isCompleted ? true : false
+  }
+
+  async updateRegisteredGradeIsCompleted(teacherId: string | null, classroomId: string, disciplineId: string, stageId: string, isCompleted: boolean) {
+    const { data, error } = await this.client
+      .from(table)
+      .update({ isCompleted })
+
+      .eq('teacherId', teacherId)
+      .eq('classroomId', classroomId)
+      .eq('disciplineId', disciplineId)
+      .eq('stageId', stageId)
+
+    if (error) {
+      throw new Error(`Erro ao atualizar o status de conclusão: ${error.message}`)
     }
 
     return data
   }
 
-  // async createRegisteredGrade(registeredGrade: RegisteredToSave) {
-  //   const { data, error } = await this.client
-  //     .from('registeredGrade')
-  //     .insert(registeredGrade)
-  //     .select()
-  //     .single()
-
-  //   if (error) {
-  //     throw new Error(`Erro ao criar nota registrada: ${error.message}`)
-  //   }
-  //   if (!data) {
-  //     throw new Error('Falha ao criar nota registrada')
-  //   }
-
-  //   return data
-
-  // }
   async upsertRegisteredGrade(registeredGrade: RegisteredToSave) {
     const { data, error } = await this.client
       .from('registeredGrade')
