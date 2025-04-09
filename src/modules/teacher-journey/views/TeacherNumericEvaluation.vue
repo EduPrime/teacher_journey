@@ -113,25 +113,16 @@ const getStatusColor = computed(() => (status: string) => {
 })
 
 function computedEvaluationActivity(s: StudentGrade) {
-  const activityValues = [s.at1, s.at2, s.at3, s.at4, s.at5].map(value => value ? Number.parseFloat(value) : 0)
+  const activityValues = [s.at1, s.at2, s.at3, s.at4, s.at5, s.makeUp].map(value => value ? Number.parseFloat(value) : 0)
   return activityValues.reduce((sum, val) => sum + val, 0)
 }
 
-/*function evaluationValidate(s:StudentGrade): boolean {
-  const evaluationValues = [s.at1, s.at2, s.at3, s.at4, s.at5, s.makeUp, s.grade].map(value => Number.parseFloat(value) || 0)
+function computedMean(s: StudentGrade): number {
+  const activityEvaluation = computedEvaluationActivity(s)
+  const grade = parseFloat(s.grade) || 0
 
-  console.log('evaluationValues dentro da função', evaluationValues)
-
-  for (const evaluation of evaluationValues) {
-    console.log('evaluation', evaluation)
-
-    if (Number.isNaN(evaluation) || evaluation < 0 || evaluation > 10) {
-      console.log('entrou')
-      return false
-    }
-  }
-  return true
-}*/
+  return (activityEvaluation + grade)/2
+}
 
 function evaluationValidate(s: StudentGrade): boolean {
   const evaluationFields = [
@@ -168,7 +159,7 @@ function evaluationValidate(s: StudentGrade): boolean {
   return true
 }
 
-function computedMeanWithMakeUp(s: StudentGrade): number {
+/*function computedMeanWithMakeUp(s: StudentGrade): number {
   const activityEvaluation = computedEvaluationActivity(s)
   const exam2Evaluation = parseFloat(s.grade || '0')
   const makeUpEvaluation = parseFloat(s.makeUp || '0')
@@ -179,7 +170,7 @@ function computedMeanWithMakeUp(s: StudentGrade): number {
   if (makeUpEvaluation > minorEvaluation) return (makeUpEvaluation + hightestEvaluation) / 2
 
   return (activityEvaluation + exam2Evaluation) / 2
-}
+}*/
 
 function calculateStatus(s: StudentGrade, grade: any): string {
   if (s.situation !== 'CURSANDO') {
@@ -451,15 +442,15 @@ onMounted(async () => {
                     {{ s.name }}
                   </IonText>
                   <IonChip v-if="checkMinimalActivities(s) && checkMinimalGrade(s)" mode="md" color="secondary" :style="{
-                    background: computedMeanWithMakeUp(s) >= 7
+                    background: computedMean(s) >= 7
                       ? 'rgba(56, 142, 60, 0.15)'
                       : 'rgba(79, 41, 116, 0.1)',
-                    color: computedMeanWithMakeUp(s) >= 7
+                    color: computedMean(s) >= 7
                       ? '#388E3C'
                       : '#4F2974',
                     fontWeight: 'bold'
                   }">
-                    Média: {{ computedMeanWithMakeUp(s).toFixed(1) }}
+                    Média: {{ computedMean(s).toFixed(1) }}
                   </IonChip>
                   <IonChip v-if="!s.disability && s.situation === 'CURSANDO'" class="ion-no-margin"
                     style="margin: auto 0 auto auto;" :style="s.situation === 'CURSANDO' ? 'margin-right: 0px;' : ''"
