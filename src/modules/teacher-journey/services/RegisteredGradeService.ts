@@ -1,6 +1,6 @@
 import type { RegisteredGrade } from '@prisma/client'
-import BaseService from '@/services/BaseService'
 import type { RegisteredToSave } from '../types/types'
+import BaseService from '@/services/BaseService'
 
 const table = 'registeredGrade' as const
 export default class RegisteredGradeService extends BaseService<RegisteredGrade> {
@@ -52,6 +52,28 @@ export default class RegisteredGradeService extends BaseService<RegisteredGrade>
   //   return data
 
   // }
+
+  async getRegistered(classroomId: string, disciplineId: string, stageId: string) {
+    if (stageId) {
+      const { data, error } = await this.client
+        .from('registeredGrade')
+        .select(`*`)
+        .eq('classroomId', classroomId)
+        .eq('disciplineId', disciplineId)
+        .eq('stageId', stageId)
+        .is('deletedAt', null)
+
+      if (error) {
+        throw new Error(`Erro ao buscar registro de notas finalizadas: ${error.message}`)
+      }
+      if (!data) {
+        throw new Error('Nenhum registro finalizado encontrado')
+      }
+
+      return data
+    }
+  }
+
   async upsertRegisteredGrade(registeredGrade: RegisteredToSave) {
     const { data, error } = await this.client
       .from('registeredGrade')
@@ -59,9 +81,6 @@ export default class RegisteredGradeService extends BaseService<RegisteredGrade>
 
     if (error) {
       throw new Error(`Erro ao criar ou atualizar nota registrada: ${error.message}`)
-    }
-    if (!data) {
-      throw new Error('Falha ao criar ou atualizar nota registrada')
     }
 
     return data

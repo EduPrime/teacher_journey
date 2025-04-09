@@ -30,6 +30,7 @@ const studentList = ref<MountedStudent[]>()
 const oldList = ref<MountedStudent[]>()
 const isLoading = ref(false)
 const showAlert = ref(false)
+let isGradesFilled = ref(false)
 const registeredToSave = ref<RegisteredToSave>({
   isCompleted: false,
   teacherId: localStorage.getItem('teacherId'),
@@ -37,31 +38,6 @@ const registeredToSave = ref<RegisteredToSave>({
   disciplineId: '',
   stageId: '',
 })
-
-const registroToDelete = ref<string | null>(null)
-
-async function softDeleteDataContent(id: string): Promise<void> {
-  registroToDelete.value = id
-  showAlert.value = true
-}
-
-async function confirmDeleteContent() {
-  if (registroToDelete.value) {
-    try {
-      const userId = JSON.parse(localStorage.getItem('userLocal') || '{}').id || ''
-      await conceptualGradeService.softDeleteConceptualGrade(registroToDelete.value)
-      studentList.value = studentList.value?.filter(student => student.conceptualGradeId !== registroToDelete.value)
-      showToast('Nota conceitual deletada com sucesso', 'top', 'success')
-    }
-    catch (error: unknown | any) {
-      console.error('Erro ao deletar a nota conceitual:', error.message)
-    }
-    finally {
-      registroToDelete.value = null
-      showAlert.value = false
-    }
-  }
-}
 
 // Watcher que observa o filtro e o calendário para montar a listagem de alunos
 watch(eduFProfile, async (newValue) => {
@@ -139,6 +115,7 @@ async function saveGrades(oldGrades: Grades[], student: MountedStudent) {
       student.isCleansed = false
       student.isFull = false
       updateOldGrades(oldGrades, student.grades)
+      showToast('Notas limpas com sucesso', 'top', 'success')
     }
     catch (error) {
       console.error(error)
@@ -157,9 +134,11 @@ async function saveGrades(oldGrades: Grades[], student: MountedStudent) {
         if (isNotEmpty) {
           student.status = 'CONCLUÍDO'
           student.isFull = true
+          showToast('Notas salvas com sucesso', 'top', 'success')
         }
         else {
           student.status = 'INCOMPLETO'
+          showToast('Notas salvas com sucesso', 'top', 'success')
         }
         updateOldGrades(oldGrades, student.grades)
       }
@@ -169,9 +148,11 @@ async function saveGrades(oldGrades: Grades[], student: MountedStudent) {
         if (isNotEmpty) {
           student.status = 'CONCLUÍDO'
           student.isFull = true
+          showToast('Notas salvas com sucesso', 'top', 'success')
         }
         else {
           student.status = 'INCOMPLETO'
+          showToast('Notas salvas com sucesso', 'top', 'success')
         }
       }
     }
@@ -194,18 +175,31 @@ function cleanGrades(student: MountedStudent) {
     student.status = 'INCOMPLETO'
   }
 }
+
 function preRegisterGrades() {
-  
+  showAlert.value = true
+  isGradesFilled.value = studentList.value?.every(item => item.situation !== 'CURSANDO' || item.grades.every(tu => tu.grade)) ?? false
 }
-async function registerGrades(itemToSave: RegisteredToSave) {
-  const isGradesFilled = studentList.value?.every(item => item.situation !== 'CURSANDO' || item.grades.every(tu => tu.grade))
-  if (isGradesFilled) {
-    itemToSave.isCompleted = true
-    await registeredGradeService.upsertRegisteredGrade(itemToSave)
-  }
-  else {
-    itemToSave.isCompleted = false
-    await registeredGradeService.upsertRegisteredGrade(itemToSave)
+
+function registerGrades(itemToSave: RegisteredToSave) {
+  showAlert.value = false
+  isLoading.value = true
+  try {
+    isGradesFilled.value = studentList.value?.every(item => item.situation !== 'CURSANDO' || item.grades.every(tu => tu.grade)) ?? false
+    if (isGradesFilled.value) {
+      itemToSave.isCompleted = true
+      registeredGradeService.upsertRegisteredGrade(itemToSave)
+      showToast('Registro de notas completas finalizado com sucesso!', 'top', 'success')
+    } else {
+      itemToSave.isCompleted = false
+      registeredGradeService.upsertRegisteredGrade(itemToSave)
+      showToast('Registro de notas incompletas finalizado com sucesso!', 'top', 'success')
+    }
+  } catch (error) {
+    console.error('Erro ao registrar notas:', error)
+    showToast('Ocorreu um erro ao finalizar o registro de notas.', 'top', 'danger')
+  } finally {
+    isLoading.value = false
   }
 }
 
@@ -409,20 +403,30 @@ const getStatusColor = computed(() => (status: string) => {
       </IonCard>
     </IonModal>
 
-    <IonAlert
+    <IonAlert class="custom-alert"
       :is-open="showAlert"
-      header="Há registros incompletos! Deseja finalizar assim mesmo?"
+      :header="isGradesFilled ? 'Deseja finalizar os registros?' : 'Registros incompletos'"
+      :subHeader="isGradesFilled ? '' : 'Deseja finalizar assim mesmo?'"
       :buttons="[
         {
           text: 'Não',
           role: 'cancel',
+          cssClass: 'alert-button-cancel',
           handler: () => { showAlert = false },
         },
         {
           text: 'Sim',
-          handler: confirmDeleteContent,
+          cssClass: 'alert-button-confirm',
+          handler: () => registerGrades(computedRegisteredGrade),
         },
       ]"
+    />
+
+    <IonLoading
+      :is-open="isLoading"
+      message="Finalizando..."
+      spinner="crescent"
+      class="custom-save-loading"
     />
 
     <div style="height: 64px;" />
@@ -433,7 +437,7 @@ const getStatusColor = computed(() => (status: string) => {
             <IonCol size="12">
               <IonButton
                 :disabled="isLoading || !eduFProfile?.disciplineId" color="secondary" expand="full"
-                @click="!showAlert"
+                @click="preRegisterGrades"
               >
                 Finalizar
               </IonButton>
@@ -581,12 +585,13 @@ ion-modal#cancel-modal .wrapper {
     align-items: start;
     font-size: 15px;
   }
+}
 
-  ion-loading.custom-save-loading {
+ion-loading.custom-save-loading {
     --background: #e3edff;
     --spinner-color: var(--ion-color-warning);
 
     color: var(--ion-color-info);
-  }
 }
+
 </style>
