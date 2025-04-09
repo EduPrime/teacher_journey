@@ -113,13 +113,15 @@ const getStatusColor = computed(() => (status: string) => {
 })
 
 function computedEvaluationActivity(s: StudentGrade) {
-  const activityValues = [s.at1, s.at2, s.at3, s.at4, s.at5, s.makeUp].map(value => value ? Number.parseFloat(value) : 0)
+  const activityValues = [s.at1, s.at2, s.at3, s.at4, s.at5, s.makeUp].map(value => {
+    return value ? Number.parseFloat(String(value).replace(',', '.')) : 0;
+  })
   return activityValues.reduce((sum, val) => sum + val, 0)
 }
 
 function computedMean(s: StudentGrade): number {
   const activityEvaluation = computedEvaluationActivity(s)
-  const grade = parseFloat(s.grade) || 0
+  const grade = Number.parseFloat(String(s.grade).replace(',', '.')) || 0
 
   return (activityEvaluation + grade)/2
 }
@@ -229,13 +231,13 @@ watch([eduFProfile, currentStage], async ([newEduFProfile, newCurrentStage]) => 
         situation: i.situation,
         disability: i.student.disability,
         teacherId: newEduFProfile.teacherId,
-        at1: studentNumeric?.at1 || '',
-        at2: studentNumeric?.at2 || '',
-        at3: studentNumeric?.at3 || '',
-        at4: studentNumeric?.at4 || '',
-        at5: studentNumeric?.at5 || '',
-        makeUp: studentNumeric?.makeUp || '',
-        grade: studentNumeric?.grade || '',
+        at1: studentNumeric?.at1 ? (Number(studentNumeric.at1).toFixed(2)).replace('.', ',') : '',
+        at2: studentNumeric?.at2 ? (Number(studentNumeric.at2).toFixed(2)).replace('.', ',') : '',
+        at3: studentNumeric?.at3 ? (Number(studentNumeric.at3).toFixed(2)).replace('.', ',') : '',
+        at4: studentNumeric?.at4 ? (Number(studentNumeric.at4).toFixed(2)).replace('.', ',') : '',
+        at5: studentNumeric?.at5 ? (Number(studentNumeric.at5).toFixed(2)).replace('.', ',') : '',
+        makeUp: studentNumeric?.makeUp ? (Number(studentNumeric.makeUp).toFixed(2)).replace('.', ',') : '',
+        grade: studentNumeric?.grade ? (Number(studentNumeric.grade).toFixed(2)).replace('.', ',') : '',
       }
     })
     oldList.value = JSON.parse(JSON.stringify(studentList.value))
