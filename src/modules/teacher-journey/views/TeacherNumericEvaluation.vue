@@ -17,14 +17,18 @@ import NumericGradeSevice from '../services/NumericGradeService'
 import StageService from '../services/StageService'
 import RegisteredGradeService from '../services/RegisteredGradeService'
 
-
 const decimalOptions = {
   mask: Number,
+  thousandsSeparator: '',
   radix: ',',
   scale: 2,
   padFractionalZeros: true,
   normalizeZeros: false,
   lazy: false,
+  mapToRadix: ['.'],
+  prepare: (str: string) => {
+    return str.replace('.', ',').replace(/[^\d,]/g, '');
+  }
 }
 
 const enrollmentService = new EnrollmentService()
