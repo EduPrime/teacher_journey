@@ -71,7 +71,7 @@ watch((currentStage), async (newValue) => {
 
 onMounted(async () => {
   stages.value = await stageService.getAllStages()
-  console.log(stages.value)
+  // console.log(stages.value)
 })
 
 async function saveGrades(student: MountedStudent) {
@@ -307,8 +307,8 @@ const getStatusColor = computed(() => (status: string) => {
                                 s.isCleansed = false
                               }">
                               <IonSelectOption v-for="conceptualType in conceptualTypes" :key="conceptualType.index"
-                                :value="conceptualType.rotulo">
-                                {{ conceptualType.rotulo }}
+                                :value="conceptualType">
+                                {{ conceptualType }}
                               </IonSelectOption>
                             </IonSelect>
                           </IonCol>
