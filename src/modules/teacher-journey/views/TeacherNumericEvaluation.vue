@@ -43,7 +43,6 @@ const eduFProfile = ref()
 const currentStage = ref()
 const students = ref()
 const showFinalizeConfirm = ref(false)
-const stageFinished = ref()
 const numericStudentList = ref()
 const isLoading = ref(false)
 const currentStudentToSave = ref<StudentGrade | null>(null)
@@ -63,6 +62,7 @@ const registeredToSave = ref<RegisteredToSave>({
   disciplineId: '',
   stageId: '',
 })
+const stageFinished = ref<RegisteredToSave[]>()
 
 /* interface FormContext {
   errors: Record<string, string>;
@@ -447,7 +447,7 @@ onMounted(async () => {
     <div v-if="eduFProfile?.classroomId && eduFProfile?.disciplineId">
       <EduStageTabs v-model="currentStage" :stages="stages">
         <template v-for="stage in stages" :key="stage" #[stage.numberStage]>
-          <IonCard v-if="stageFinished" :color="stageFinished[0].isCompleted ? 'success' : 'info'">
+          <IonCard v-if="stageFinished.length > 0" color="success">
             <IonCardContent>
               <IonText v-if="stageFinished[0].isCompleted" style="display: flex;">
                 <IonIcon size="small" style="margin-top: auto; margin-bottom: auto;" :icon="checkmarkCircleOutline" />
