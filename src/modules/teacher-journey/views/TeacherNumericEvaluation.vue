@@ -114,25 +114,18 @@ const getStatusColor = computed(() => (status: string) => {
 })
 
 function computedEvaluationActivity(s: StudentGrade) {
-  const activityValues = [s.at1, s.at2, s.at3, s.at4, s.at5].map(value => value ? Number.parseFloat(value) : 0)
+  const activityValues = [s.at1, s.at2, s.at3, s.at4, s.at5, s.makeUp].map((value) => {
+    return value ? Number.parseFloat(String(value).replace(',', '.')) : 0
+  })
   return activityValues.reduce((sum, val) => sum + val, 0)
 }
 
-/* function evaluationValidate(s:StudentGrade): boolean {
-  const evaluationValues = [s.at1, s.at2, s.at3, s.at4, s.at5, s.makeUp, s.grade].map(value => Number.parseFloat(value) || 0)
+function computedMean(s: StudentGrade): number {
+  const activityEvaluation = computedEvaluationActivity(s)
+  const grade = Number.parseFloat(String(s.grade).replace(',', '.')) || 0
 
-  console.log('evaluationValues dentro da função', evaluationValues)
-
-  for (const evaluation of evaluationValues) {
-    console.log('evaluation', evaluation)
-
-    if (Number.isNaN(evaluation) || evaluation < 0 || evaluation > 10) {
-      console.log('entrou')
-      return false
-    }
-  }
-  return true
-} */
+  return (activityEvaluation + grade) / 2
+}
 
 function evaluationValidate(s: StudentGrade): boolean {
   const evaluationFields = [
@@ -170,7 +163,7 @@ function evaluationValidate(s: StudentGrade): boolean {
   return true
 }
 
-function computedMeanWithMakeUp(s: StudentGrade): number {
+/* function computedMeanWithMakeUp(s: StudentGrade): number {
   const activityEvaluation = computedEvaluationActivity(s)
   const exam2Evaluation = Number.parseFloat(s.grade || '0')
   const makeUpEvaluation = Number.parseFloat(s.makeUp || '0')
@@ -182,7 +175,7 @@ function computedMeanWithMakeUp(s: StudentGrade): number {
     return (makeUpEvaluation + hightestEvaluation) / 2
 
   return (activityEvaluation + exam2Evaluation) / 2
-}
+} */
 
 function calculateStatus(s: StudentGrade, grade: any): string {
   if (s.situation !== 'CURSANDO') {
@@ -245,13 +238,13 @@ watch([eduFProfile, currentStage], async ([newEduFProfile, newCurrentStage]) => 
         situation: i.situation,
         disability: i.student.disability,
         teacherId: newEduFProfile.teacherId,
-        at1: studentNumeric?.at1 || '',
-        at2: studentNumeric?.at2 || '',
-        at3: studentNumeric?.at3 || '',
-        at4: studentNumeric?.at4 || '',
-        at5: studentNumeric?.at5 || '',
-        makeUp: studentNumeric?.makeUp || '',
-        grade: studentNumeric?.grade || '',
+        at1: studentNumeric?.at1 ? (Number(studentNumeric.at1).toFixed(2)).replace('.', ',') : '',
+        at2: studentNumeric?.at2 ? (Number(studentNumeric.at2).toFixed(2)).replace('.', ',') : '',
+        at3: studentNumeric?.at3 ? (Number(studentNumeric.at3).toFixed(2)).replace('.', ',') : '',
+        at4: studentNumeric?.at4 ? (Number(studentNumeric.at4).toFixed(2)).replace('.', ',') : '',
+        at5: studentNumeric?.at5 ? (Number(studentNumeric.at5).toFixed(2)).replace('.', ',') : '',
+        makeUp: studentNumeric?.makeUp ? (Number(studentNumeric.makeUp).toFixed(2)).replace('.', ',') : '',
+        grade: studentNumeric?.grade ? (Number(studentNumeric.grade).toFixed(2)).replace('.', ',') : '',
       }
     })
     oldList.value = JSON.parse(JSON.stringify(studentList.value))
@@ -476,16 +469,16 @@ onMounted(async () => {
                   </IonText>
                   <IonChip
                     v-if="checkMinimalActivities(s) && checkMinimalGrade(s)" mode="md" color="secondary" :style="{
-                      background: computedMeanWithMakeUp(s) >= 7
+                      background: computedMean(s) >= 7
                         ? 'rgba(56, 142, 60, 0.15)'
                         : 'rgba(79, 41, 116, 0.1)',
-                      color: computedMeanWithMakeUp(s) >= 7
+                      color: computedMean(s) >= 7
                         ? '#388E3C'
                         : '#4F2974',
                       fontWeight: 'bold',
                     }"
                   >
-                    Média: {{ computedMeanWithMakeUp(s).toFixed(1) }}
+                    Média: {{ computedMean(s).toFixed(1) }}
                   </IonChip>
                   <IonChip
                     v-if="!s.disability && s.situation === 'CURSANDO'" class="ion-no-margin"
