@@ -3,8 +3,8 @@ import type { ConceptualToSave, Grades, MountedStudent, RegisteredToSave, Update
 import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
 
-import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol, IonGrid, IonIcon, IonItem, IonItemGroup, IonLabel, IonLoading, IonModal, IonRadio, IonRadioGroup, IonRow, IonSegment, IonSegmentButton, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
-import { alertOutline, apps, checkmarkCircleOutline, checkmarkOutline, helpOutline, lockClosedOutline, text } from 'ionicons/icons'
+import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol, IonGrid, IonIcon, IonItem, IonItemGroup, IonLabel, IonLoading, IonModal, IonRadio, IonRadioGroup, IonRow, IonSegment, IonAlert, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
+import { alertOutline, apps, checkmarkCircleOutline, checkmarkOutline, helpOutline, lockClosedOutline, text, warningOutline } from 'ionicons/icons'
 import { computed, onMounted, onUpdated, ref, watch } from 'vue'
 import EduStageTabs from '../components/StageTabs.vue'
 import ConceptualGradeService from '../services/ConceptualGradeService'
@@ -12,6 +12,7 @@ import EnrollmentService from '../services/EnrollmentService'
 import EvaluationRuleService from '../services/EvaluationRuleService'
 import RegisteredGradeService from '../services/RegisteredGradeService'
 import StageService from '../services/StageService'
+import showToast from '@/utils/toast-alert'
 
 const stageService = new StageService()
 const evaluationRuleService = new EvaluationRuleService()
@@ -28,6 +29,11 @@ const conceptualTypes = ref()
 const studentList = ref<MountedStudent[]>()
 const oldList = ref<MountedStudent[]>()
 const isLoading = ref(false)
+const isLoadingWarning = ref(true)
+const isWarningInformation = ref(null)
+const showAlert = ref(false)
+let isGradesFilled = ref(false)
+let diffDays = ref(0)
 const registeredToSave = ref<RegisteredToSave>({
   isCompleted: false,
   teacherId: localStorage.getItem('teacherId'),
@@ -39,6 +45,7 @@ const registeredToSave = ref<RegisteredToSave>({
 // Watcher que observa o filtro e o calendário para montar a listagem de alunos
 watch(eduFProfile, async (newValue) => {
   if (newValue && newValue?.disciplineId) {
+    conceptualTypes.value = await evaluationRuleService.getConceptualGradesTypes(newValue.courseIds)
     studentList.value = await enrollmentService.getClassroomConceptualGrades(
       newValue.classroomId,
       newValue.schoolId,
@@ -46,8 +53,6 @@ watch(eduFProfile, async (newValue) => {
       currentStage.value.id,
       newValue.seriesId,
     )
-    conceptualTypes.value = await evaluationRuleService.getConceptualGradesTypes(newValue.courseIds)
-    console.log('conceptualTypes', conceptualTypes.value)
     oldList.value = JSON.parse(JSON.stringify(studentList.value))
   }
   else {
@@ -58,7 +63,7 @@ watch(eduFProfile, async (newValue) => {
 
 watch((currentStage), async (newValue) => {
   if (newValue && eduFProfile.value.disciplineId) {
-    console.log('currentStage', currentStage)
+    conceptualTypes.value = await evaluationRuleService.getConceptualGradesTypes(eduFProfile.value.courseIds)
     studentList.value = await enrollmentService.getClassroomConceptualGrades(
       eduFProfile.value.classroomId,
       eduFProfile.value.schoolId,
@@ -112,6 +117,7 @@ async function saveGrades(oldGrades: Grades[], student: MountedStudent) {
       student.isCleansed = false
       student.isFull = false
       updateOldGrades(oldGrades, student.grades)
+      showToast('Notas limpas com sucesso', 'top', 'success')
     }
     catch (error) {
       console.error(error)
@@ -130,9 +136,11 @@ async function saveGrades(oldGrades: Grades[], student: MountedStudent) {
         if (isNotEmpty) {
           student.status = 'CONCLUÍDO'
           student.isFull = true
+          showToast('Notas salvas com sucesso', 'top', 'success')
         }
         else {
           student.status = 'INCOMPLETO'
+          showToast('Notas salvas com sucesso', 'top', 'success')
         }
         updateOldGrades(oldGrades, student.grades)
       }
@@ -142,9 +150,11 @@ async function saveGrades(oldGrades: Grades[], student: MountedStudent) {
         if (isNotEmpty) {
           student.status = 'CONCLUÍDO'
           student.isFull = true
+          showToast('Notas salvas com sucesso', 'top', 'success')
         }
         else {
           student.status = 'INCOMPLETO'
+          showToast('Notas salvas com sucesso', 'top', 'success')
         }
       }
     }
@@ -168,15 +178,30 @@ function cleanGrades(student: MountedStudent) {
   }
 }
 
-async function registerGrades(itemToSave: RegisteredToSave) {
-  const isGradesFilled = studentList.value?.every(item => item.situation !== 'CURSANDO' || item.grades.every(tu => tu.grade))
-  if (isGradesFilled) {
-    itemToSave.isCompleted = true
-    await registeredGradeService.upsertRegisteredGrade(itemToSave)
-  }
-  else {
-    itemToSave.isCompleted = false
-    await registeredGradeService.upsertRegisteredGrade(itemToSave)
+function preRegisterGrades() {
+  showAlert.value = true
+  isGradesFilled.value = studentList.value?.every(item => item.situation !== 'CURSANDO' || item.grades.every(tu => tu.grade)) ?? false
+}
+
+function registerGrades(itemToSave: RegisteredToSave) {
+  showAlert.value = false
+  isLoading.value = true
+  try {
+    isGradesFilled.value = studentList.value?.every(item => item.situation !== 'CURSANDO' || item.grades.every(tu => tu.grade)) ?? false
+    if (isGradesFilled.value) {
+      itemToSave.isCompleted = true
+      registeredGradeService.upsertRegisteredGrade(itemToSave)
+      showToast('Registro de notas completas finalizado com sucesso!', 'top', 'success')
+    } else {
+      itemToSave.isCompleted = false
+      registeredGradeService.upsertRegisteredGrade(itemToSave)
+      showToast('Registro de notas incompletas finalizado com sucesso!', 'top', 'success')
+    }
+  } catch (error) {
+    console.error('Erro ao registrar notas:', error)
+    showToast('Ocorreu um erro ao finalizar o registro de notas.', 'top', 'danger')
+  } finally {
+    isLoading.value = false
   }
 }
 
@@ -187,6 +212,17 @@ const computedRegisteredGrade = computed(() => ({
   disciplineId: eduFProfile.value?.disciplineId || '',
   stageId: currentStage.value?.id || '',
 }))
+
+const deadline = computed(() => {
+  const currentDate = new Date()
+  const deadlineDate = new Date(currentStage.value?.endDate)
+  if (isNaN(deadlineDate.getTime())) {
+    return false
+  }
+  const diffTime = Math.abs(deadlineDate.getTime() - currentDate.getTime())
+  diffDays.value = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  return diffDays.value <= 10
+})
 
 const getStatusIcon = computed(() => (status: string) => {
   switch (status) {
@@ -225,9 +261,34 @@ const getStatusColor = computed(() => (status: string) => {
       </IonText>
     </h3>
 
-    <div v-if="eduFProfile?.classroomId && eduFProfile?.disciplineId && stages">
+    <div v-if="eduFProfile?.classroomId && eduFProfile?.disciplineId">
       <EduStageTabs v-model="currentStage" :stages="stages">
         <template v-for="stage in stages" :key="stage" #[stage?.numberStage]>
+            <div v-if="diffDays <= 10 && registeredToSave.isCompleted" class="warning-close-information">
+            {{ stage }}
+            <div class="title">
+              Registro irregular
+            </div>
+            <div class="text">
+              <IonIcon :icon="warningOutline" size="large" />
+              <div>
+                Olá professor, o prazo de preenchimento se encerra em {{ diffDays }} {{ diffDays === 1 ? 'dia' : 'dias' }}, caso haja pendência será necessária entrar em contato com a secretaria.
+              </div>
+            </div>
+          </div>
+          <div v-else class="warning-close-information">
+            {{diffDays <= 10 }}
+            {{registeredToSave.isCompleted}}
+            <div class="title">
+              Registro irregular
+            </div>
+            <div class="text">
+              <IonIcon :icon="warningOutline" size="large" />
+              <div>
+                Olá professor, o prazo de preenchimento se encerra em {{ diffDays }} {{ diffDays === 1 ? 'dia' : 'dias' }}, caso haja pendência será necessária entrar em contato com a secretaria.
+              </div>
+            </div>
+          </div>
           <div v-if="studentList && studentList.length > 0" style="padding: 1px; margin-top: -10px;">
             <IonAccordionGroup expand="inset">
               <IonAccordion v-for="(s, i) in studentList" :key="i" :value="`${i}`" class="no-border-accordion">
@@ -377,6 +438,32 @@ const getStatusColor = computed(() => (status: string) => {
       </IonCard>
     </IonModal>
 
+    <IonAlert class="custom-alert"
+      :is-open="showAlert"
+      :header="isGradesFilled ? 'Deseja finalizar os registros?' : 'Registros incompletos'"
+      :subHeader="isGradesFilled ? '' : 'Deseja finalizar assim mesmo?'"
+      :buttons="[
+        {
+          text: 'Não',
+          role: 'cancel',
+          cssClass: 'alert-button-cancel',
+          handler: () => { showAlert = false },
+        },
+        {
+          text: 'Sim',
+          cssClass: 'alert-button-confirm',
+          handler: () => registerGrades(computedRegisteredGrade),
+        },
+      ]"
+    />
+
+    <IonLoading
+      :is-open="isLoading"
+      message="Finalizando..."
+      spinner="crescent"
+      class="custom-save-loading"
+    />
+
     <div style="height: 64px;" />
     <template #footer>
       <IonToolbar>
@@ -385,7 +472,7 @@ const getStatusColor = computed(() => (status: string) => {
             <IonCol size="12">
               <IonButton
                 :disabled="isLoading || !eduFProfile?.disciplineId" color="secondary" expand="full"
-                @click="registerGrades(computedRegisteredGrade)"
+                @click="preRegisterGrades"
               >
                 Finalizar
               </IonButton>
@@ -475,70 +562,43 @@ ion-modal#cancel-modal .wrapper {
   margin-bottom: 10px;
 }
 
-.warning-close-date {
-  margin-top: 5px;
-  margin-bottom: 5px;
+.warning-close-information {
+  margin-top: 0px;
+  margin-bottom: 0px;
   background-color: #F5C228E6;
   color: #000000B3;
-  padding: 6px 6px 6px 6px;
+  padding: 15px 18px 16px 6px;
   border-radius: 3px;
-  margin-left: 10px;
-  margin-right: 10px;
 
   .title {
     font-size: 17px;
+    word-spacing: -2px;
     font-weight: 600;
-    padding-left: 34px;
+    padding: 0px 0px 8px 22px;
   }
 
   .text {
     ion-icon {
-      width: 30px;
+      width: 45px;
       margin-right: 5px;
-      margin-top: -18px;
+      margin-top: -3px;
     }
 
-    font-weight: 300;
     display: flex;
+    font-weight: 300;
+    text-align: justify;
+    word-spacing: -1px;
+    letter-spacing: -1px;
     align-items: start;
-    font-size: 15px;
+    font-size: 14px;
   }
 }
 
-.success-close-date {
-  margin-top: 5px;
-  margin-bottom: 5px;
-  background-color: var(--ion-color-success-shade);
-  color: #000000B3;
-  padding: 6px 6px 6px 6px;
-  border-radius: 3px;
-  margin-left: 10px;
-  margin-right: 10px;
-
-  .title {
-    font-size: 17px;
-    font-weight: 600;
-    padding-left: 34px;
-  }
-
-  .text {
-    ion-icon {
-      width: 30px;
-      margin-right: 5px;
-      margin-top: -18px;
-    }
-
-    font-weight: 300;
-    display: flex;
-    align-items: start;
-    font-size: 15px;
-  }
-
-  ion-loading.custom-save-loading {
+ion-loading.custom-save-loading {
     --background: #e3edff;
     --spinner-color: var(--ion-color-warning);
 
     color: var(--ion-color-info);
-  }
 }
+
 </style>
