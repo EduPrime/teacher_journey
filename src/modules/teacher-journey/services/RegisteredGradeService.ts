@@ -46,6 +46,23 @@ export default class RegisteredGradeService extends BaseService<RegisteredGrade>
       return data[0]
     }
   }
+  
+  async updateRegisteredGradeIsCompleted(teacherId: string | null, classroomId: string, disciplineId: string, stageId: string, isCompleted: boolean) {
+    const { data, error } = await this.client
+      .from(table)
+      .update({ isCompleted })
+ 
+      .eq('teacherId', teacherId)
+      .eq('classroomId', classroomId)
+      .eq('disciplineId', disciplineId)
+      .eq('stageId', stageId)
+ 
+    if (error) {
+      throw new Error(`Erro ao atualizar o status de conclusão: ${error.message}`)
+    }
+ 
+    return data
+  }
 
   async upsertRegisteredGrade(registeredGrade: RegisteredToSave) {
     const { data, error } = await this.client
