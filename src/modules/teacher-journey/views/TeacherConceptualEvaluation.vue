@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import type { ConceptualToSave, Grades, MountedStudent, RegisteredToSave, UpdatedGrades } from '../types/types'
+import type { MountedStudent, RegisteredToSave } from '../types/types'
 import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
 
-import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol, IonGrid, IonIcon, IonItem, IonItemGroup, IonLabel, IonLoading, IonModal, IonRadio, IonRadioGroup, IonRow, IonSegment, IonAlert, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
-import { alertOutline, apps, checkmarkCircleOutline, checkmarkOutline, helpOutline, lockClosedOutline, text } from 'ionicons/icons'
-import { computed, onMounted, onUpdated, ref, watch } from 'vue'
+import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol, IonGrid, IonIcon, IonItem, IonLabel, IonLoading, IonModal, IonRow, IonAlert, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
+import { alertOutline, apps, checkmarkOutline, helpOutline, lockClosedOutline, text, warningOutline } from 'ionicons/icons'
+import { computed, onMounted, ref, watch } from 'vue'
 import EduStageTabs from '../components/StageTabs.vue'
 import ConceptualGradeService from '../services/ConceptualGradeService'
 import EnrollmentService from '../services/EnrollmentService'
@@ -26,14 +26,14 @@ const stages = ref()
 const eduFProfile = ref()
 const currentStage = ref()
 const conceptualTypes = ref()
-const studentList = ref<MountedStudent[]>()
-const oldList = ref<MountedStudent[]>()
 const isLoading = ref(false)
 const showAlert = ref(false)
 let isGradesFilled = ref(false)
+let diffDays = 0
+const studentList = ref<MountedStudent[]>()
+const teacherId = ref(localStorage.getItem('teacherId'))
 const registeredToSave = ref<RegisteredToSave>({
   isCompleted: false,
-  teacherId: localStorage.getItem('teacherId'),
   classroomId: '',
   disciplineId: '',
   stageId: '',
@@ -43,6 +43,7 @@ const registeredToSave = ref<RegisteredToSave>({
 watch(eduFProfile, async (newValue) => {
   if (newValue && newValue?.disciplineId) {
     conceptualTypes.value = await evaluationRuleService.getConceptualGradesTypes(newValue.courseIds)
+    registeredToSave.value.isCompleted = await registeredGradeService.getRegisteredGradesIsCompletedStatus(teacherId.value, newValue?.classroomId, newValue.disciplineId, currentStage.value?.id)
     studentList.value = await enrollmentService.getClassroomConceptualGrades(
       newValue.classroomId,
       newValue.schoolId,
@@ -50,18 +51,16 @@ watch(eduFProfile, async (newValue) => {
       currentStage.value.id,
       newValue.seriesId,
     )
-
-    oldList.value = JSON.parse(JSON.stringify(studentList.value))
   }
   else {
     studentList.value = undefined
-    oldList.value = undefined
   }
 })
 
 watch((currentStage), async (newValue) => {
   if (newValue && eduFProfile.value.disciplineId) {
     conceptualTypes.value = await evaluationRuleService.getConceptualGradesTypes(eduFProfile.value.courseIds)
+    registeredToSave.value.isCompleted = await registeredGradeService.getRegisteredGradesIsCompletedStatus(teacherId.value, eduFProfile.value.classroomId, eduFProfile.value.disciplineId, newValue.id)
     studentList.value = await enrollmentService.getClassroomConceptualGrades(
       eduFProfile.value.classroomId,
       eduFProfile.value.schoolId,
@@ -69,111 +68,71 @@ watch((currentStage), async (newValue) => {
       newValue.id,
       eduFProfile.value.seriesId,
     )
-    oldList.value = JSON.parse(JSON.stringify(studentList.value))
-    console.log('studentList, watch', studentList.value)
   }
 })
 
 onMounted(async () => {
   stages.value = await stageService.getAllStages()
-  console.log(stages.value)
+  // console.log(stages.value)
 })
 
-function updateOldGrades(oldGrades: Grades[], newGrades: Grades[]) {
-  oldGrades.forEach((oldGrade) => {
-    const newGrade = newGrades.find(grade => grade.thematicUnitId === oldGrade.thematicUnitId)
-    if (newGrade) {
-      oldGrade.grade = newGrade.grade
+async function saveGrades(student: MountedStudent) {
+  const isNotEmpty = student.grades.every(item => item['grade'])
+  try {
+    if (!student.conceptualGradeId) {
+      const response = await conceptualGradeService.createConceptualGrade(student)
+
+      student.conceptualGradeId = response[0].conceptualGradeId
+      student.grades.forEach((item) => {
+        item.grade = response.find(r => r.thematicUnitId === item.thematicUnitId)?.grade
+      })
+      if (isNotEmpty) {
+        student.status = 'CONCLUÍDO'
+        student.isFull = true
+        showToast('Notas salvas com sucesso', 'top', 'success')
+      }
+      else {
+        student.status = 'INCOMPLETO'
+        showToast('Notas salvas com sucesso', 'top', 'success')
+      }
     }
-  })
+    else {
+      await conceptualGradeService.updateConceptualGrade(student.grades)
+      if (isNotEmpty) {
+        student.status = 'CONCLUÍDO'
+        student.isFull = true
+        showToast('Notas salvas com sucesso', 'top', 'success')
+      }
+      else {
+        student.status = 'INCOMPLETO'
+        showToast('Notas salvas com sucesso', 'top', 'success')
+      }
+    }
+  }
+  catch (error) {
+    console.error(error)
+  }
 }
 
-function compareGrades(oldGrades: Grades[], student: MountedStudent) {
-  const key = 'grade'
-  const equal = oldGrades.every((item, index) => item[key] === student.grades[index][key])
-  const isNotEmpty = student.grades.every(item => item[key])
-  if (equal && isNotEmpty) {
-    student.status = 'CONCLUÍDO'
-  }
-  else if (equal && !isNotEmpty) {
-    student.status = 'INCOMPLETO'
-  }
-  else {
-    student.status = 'PENDENTE'
-  }
-  student.isCleansed = false
-}
-
-async function saveGrades(oldGrades: Grades[], student: MountedStudent) {
-  const key = 'grade'
-  if (student.isCleansed && student.conceptualGradeId) {
+async function cleanGrades(student: MountedStudent) {
+  if (student.conceptualGradeId) {
     try {
       await conceptualGradeService.softDeleteConceptualGrade(student.conceptualGradeId)
-      student.conceptualGradeId = null
-      // student.grades.conceptualGradeId = null
-      student.status = 'INCOMPLETO'
-      student.isCleansed = false
-      student.isFull = false
-      updateOldGrades(oldGrades, student.grades)
+      await registeredGradeService.updateRegisteredGradeIsCompleted(teacherId.value, student.classroomId, student.disciplineId, student.stageId, registeredToSave.value.isCompleted)
+      registeredToSave.value.isCompleted = false
       showToast('Notas limpas com sucesso', 'top', 'success')
     }
     catch (error) {
       console.error(error)
     }
   }
-  else {
-    const isNotEmpty = student.grades.every(item => item[key])
-    try {
-      if (!student.conceptualGradeId) {
-        const response = await conceptualGradeService.createConceptualGrade(student)
-
-        student.conceptualGradeId = response[0].conceptualGradeId
-        student.grades.forEach((item) => {
-          item.grade = response.find(r => r.thematicUnitId === item.thematicUnitId)?.grade
-        })
-        if (isNotEmpty) {
-          student.status = 'CONCLUÍDO'
-          student.isFull = true
-          showToast('Notas salvas com sucesso', 'top', 'success')
-        }
-        else {
-          student.status = 'INCOMPLETO'
-          showToast('Notas salvas com sucesso', 'top', 'success')
-        }
-        updateOldGrades(oldGrades, student.grades)
-      }
-      else {
-        await conceptualGradeService.updateConceptualGrade(student.grades)
-        updateOldGrades(oldGrades, student.grades)
-        if (isNotEmpty) {
-          student.status = 'CONCLUÍDO'
-          student.isFull = true
-          showToast('Notas salvas com sucesso', 'top', 'success')
-        }
-        else {
-          student.status = 'INCOMPLETO'
-          showToast('Notas salvas com sucesso', 'top', 'success')
-        }
-      }
-    }
-    catch (error) {
-      console.error(error)
-    }
-  }
-}
-
-function cleanGrades(student: MountedStudent) {
-  console.log('Limpar', student)
   student.grades.forEach((tu) => {
     tu.grade = ''
   })
-  if (student.conceptualGradeId) {
-    student.status = 'PENDENTE'
-    student.isCleansed = true
-  }
-  else {
-    student.status = 'INCOMPLETO'
-  }
+  student.status = 'INCOMPLETO'
+  student.conceptualGradeId = null
+  student.isFull = false
+  showToast('Notas limpas com sucesso', 'top', 'success')
 }
 
 function preRegisterGrades() {
@@ -205,11 +164,22 @@ function registerGrades(itemToSave: RegisteredToSave) {
 
 const computedRegisteredGrade = computed(() => ({
   isCompleted: registeredToSave.value.isCompleted,
-  teacherId: registeredToSave.value.teacherId,
+  teacherId: teacherId.value,
   classroomId: eduFProfile.value?.classroomId || '',
   disciplineId: eduFProfile.value?.disciplineId || '',
   stageId: currentStage.value?.id || '',
 }))
+
+const deadline = computed(() => {
+  const currentDate = new Date()
+  const deadlineDate = new Date(currentStage.value?.endDate)
+  if (isNaN(deadlineDate.getTime())) {
+    return false
+  }
+  const diffTime = deadlineDate.getTime() - currentDate.getTime()
+  diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  return diffDays
+})
 
 const getStatusIcon = computed(() => (status: string) => {
   switch (status) {
@@ -241,6 +211,30 @@ const getStatusColor = computed(() => (status: string) => {
 <template>
   <ContentLayout>
     <EduFilterProfile :discipline="true" @update:filtered-ocupation="($event) => eduFProfile = $event" />
+      <div v-if="deadline && diffDays <= 10 && diffDays >= 0 && !computedRegisteredGrade.isCompleted && studentList" class="warning-close-information">
+        <div class="title">
+          Registro irregular
+        </div>
+        <div class="text">
+          <IonIcon :icon="warningOutline"/>
+          <div>
+            Olá professor, o prazo de preenchimento se encerra em {{ diffDays }} {{ diffDays === 1 ? 'dia' : 'dias' }}, caso haja pendência será necessária entrar em contato com a secretaria.
+          </div>
+        </div>
+      </div>
+      <div v-else-if="deadline && diffDays < 0 && !computedRegisteredGrade.isCompleted && studentList" class="warning-close-information">
+          <div class="title">
+          Registro irregular
+        </div>
+        <div class="text">
+          <IonIcon :icon="warningOutline"/>
+          <div>
+            Olá professor, o prazo de preenchimento se encerrou, entre em contato com a secretaria para resolver as pendências.
+          </div>
+        </div>
+      </div>
+      <div v-else>
+      </div>
     <h3>
       <IonText color="secondary" class="ion-content ion-padding-bottom" style="display: flex; align-items: center;">
         <IonIcon color="secondary" style="margin-right: 10px;" aria-hidden="true" :icon="text" />
@@ -250,7 +244,7 @@ const getStatusColor = computed(() => (status: string) => {
 
     <div v-if="eduFProfile?.classroomId && eduFProfile?.disciplineId">
       <EduStageTabs v-model="currentStage" :stages="stages">
-        <template v-for="stage in stages" :key="stage" #[stage?.numberStage]>
+        <template v-for="stage in stages" :key="stage.numberStage" #[stage?.numberStage]>
           <div v-if="studentList && studentList.length > 0" style="padding: 1px; margin-top: -10px;">
             <IonAccordionGroup expand="inset">
               <IonAccordion v-for="(s, i) in studentList" :key="i" :value="`${i}`" class="no-border-accordion">
@@ -302,13 +296,11 @@ const getStatusColor = computed(() => (status: string) => {
                               label="Registrar" label-placement="stacked" fill="outline" mode="md" style="zoom: 0.9;"
                               :disabled="s.status === 'BLOQUEADO'" @ion-change="(e) => {
                                 tu.grade = e.detail.value
-                                compareGrades(oldList?.find((item) => item.enrollmentId === s.enrollmentId)?.grades || [], s)
-                              }"
-                            >
-                              <IonSelectOption
-                                v-for="conceptualType in conceptualTypes" :key="conceptualType.index"
-                                :value="conceptualType"
-                              >
+                                s.status = 'PENDENTE'
+                                s.isCleansed = false
+                              }">
+                              <IonSelectOption v-for="conceptualType in conceptualTypes" :key="conceptualType.index"
+                                :value="conceptualType">
                                 {{ conceptualType }}
                               </IonSelectOption>
                             </IonSelect>
@@ -330,7 +322,7 @@ const getStatusColor = computed(() => (status: string) => {
                         || s.status === 'CONCLUÍDO'
                         || s.status === 'INCOMPLETO'
                       "
-                      @click="saveGrades(oldList?.find((item) => item.enrollmentId === s.enrollmentId)?.grades || [], s)"
+                      @click="saveGrades(s)"
                     >
                       Salvar
                     </IonButton>
@@ -527,63 +519,33 @@ ion-modal#cancel-modal .wrapper {
   margin-bottom: 10px;
 }
 
-.warning-close-date {
-  margin-top: 5px;
-  margin-bottom: 5px;
+.warning-close-information {
+  margin: 10px 10px 20px 10px;
   background-color: #F5C228E6;
   color: #000000B3;
-  padding: 6px 6px 6px 6px;
+  padding: 15px 18px 16px 6px;
   border-radius: 3px;
-  margin-left: 10px;
-  margin-right: 10px;
 
   .title {
     font-size: 17px;
+    word-spacing: -2px;
     font-weight: 600;
-    padding-left: 34px;
+    padding: 0px 0px 8px 27px;
   }
 
   .text {
     ion-icon {
-      width: 30px;
+      width: 55px;
+      margin-left: 5px;
       margin-right: 5px;
-      margin-top: -18px;
+      margin-top: -3px;
     }
 
-    font-weight: 300;
     display: flex;
-    align-items: start;
-    font-size: 15px;
-  }
-}
-
-.success-close-date {
-  margin-top: 5px;
-  margin-bottom: 5px;
-  background-color: var(--ion-color-success-shade);
-  color: #000000B3;
-  padding: 6px 6px 6px 6px;
-  border-radius: 3px;
-  margin-left: 10px;
-  margin-right: 10px;
-
-  .title {
-    font-size: 17px;
-    font-weight: 600;
-    padding-left: 34px;
-  }
-
-  .text {
-    ion-icon {
-      width: 30px;
-      margin-right: 5px;
-      margin-top: -18px;
-    }
-
     font-weight: 300;
-    display: flex;
+    text-align: justify-left;
     align-items: start;
-    font-size: 15px;
+    font-size: 14px;
   }
 }
 
