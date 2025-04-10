@@ -350,12 +350,12 @@ const getStatusColor = computed(() => (status: string) => {
 
     <IonCard v-else color="info">
       <IonCardHeader>
-        <IonCardTitle>Selecione a turma e disciplina</IonCardTitle>
+        <IonCardTitle>Selecione a escola, turma e disciplina</IonCardTitle>
       </IonCardHeader>
 
       <IonCardContent>
         <IonText>
-          Olá, por favor selecione qual a <b>turma</b> e <b>disciplina</b> na qual deseja fazer o lançamento de notas
+          Olá, por favor selecione qual a <b>escola</b>, <b>turma</b> e <b>disciplina</b> nas quais deseja fazer o lançamento de notas
           conceituais
         </IonText>
       </IonCardContent>

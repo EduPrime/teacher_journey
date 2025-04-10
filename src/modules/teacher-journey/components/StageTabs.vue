@@ -49,7 +49,7 @@ watch(currentStage, (newStage) => {
 
 const enabledStages = computed(() => {
   return props.stages.filter((stage) => {
-    const hoje = new Date('2025-12-12')
+    const hoje = new Date()
     const inicial = new Date(stage.startDate)
 
     return hoje >= inicial
