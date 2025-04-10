@@ -1,21 +1,21 @@
 <script setup lang="ts">
-import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol, IonGrid, IonIcon, IonInput, IonItem, IonLabel, IonAlert, IonLoading, IonRadio, IonRadioGroup, IonRow, IonSegment, IonSegmentButton, IonSelect, IonSelectOption, IonText, IonToolbar, IonModal } from '@ionic/vue'
-import { calculator, checkmarkOutline, helpOutline, alertOutline, lockClosedOutline } from 'ionicons/icons'
-import Decimal from 'decimal.js'
-import { ErrorMessage, Field, Form, useForm } from 'vee-validate'
-import { onMounted, ref, watch, computed } from 'vue'
-
+import type { MountedStudent, RegisteredToSave } from '../types/types'
 import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
 import showToast from '@/utils/toast-alert'
+import { IonAccordion, IonAccordionGroup, IonAlert, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol, IonGrid, IonIcon, IonInput, IonItem, IonLabel, IonModal, IonRow, IonText, IonToolbar } from '@ionic/vue'
+import Decimal from 'decimal.js'
 
-import type { MountedStudent, RegisteredToSave } from '../types/types'
+import { alertOutline, calculator, checkmarkCircleOutline, checkmarkOutline, helpOutline, lockClosedOutline } from 'ionicons/icons'
+import { ErrorMessage, Field, Form } from 'vee-validate'
+
+import { computed, onMounted, ref, watch } from 'vue'
 import EduStageTabs from '../components/StageTabs.vue'
 
 import EnrollmentService from '../services/EnrollmentService'
 import NumericGradeSevice from '../services/NumericGradeService'
-import StageService from '../services/StageService'
 import RegisteredGradeService from '../services/RegisteredGradeService'
+import StageService from '../services/StageService'
 
 const decimalOptions = {
   mask: Number,
@@ -37,12 +37,12 @@ const numericGradeService = new NumericGradeSevice()
 const registeredGradeService = new RegisteredGradeService()
 
 const stages = ref()
-const showSaveConfirm = ref(false)
-const showDeleteConfirm = ref(false)
+// const showSaveConfirm = ref(false)
+// const showDeleteConfirm = ref(false)
 const eduFProfile = ref()
 const currentStage = ref()
 const students = ref()
-const showFinalizeConfirm = ref(false)
+// const showFinalizeConfirm = ref(false)
 const numericStudentList = ref()
 const isLoading = ref(false)
 const currentStudentToSave = ref<StudentGrade | null>(null)
@@ -54,6 +54,8 @@ const saveModal = ref(false)
 const deleteModal = ref(false)
 
 const showAlert = ref(false)
+const stageFinished = ref<RegisteredToSave>()
+
 
 const registeredToSave = ref<RegisteredToSave>({
   isCompleted: false,
@@ -209,7 +211,10 @@ watch([eduFProfile, currentStage], async ([newEduFProfile, newCurrentStage]) => 
   numericStudentList.value = []
   studentList.value = []
 
-  if (newEduFProfile?.classroomId && newEduFProfile?.disciplineId) {
+  if (newEduFProfile?.classroomId && newEduFProfile?.disciplineId && newCurrentStage?.id) {
+    // Checa se registro de notas já foi finalizado
+    stageFinished.value = await registeredGradeService.getRegistered(newEduFProfile.classroomId, newEduFProfile.disciplineId, newCurrentStage.id)
+
     // Carrega as notas numéricas existentes
     numericStudentList.value = await numericGradeService.getNumericGrade(newEduFProfile.classroomId, newEduFProfile.disciplineId)
 
@@ -233,7 +238,7 @@ watch([eduFProfile, currentStage], async ([newEduFProfile, newCurrentStage]) => 
         disciplineId: newEduFProfile.disciplineId,
         studentId: i.studentId,
         schoolId: i.schoolId,
-        stageId: newCurrentStage?.id || '', // Atualiza o stageId com o currentStage
+        stageId: newCurrentStage.id || '', // Atualiza o stageId com o currentStage
         status: calculateStatus(i, studentNumeric?.grade),
         situation: i.situation,
         disability: i.student.disability,
@@ -331,7 +336,9 @@ async function handleSave(s: any) {
       grade: convertToDecimal(s.grade),
     }
     await numericGradeService.upsertNumericGrade(payload)
+    // eslint-disable-next-line no-shadow
     const student = studentList.value?.find((s: any) => s.enrollmentId === payload.enrollmentId)
+    // eslint-disable-next-line ts/no-unused-expressions
     student ? student.status = 'CONCLUÍDO' : false
     showToast('Nota salva com sucesso', 'top', 'success')
   }
@@ -362,6 +369,7 @@ async function handleClear(s: StudentGrade) {
 
     showToast('Nota apagada com sucesso!', 'top', 'success')
     const student = studentList.value?.find((st: any) => st.enrollmentId === s.enrollmentId)
+    // eslint-disable-next-line ts/no-unused-expressions
     student ? student.status = 'INCOMPLETO' : false
   }
   catch (error: any) {
@@ -441,6 +449,22 @@ onMounted(async () => {
     <div v-if="eduFProfile?.classroomId && eduFProfile?.disciplineId">
       <EduStageTabs v-model="currentStage" :stages="stages">
         <template v-for="stage in stages" :key="stage" #[stage.numberStage]>
+          <IonCard v-if="stageFinished" :color="stageFinished.isCompleted ? 'success' : 'info'">
+            <IonCardContent>
+              <IonText v-if="stageFinished.isCompleted" style="display: flex;">
+                <IonIcon size="small" style="margin-top: auto; margin-bottom: auto;" :icon="checkmarkCircleOutline" />
+                <span style="margin-top: auto; margin-bottom: auto; margin-left: 5px;">
+                  Registro Completo de notas na {{ stage.numberStage }}º Etapa.
+                </span>
+              </IonText>
+              <IonText v-if="!stageFinished.isCompleted" style="display: flex;">
+                <IonIcon size="small" style="margin-top: auto; margin-bottom: auto;" :icon="alertOutline" />
+                <span style="margin-top: auto; margin-bottom: auto; margin-left: 5px;">
+                  Registro Parcial de notas na {{ stage.numberStage }}º Etapa.
+                </span>
+              </IonText>
+            </IonCardContent>
+          </IonCard>
           <IonAccordionGroup v-if="studentList && studentList.length > 0" class="ion-content" expand="inset">
             <IonAccordion v-for="(s, i) in studentList" :key="i" :value="`${i}`" class="no-border-accordion">
               <IonItem slot="header">
@@ -450,16 +474,18 @@ onMounted(async () => {
                   <IonText color="secondary" :style="s.situation !== 'CURSANDO' ? ' opacity: 0.4;' : ''">
                     {{ s.name }}
                   </IonText>
-                  <IonChip v-if="checkMinimalActivities(s) && checkMinimalGrade(s)" mode="md" color="secondary" :style="{
-                    background: computedMeanWithMakeUp(s) >= 7
-                      ? 'rgba(56, 142, 60, 0.15)'
-                      : 'rgba(79, 41, 116, 0.1)',
-                    color: computedMeanWithMakeUp(s) >= 7
-                      ? '#388E3C'
-                      : '#4F2974',
-                    fontWeight: 'bold'
-                  }">
-                    Média: {{ computedMeanWithMakeUp(s).toFixed(1) }}
+                  <IonChip
+                    v-if="checkMinimalActivities(s) && checkMinimalGrade(s)" mode="md" color="secondary" :style="{
+                      background: computedMean(s) >= 7
+                        ? 'rgba(56, 142, 60, 0.15)'
+                        : 'rgba(79, 41, 116, 0.1)',
+                      color: computedMean(s) >= 7
+                        ? '#388E3C'
+                        : '#4F2974',
+                      fontWeight: 'bold',
+                    }"
+                  >
+                    Média: {{ computedMean(s).toFixed(1).replace('.', ',') }}
                   </IonChip>
                   <IonChip v-if="!s.disability && s.situation === 'CURSANDO'" class="ion-no-margin"
                     style="margin: auto 0 auto auto;" :style="s.situation === 'CURSANDO' ? 'margin-right: 0px;' : ''"
