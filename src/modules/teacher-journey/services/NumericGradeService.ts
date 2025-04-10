@@ -85,7 +85,50 @@ export default class NumericGradeSevice extends BaseService<NumericGrade> {
     }
   }
 
-  async softDeleteNumericGrade(studentGrades: NumericGrade, userId: string) {
+    /*async upsertNumericGrade(studentGrades: NumericToSave) {
+      try {
+        const studentGradesWithDeletedAt = {
+          ...studentGrades,
+          deletedAt: null,
+        };
+  
+        const { data: existing, error: findError } = await this.client
+          .from(table)
+          .select('id')
+          .eq('studentId', studentGrades.studentId)
+          .eq('classroomId', studentGrades.classroomId)
+          .eq('enrollmentId', studentGrades.enrollmentId)
+          .eq('stageId', studentGrades.stageId)
+          .eq('disciplineId', studentGrades.disciplineId)
+          .is('deletedAt', null)
+          .maybeSingle();
+  
+        if (findError) throw new Error(`Erro ao buscar nota: ${findError.message}`);
+  
+        if (existing) {
+          const { data, error } = await this.client
+            .from(table)
+            .update(studentGradesWithDeletedAt)
+            .eq('id', existing.id)
+            .select('*');
+  
+          if (error) throw new Error(`Erro ao atualizar nota: ${error.message}`);
+          return data;
+        }
+  
+        const { data, error } = await this.client
+          .from(table)
+          .insert(studentGradesWithDeletedAt)
+          .select('*');
+  
+        if (error) throw new Error(`Erro ao inserir nota: ${error.message}`);
+        return data;
+      } catch (error) {
+        throw new Error(`Erro inesperado: ${(error as Error).message}`);
+      }
+    }*/
+
+  async softDeleteNumericGrade(studentGradesId: string, userId: string) {
     try {
       const { data, error } = await this.client
         .from(table)
@@ -93,7 +136,7 @@ export default class NumericGradeSevice extends BaseService<NumericGrade> {
           deletedAt: new Date().toISOString(),
           updatedBy: userId,
         })
-        .eq('id', studentGrades.id)
+        .eq('id', studentGradesId)
 
       if (error) {
         throw new Error(`Erro ao tentar apagar notas do aluno: ${error.message}`)
@@ -105,4 +148,21 @@ export default class NumericGradeSevice extends BaseService<NumericGrade> {
       throw new Error(`Erro inesperado ao apagar notas do aluno: ${error}`)
     }
   }
+
+    /*async deleteNumericGrade(studentGradesId: string) {
+      try {
+        const { data, error } = await this.client
+          .from(table)
+          .delete()
+          .eq('id', studentGradesId)
+    
+        if (error) {
+          throw new Error(`Erro ao tentar apagar notas do aluno: ${error.message}`)
+        }
+    
+        return data
+      } catch (error) {
+        throw new Error(`Erro inesperado ao apagar notas do aluno: ${error}`)
+      }
+    }*/
 }

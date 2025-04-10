@@ -22,13 +22,22 @@ function compararDatas(stage: { startDate: string, endDate: string, numberStage:
 }
 
 watch(() => props.stages, (newValue) => {
-  if (newValue && newValue.length > 0) {
-    newValue.forEach((stage: { startDate: string, endDate: string, numberStage: string }) => {
-      compararDatas(stage)
-    })
+  let etapaSelecionada: string | undefined
 
-    emits('update:modelValue', props.stages.find(i => i.numberStage === currentStage.value))
-  }
+    // Por padrão seleciona uma etapa pela data atual 
+    for (const stage of newValue) {
+      if (compararDatas(stage)) {
+        etapaSelecionada = stage.numberStage
+        break
+      }
+    }
+
+    if (!etapaSelecionada) {
+      etapaSelecionada = newValue[0].numberStage
+    }
+
+    currentStage.value = etapaSelecionada
+    emits('update:modelValue', newValue.find(s => s.numberStage === etapaSelecionada))
 }, { immediate: true })
 
 watch(currentStage, (newStage) => {

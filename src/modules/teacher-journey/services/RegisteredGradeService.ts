@@ -1,6 +1,6 @@
 import type { RegisteredGrade } from '@prisma/client'
-import BaseService from '@/services/BaseService'
 import type { RegisteredToSave } from '../types/types'
+import BaseService from '@/services/BaseService'
 
 const table = 'registeredGrade' as const
 export default class RegisteredGradeService extends BaseService<RegisteredGrade> {
@@ -8,50 +8,45 @@ export default class RegisteredGradeService extends BaseService<RegisteredGrade>
     super(table)
   }
 
-  async getRegisteredGradesByEnrollmentId(enrollmentId: string) {
+  async getRegisteredGradesIsCompletedStatus(teacherId: string | null, classroomId: string, disciplineId: string, stageId: string) {
     const { data, error } = await this.client
       .from('registeredGrade')
       .select(`
-        *,
-        student:student (disability),
-        classroom:classroom (name),
-        stage:stage (name),
-        discipline:discipline (name),
-        registeredGradeByThematicUnit:registeredGradeByThematicUnit (
-          thematicUnitId,
-          grade,
-          thematicUnit:thematicUnit (name)
-        )
+        isCompleted
       `)
-      .eq('enrollmentId', enrollmentId)
+      .eq('teacherId', teacherId)
+      .eq('classroomId', classroomId)
+      .eq('disciplineId', disciplineId)
+      .eq('stageId', stageId)
 
     if (error) {
-      throw new Error(`Erro ao buscar notas registradas por matrícula: ${error.message}`)
+      throw new Error(`Erro ao buscar validação de preenchimento: ${error.message}`)
     }
-    if (!data) {
-      throw new Error('Nenhuma nota registrada encontrada')
-    }
-
-    return data
+    
+    return !!(data[0] && data[0].isCompleted)
   }
 
-  // async createRegisteredGrade(registeredGrade: RegisteredToSave) {
-  //   const { data, error } = await this.client
-  //     .from('registeredGrade')
-  //     .insert(registeredGrade)
-  //     .select()
-  //     .single()
+  async getRegistered(classroomId: string, disciplineId: string, stageId: string) {
+    if (stageId) {
+      const { data, error } = await this.client
+        .from('registeredGrade')
+        .select(`*`)
+        .eq('classroomId', classroomId)
+        .eq('disciplineId', disciplineId)
+        .eq('stageId', stageId)
+        .is('deletedAt', null)
 
-  //   if (error) {
-  //     throw new Error(`Erro ao criar nota registrada: ${error.message}`)
-  //   }
-  //   if (!data) {
-  //     throw new Error('Falha ao criar nota registrada')
-  //   }
+      if (error) {
+        throw new Error(`Erro ao buscar registro de notas finalizadas: ${error.message}`)
+      }
+      if (!data || data.length === 0) {
+        return data[0]
+      }
 
-  //   return data
+      return data[0]
+    }
+  }
 
-  // }
   async upsertRegisteredGrade(registeredGrade: RegisteredToSave) {
     const { data, error } = await this.client
       .from('registeredGrade')

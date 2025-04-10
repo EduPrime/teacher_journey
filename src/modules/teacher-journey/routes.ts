@@ -1,9 +1,10 @@
 import type { CustomRouteRecordRaw } from '@/router/RouterType'
-import { calendar, clipboard, clipboardSharp, create, extensionPuzzle, folderOutline, home, idCard, pencil, ribbon, saveSharp, shapes, star, text, trendingUp } from 'ionicons/icons'
+import { calculator, calendar, clipboard, clipboardSharp, create, extensionPuzzle, folderOutline, home, idCard, pencil, ribbon, saveSharp, shapes, star, text, trendingUp } from 'ionicons/icons'
 import TeacherConceptualEvaluation from './views/TeacherConceptualEvaluation.vue'
 import TeacherContent from './views/TeacherContent.vue'
 import TeacherFrequency from './views/TeacherFequency.vue'
 import TeacherJourney from './views/TeacherJourney.vue'
+import TeacherNumericEvaluation from './views/TeacherNumericEvaluation.vue'
 import TeacherView from './views/TeacherView.vue'
 
 const courseName = localStorage.getItem('courseName')
@@ -124,11 +125,11 @@ const dynamicRoutes: Array<CustomRouteRecordRaw> = [
   {
     path: '/teacherjourney/numeric',
     name: 'TeacherNumeric',
-    component: TeacherJourney,
+    component: TeacherNumericEvaluation,
     meta: {
       moduleName: 'TeacherJourney',
       moduleIcon: pencil,
-      icon: text,
+      icon: calculator,
       name: 'Avaliação numérica',
       order: 3,
       requiredRole: ['PROFESSOR'],
