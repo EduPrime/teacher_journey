@@ -114,7 +114,7 @@ const getStatusColor = computed(() => (status: string) => {
 })
 
 function computedEvaluationActivity(s: StudentGrade) {
-  const activityValues = [s.at1, s.at2, s.at3, s.at4, s.at5].map(value => value ? Number.parseFloat(value) : 0)
+  const activityValues = [s.at1, s.at2, s.at3, s.at4, s.at5, s.makeUp].map(value => value ? Number.parseFloat(value) : 0)
   return activityValues.reduce((sum, val) => sum + val, 0)
 }
 
@@ -385,6 +385,46 @@ async function handleClear(s: StudentGrade) {
   }
 }
 
+function canClear(s: StudentGrade): boolean {
+  // CASO 0: Está bloqueado não pode limpar
+  if (s.status === 'BLOQUEADO')
+    return false
+
+  // CASO 2: Se tem id, mesmo sem modifcações, pode limpar
+  if (s.id)
+    return true
+
+  // CASO 3: Só pode limpar após modicações
+  return hasStudentEvaluationChanged(s)
+}
+
+function canSave(s: StudentGrade): boolean {
+  // CASO 0: Está bloqueado não pode limpar
+  if (s.status === 'BLOQUEADO')
+    return false
+
+  // CASO 3: Só pode limpar após modicações
+  return hasStudentEvaluationChanged(s)
+}
+
+function hasStudentEvaluationChanged(s: StudentGrade): boolean {
+  // CASO 1: Card nunca modificado, ambos botões desabilitados
+  if (!s.id)
+    return !!(s.at1 || s.at2 || s.at3 || s.at4 || s.at5 || s.makeUp || s.grade)
+
+  const original = oldList.value?.find(item => item.enrollmentId === s.enrollmentId)
+  if (!original)
+    return false
+
+  return original.at1 !== s.at1
+    || original.at2 !== s.at2
+    || original.at3 !== s.at3
+    || original.at4 !== s.at4
+    || original.at5 !== s.at5
+    || original.makeUp !== s.makeUp
+    || original.grade !== s.grade
+}
+
 async function registerGrades(itemToSave: RegisteredToSave) {
   showAlert.value = false
   isLoading.value = true
@@ -651,7 +691,7 @@ onMounted(async () => {
                       <IonCol size="6">
                         <IonButton
                           color="danger" expand="block"
-                          :disabled="s.status === 'BLOQUEADO'"
+                          :disabled="!canClear(s)"
                           @click="() => { currentStudentToDelete = s; deleteModal = true; }"
                         >
                           Limpar
@@ -660,7 +700,7 @@ onMounted(async () => {
                       <IonCol size="6">
                         <IonButton
                           color="secondary" expand="block"
-                          :disabled="s.status === 'BLOQUEADO'"
+                          :disabled="!canSave(s)"
                           @click="() => { currentStudentToSave = s; saveModal = true; }"
                         >
                           Salvar
