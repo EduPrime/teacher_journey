@@ -27,8 +27,8 @@ const decimalOptions = {
   lazy: false,
   mapToRadix: ['.'],
   prepare: (str: string) => {
-    return str.replace('.', ',').replace(/[^\d,]/g, '');
-  }
+    return str.replace('.', ',').replace(/[^\d,]/g, '')
+  },
 }
 
 const enrollmentService = new EnrollmentService()
@@ -56,7 +56,6 @@ const deleteModal = ref(false)
 const showAlert = ref(false)
 const stageFinished = ref<RegisteredToSave>()
 
-
 const registeredToSave = ref<RegisteredToSave>({
   isCompleted: false,
   teacherId: localStorage.getItem('teacherId'),
@@ -79,13 +78,13 @@ interface StudentGrade extends MountedStudent {
   at4: string
   at5: string
   makeUp: string
-  //exam1: string
+  // exam1: string
   grade: string
   teacherId: string
 }
 
 const gradesAreFilled = computed (() => studentList.value?.every(item =>
-  item.situation !== 'CURSANDO' || (checkMinimalActivities(item) && checkMinimalGrade(item))
+  item.situation !== 'CURSANDO' || (checkMinimalActivities(item) && checkMinimalGrade(item)),
 ) ?? false)
 
 const getStatusIcon = computed(() => (status: string) => {
@@ -125,7 +124,7 @@ function computedMean(s: StudentGrade): number {
 
   return (activityEvaluation + grade) / 2
 }
-/*function evaluationValidate(s:StudentGrade): boolean {
+/* function evaluationValidate(s:StudentGrade): boolean {
   const evaluationValues = [s.at1, s.at2, s.at3, s.at4, s.at5, s.makeUp, s.grade].map(value => Number.parseFloat(value) || 0)
 
   console.log('evaluationValues dentro da função', evaluationValues)
@@ -139,7 +138,7 @@ function computedMean(s: StudentGrade): number {
     }
   }
   return true
-}*/
+} */
 
 function evaluationValidate(s: StudentGrade): boolean {
   const evaluationFields = [
@@ -149,26 +148,27 @@ function evaluationValidate(s: StudentGrade): boolean {
     { value: s.at4, name: '4ª Atividade' },
     { value: s.at5, name: '5ª Atividade' },
     { value: s.makeUp, name: 'Recuperação Parcial' },
-    { value: s.grade, name: '2ª Nota: Prova' }
+    { value: s.grade, name: '2ª Nota: Prova' },
   ]
 
   for (const field of evaluationFields) {
-    if (field.value === '') continue
+    if (field.value === '')
+      continue
 
     const numericValue = Number.parseFloat(String(field.value).replace(',', '.'))
 
     if (Number.isNaN(numericValue)) {
-      showToast(`${field.name}: Valor inválido (não é um número)`, 'top', 'warning');
+      showToast(`${field.name}: Valor inválido (não é um número)`, 'top', 'warning')
       return false
     }
 
     if (numericValue < 0) {
-      showToast(`${field.name}: A nota não pode ser negativa`, 'top', 'warning');
+      showToast(`${field.name}: A nota não pode ser negativa`, 'top', 'warning')
       return false
     }
 
     if (numericValue > 10) {
-      showToast(`${field.name}: A nota não pode ser maior que 10`, 'top', 'warning');
+      showToast(`${field.name}: A nota não pode ser maior que 10`, 'top', 'warning')
       return false
     }
   }
@@ -201,15 +201,15 @@ function calculateStatus(s: StudentGrade, grade: any): string {
 
 function convertToDecimal(value: any): Decimal {
   if (
-    value === null ||
-    value === undefined ||
-    String(value).trim() === ""
+    value === null
+    || value === undefined
+    || String(value).trim() === ''
   ) {
-    return new Decimal(0);
+    return new Decimal(0)
   }
-  const strValue = String(value);
-  const sanitizedValue = strValue.replace(',', '.');
-  return new Decimal(sanitizedValue);
+  const strValue = String(value)
+  const sanitizedValue = strValue.replace(',', '.')
+  return new Decimal(sanitizedValue)
 }
 
 // Watcher que observa o filtro e o calendário para montar a listágem de alunos
@@ -266,7 +266,7 @@ watch([eduFProfile, currentStage], async ([newEduFProfile, newCurrentStage]) => 
   }
 })
 
-/*async function handleFinalize() {
+/* async function handleFinalize() {
   if (!eduFProfile.value || !currentStage.value) return
 
   try {
@@ -289,12 +289,12 @@ watch([eduFProfile, currentStage], async ([newEduFProfile, newCurrentStage]) => 
   } finally {
     isLoading.value = false
   }
-}*/
+} */
 
 function checkMinimalActivities(s: StudentGrade): boolean {
   const activityFields = [s.at1, s.at2, s.at3, s.at4, s.at5]
   const validActivities = activityFields.filter((val) => {
-    const parsed = parseFloat(val)
+    const parsed = Number.parseFloat(val)
     return !isNaN(parsed) && parsed >= 0 && parsed <= 10
   }).length >= 3
 
@@ -303,7 +303,7 @@ function checkMinimalActivities(s: StudentGrade): boolean {
 
 function checkMinimalGrade(s: StudentGrade): boolean {
   const gradeValid = (() => {
-    const gradeValue = parseFloat(s.grade)
+    const gradeValue = Number.parseFloat(s.grade)
     return !isNaN(gradeValue) && gradeValue >= 0 && gradeValue <= 10
   })()
 
@@ -312,7 +312,6 @@ function checkMinimalGrade(s: StudentGrade): boolean {
 
 async function handleSave(s: any) {
   try {
-
     isLoading.value = true
 
     if (!evaluationValidate(s)) {
@@ -359,7 +358,6 @@ async function handleSave(s: any) {
 
 async function handleClear(s: StudentGrade) {
   try {
-
     if (s.id) {
       await numericGradeService.softDeleteNumericGrade(s.id, s.teacherId)
     }
@@ -370,7 +368,7 @@ async function handleClear(s: StudentGrade) {
     s.at4 = ''
     s.at5 = ''
     s.makeUp = ''
-    //s.exam1 = ''
+    // s.exam1 = ''
     s.grade = ''
 
     showToast('Nota apagada com sucesso!', 'top', 'success')
@@ -388,31 +386,32 @@ async function handleClear(s: StudentGrade) {
 }
 
 async function registerGrades(itemToSave: RegisteredToSave) {
-  showAlert.value = false;
-  isLoading.value = true;
+  showAlert.value = false
+  isLoading.value = true
 
-  try {    
-   // console.log('studentList.value', studentList.value)
+  try {
+    // console.log('studentList.value', studentList.value)
 
     itemToSave.isCompleted = gradesAreFilled.value
-    
-    await registeredGradeService.upsertRegisteredGrade(itemToSave);
-    
+
+    await registeredGradeService.upsertRegisteredGrade(itemToSave)
+
     showToast(
       gradesAreFilled.value
         ? 'Registro de notas completas finalizado com sucesso!'
         : 'Registro de notas incompletas finalizado com sucesso!',
       'top',
-      'success'
-    );
-  } catch (error: any) {
-    console.error('Erro ao registrar notas:', error);
-    showToast('Ocorreu um erro ao finalizar o registro de notas.', 'top', 'danger');
-  } finally {
-    isLoading.value = false;
+      'success',
+    )
+  }
+  catch (error: any) {
+    console.error('Erro ao registrar notas:', error)
+    showToast('Ocorreu um erro ao finalizar o registro de notas.', 'top', 'danger')
+  }
+  finally {
+    isLoading.value = false
   }
 }
-
 
 const computedRegisteredGrade = computed(() => ({
   isCompleted: registeredToSave.value.isCompleted,
@@ -423,8 +422,8 @@ const computedRegisteredGrade = computed(() => ({
 }))
 
 function compareGrades(oldStudents: StudentGrade[] | undefined, newStudent: StudentGrade) {
-  const oldStudent = oldStudents?.find((s) => s.enrollmentId === newStudent.enrollmentId)
-  const equal = oldStudent && Object.keys(oldStudent).every((key) => oldStudent[key as keyof StudentGrade] === newStudent[key as keyof StudentGrade])
+  const oldStudent = oldStudents?.find(s => s.enrollmentId === newStudent.enrollmentId)
+  const equal = oldStudent && Object.keys(oldStudent).every(key => oldStudent[key as keyof StudentGrade] === newStudent[key as keyof StudentGrade])
   const isNotEmpty = checkMinimalActivities(newStudent) && checkMinimalGrade(newStudent)
   if (equal && isNotEmpty) {
     newStudent.status = 'CONCLUÍDO'
@@ -474,33 +473,47 @@ onMounted(async () => {
           <IonAccordionGroup v-if="studentList && studentList.length > 0" class="ion-content" expand="inset">
             <IonAccordion v-for="(s, i) in studentList" :key="i" :value="`${i}`" class="no-border-accordion">
               <IonItem slot="header">
-                <IonIcon :color="getStatusColor(s.status)" style="margin-right: 6px; font-size: 24px;"
-                  :icon="getStatusIcon(s.status)" />
-                <IonLabel style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
-                  <IonText color="secondary" :style="s.situation !== 'CURSANDO' ? ' opacity: 0.4;' : ''">
-                    {{ s.name }}
-                  </IonText>
-                  <IonChip
-                    v-if="checkMinimalActivities(s) && checkMinimalGrade(s)" mode="md" color="secondary" :style="{
-                      background: computedMean(s) >= 7
-                        ? 'rgba(56, 142, 60, 0.15)'
-                        : 'rgba(79, 41, 116, 0.1)',
-                      color: computedMean(s) >= 7
-                        ? '#388E3C'
-                        : '#4F2974',
-                      fontWeight: 'bold',
-                    }"
-                  >
-                    Média: {{ computedMean(s).toFixed(1).replace('.', ',') }}
-                  </IonChip>
-                  <IonChip v-if="!s.disability && s.situation === 'CURSANDO'" class="ion-no-margin"
-                    style="margin: auto 0 auto auto;" :style="s.situation === 'CURSANDO' ? 'margin-right: 0px;' : ''"
-                    mode="md" color="tertiary">
-                    PCD
-                  </IonChip>
-                  <IonChip v-if="s.situation !== 'CURSANDO'" style="margin: auto 0 auto auto;" mode="md">
-                    {{s.situation.toLowerCase().replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase())}}
-                  </IonChip>
+                <IonIcon
+                  :color="getStatusColor(s.status)" style="margin-right: 6px; font-size: 24px;"
+                  :icon="getStatusIcon(s.status)"
+                />
+                <IonLabel style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px;">
+                  <!-- Primeira linha -->
+                  <div style="display: flex; align-items: center; width: 100%;">
+                    <IonText color="secondary" :style="s.situation !== 'CURSANDO' ? 'opacity: 0.4;' : ''">
+                      {{ s.name }}
+                    </IonText>
+                  </div>
+
+                  <!-- Segunda linha -->
+                  <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                    <IonChip
+                      v-if="!s.disability && s.situation === 'CURSANDO'" class="ion-no-margin"
+                      mode="md" color="tertiary"
+                    >
+                      PCD
+                    </IonChip>
+                    <IonChip
+                      v-if="checkMinimalActivities(s) && checkMinimalGrade(s)" mode="md" color="secondary" :style="{
+                        background: computedMean(s) >= 7
+                          ? 'rgba(56, 142, 60, 0.15)'
+                          : 'rgba(79, 41, 116, 0.1)',
+                        color: computedMean(s) >= 7
+                          ? '#388E3C'
+                          : '#4F2974',
+                        fontWeight: 'bold',
+                        marginLeft: 'auto',
+                      }"
+                      class="ion-no-margin"
+                    >
+                      Média: {{ computedMean(s).toFixed(1).replace('.', ',') }}
+                    </IonChip>
+                    <IonChip
+                      v-if="s.situation !== 'CURSANDO'" mode="md" class="ion-no-margin"
+                    >
+                      {{ s.situation.toLowerCase().replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase()) }}
+                    </IonChip>
+                  </div>
                 </IonLabel>
               </IonItem>
               <div slot="content" class="ion-padding">
@@ -511,9 +524,11 @@ onMounted(async () => {
                       <IonCol size="6">
                         <IonItem lines="none">
                           <Field v-slot="{ field }" name="1ª Atividade" rules="notaValida">
-                            <IonInput v-bind="field" v-model="s.at1" v-imask="decimalOptions"  class="input-rounded" title="1ª Atividade"
+                            <IonInput
+                              v-bind="field" v-model="s.at1" v-imask="decimalOptions" class="input-rounded" title="1ª Atividade"
                               label="1ª Atividade" label-placement="floating" placeholder="Digite a nota"
-                              :disabled="s.status === 'BLOQUEADO'" @ion-change="compareGrades(oldList, s)" />
+                              :disabled="s.status === 'BLOQUEADO'" @ion-change="compareGrades(oldList, s)"
+                            />
                           </Field>
                         </IonItem>
                         <ErrorMessage v-slot="{ message }" name="1ª Atividade">
@@ -521,12 +536,14 @@ onMounted(async () => {
                         </ErrorMessage>
                       </IonCol>
                       <IonCol size="6">
-                        <!-- Para no mobile uma linha com cada campo mais largo <IonCol size="8" size-md="6">-->
+                        <!-- Para no mobile uma linha com cada campo mais largo <IonCol size="8" size-md="6"> -->
                         <IonItem lines="none">
                           <Field v-slot="{ field }" name="2ª Atividade" rules="notaValida">
-                            <IonInput v-bind="field" v-model="s.at2" v-imask="decimalOptions" class="input-rounded" title="2ª Atividade"
+                            <IonInput
+                              v-bind="field" v-model="s.at2" v-imask="decimalOptions" class="input-rounded" title="2ª Atividade"
                               label="2ª Atividade" label-placement="floating" placeholder="Digite a nota"
-                              :disabled="s.status === 'BLOQUEADO'" @ion-change="compareGrades(oldList, s)" />
+                              :disabled="s.status === 'BLOQUEADO'" @ion-change="compareGrades(oldList, s)"
+                            />
                           </Field>
                         </IonItem>
                         <ErrorMessage v-slot="{ message }" name="2ª Atividade">
@@ -540,9 +557,11 @@ onMounted(async () => {
                       <IonCol size="6">
                         <IonItem lines="none">
                           <Field v-slot="{ field }" name="3ª Atividade" rules="notaValida">
-                            <IonInput v-bind="field" v-model="s.at3" v-imask="decimalOptions" class="input-rounded" title="3ª Atividade"
+                            <IonInput
+                              v-bind="field" v-model="s.at3" v-imask="decimalOptions" class="input-rounded" title="3ª Atividade"
                               label="3ª Atividade" label-placement="floating" placeholder="Digite a nota"
-                              :disabled="s.status === 'BLOQUEADO'" @ion-change="compareGrades(oldList, s)" />
+                              :disabled="s.status === 'BLOQUEADO'" @ion-change="compareGrades(oldList, s)"
+                            />
                           </Field>
                         </IonItem>
                         <ErrorMessage v-slot="{ message }" name="3ª Atividade">
@@ -552,9 +571,11 @@ onMounted(async () => {
                       <IonCol size="6">
                         <IonItem lines="none">
                           <Field v-slot="{ field }" name="4ª Atividade" rules="notaValida">
-                            <IonInput v-bind="field" v-model="s.at4" v-imask="decimalOptions" class="input-rounded" title="4ª Atividade"
+                            <IonInput
+                              v-bind="field" v-model="s.at4" v-imask="decimalOptions" class="input-rounded" title="4ª Atividade"
                               label="4ª Atividade" label-placement="floating" placeholder="Digite a nota"
-                              :disabled="s.status === 'BLOQUEADO'" @ion-change="compareGrades(oldList, s)" />
+                              :disabled="s.status === 'BLOQUEADO'" @ion-change="compareGrades(oldList, s)"
+                            />
                           </Field>
                         </IonItem>
                         <ErrorMessage v-slot="{ message }" name="4ª Atividade">
@@ -568,9 +589,11 @@ onMounted(async () => {
                       <IonCol size="6">
                         <IonItem lines="none">
                           <Field v-slot="{ field }" name="5ª Atividade" rules="notaValida">
-                            <IonInput v-bind="field" v-model="s.at5" v-imask="decimalOptions" class="input-rounded" title="5ª Atividade"
+                            <IonInput
+                              v-bind="field" v-model="s.at5" v-imask="decimalOptions" class="input-rounded" title="5ª Atividade"
                               label="5ª Atividade" label-placement="floating" placeholder="Digite a nota"
-                              :disabled="s.status === 'BLOQUEADO'" @ion-change="compareGrades(oldList, s)" />
+                              :disabled="s.status === 'BLOQUEADO'" @ion-change="compareGrades(oldList, s)"
+                            />
                           </Field>
                         </IonItem>
                         <ErrorMessage v-slot="{ message }" name="5ª Atividade">
@@ -580,10 +603,12 @@ onMounted(async () => {
                       <IonCol size="6">
                         <IonItem lines="none">
                           <Field v-slot="{ field }" name="Recuperação Parcial" rules="notaValida">
-                            <IonInput v-bind="field" v-model="s.makeUp" v-imask="decimalOptions" class="input-rounded"
+                            <IonInput
+                              v-bind="field" v-model="s.makeUp" v-imask="decimalOptions" class="input-rounded"
                               title="Recuperação Parcial" label="Recuperação Parcial" label-placement="floating"
                               placeholder="Digite a nota" :disabled="s.status === 'BLOQUEADO'"
-                              @ion-change="compareGrades(oldList, s)" />
+                              @ion-change="compareGrades(oldList, s)"
+                            />
                           </Field>
                         </IonItem>
                         <ErrorMessage v-slot="{ message }" name="Recuperação Parcial">
@@ -596,8 +621,10 @@ onMounted(async () => {
                     <IonRow>
                       <IonCol size="6">
                         <IonItem lines="none">
-                          <IonInput class="input-rounded" title="1ª Nota: Atividade" label="1ª Nota: Atividades"
-                            label-placement="floating" :value="computedEvaluationActivity(s).toFixed(2)" disabled />
+                          <IonInput
+                            class="input-rounded" title="1ª Nota: Atividade" label="1ª Nota: Atividades"
+                            label-placement="floating" :value="computedEvaluationActivity(s).toFixed(2)" disabled
+                          />
                         </IonItem>
                         <div v-if="computedEvaluationActivity(s) > 10" class="error-message" style="margin-top: 4px;">
                           A soma das notas das atividades não pode ultrapassar 10.
@@ -606,9 +633,11 @@ onMounted(async () => {
                       <IonCol size="6">
                         <IonItem lines="none">
                           <Field v-slot="{ field }" name="2ª Nota: Prova" rules="notaValida">
-                            <IonInput v-bind="field" v-model="s.grade" v-imask="decimalOptions" class="input-rounded" title="2ª Nota: Prova"
+                            <IonInput
+                              v-bind="field" v-model="s.grade" v-imask="decimalOptions" class="input-rounded" title="2ª Nota: Prova"
                               label="2ª Nota: Prova" label-placement="floating" placeholder="Digite a nota"
-                              :disabled="s.status === 'BLOQUEADO'" @ion-change="compareGrades(oldList, s)" />
+                              :disabled="s.status === 'BLOQUEADO'" @ion-change="compareGrades(oldList, s)"
+                            />
                           </Field>
                         </IonItem>
                         <ErrorMessage v-slot="{ message }" name="2ª Nota: Prova">
@@ -620,16 +649,20 @@ onMounted(async () => {
                     <!-- Linha dos botões -->
                     <IonRow class="ion-margin-top">
                       <IonCol size="6">
-                        <IonButton color="danger" expand="block"
+                        <IonButton
+                          color="danger" expand="block"
+                          :disabled="s.status === 'BLOQUEADO'"
                           @click="() => { currentStudentToDelete = s; deleteModal = true; }"
-                          :disabled="s.status === 'BLOQUEADO'">
+                        >
                           Limpar
                         </IonButton>
                       </IonCol>
                       <IonCol size="6">
-                        <IonButton color="secondary" expand="block"
+                        <IonButton
+                          color="secondary" expand="block"
+                          :disabled="s.status === 'BLOQUEADO'"
                           @click="() => { currentStudentToSave = s; saveModal = true; }"
-                          :disabled="s.status === 'BLOQUEADO'">
+                        >
                           Salvar
                         </IonButton>
                       </IonCol>
@@ -685,95 +718,96 @@ onMounted(async () => {
     </IonCard>
 
     <IonModal id="save-modal" :is-open="saveModal" trigger="open-custom-dialog" @ion-modal-did-dismiss="saveModal = false">
-                    <IonCard class="ion-no-margin">
-                      <IonCardHeader>
-                        <IonCardTitle>Salvar notas</IonCardTitle>
-                        <IonText class="ion-padding-vertical">
-                          Tem certeza de que deseja salvar as alterações para este aluno?
-                        </IonText>
-                        <div style="display: flex;">
-                          <IonButton
-                            size="small"
-                            style="margin-left: auto; margin-right: 8px; text-transform: capitalize;"
-                            color="medium"
-                            @click="() => {
-                              saveModal = false
-                            }"
-                          >
-                            Cancelar
-                          </IonButton>
-                          <IonButton
-                            style="text-transform: capitalize;"
-                            size="small"
-                            color="secondary"
-                            @click="() => {
-                              if (currentStudentToSave) {
-                                handleSave(currentStudentToSave)
-                              }
-                              saveModal = false
-                            }"
-                          >
-                            Confirmar
-                          </IonButton>
-                        </div>
-                      </IonCardHeader>
-                    </IonCard>
-                  </IonModal>
+      <IonCard class="ion-no-margin">
+        <IonCardHeader>
+          <IonCardTitle>Salvar notas</IonCardTitle>
+          <IonText class="ion-padding-vertical">
+            Tem certeza de que deseja salvar as alterações para este aluno?
+          </IonText>
+          <div style="display: flex;">
+            <IonButton
+              size="small"
+              style="margin-left: auto; margin-right: 8px; text-transform: capitalize;"
+              color="medium"
+              @click="() => {
+                saveModal = false
+              }"
+            >
+              Cancelar
+            </IonButton>
+            <IonButton
+              style="text-transform: capitalize;"
+              size="small"
+              color="secondary"
+              @click="() => {
+                if (currentStudentToSave) {
+                  handleSave(currentStudentToSave)
+                }
+                saveModal = false
+              }"
+            >
+              Confirmar
+            </IonButton>
+          </div>
+        </IonCardHeader>
+      </IonCard>
+    </IonModal>
 
-                  <IonModal id="delete-modal" :is-open="deleteModal" trigger="open-custom-dialog" @ion-modal-did-dismiss="deleteModal = false">
-                    <IonCard class="ion-no-margin">
-                      <IonCardHeader>
-                        <IonCardTitle>Limpar notas</IonCardTitle>
-                        <IonText class="ion-padding-vertical">
-                          Tem certeza de que deseja limpar as notas?
-                        </IonText>
-                        <div style="display: flex;">
-                          <IonButton
-                            size="small"
-                            style="margin-left: auto; margin-right: 8px; text-transform: capitalize;"
-                            color="secondary"
-                            @click="() => {
-                              deleteModal = false
-                            }"
-                          >
-                            Cancelar
-                          </IonButton>
-                          <IonButton
-                            style="text-transform: capitalize;"
-                            size="small"
-                            color="danger"
-                            @click="() => {
-                              if (currentStudentToDelete) {
-                                handleClear(currentStudentToDelete)
-                              }
-                              deleteModal = false
-                            }"
-                          >
-                            Confirmar
-                          </IonButton>
-                        </div>
-                      </IonCardHeader>
-                    </IonCard>
-                  </IonModal>
+    <IonModal id="delete-modal" :is-open="deleteModal" trigger="open-custom-dialog" @ion-modal-did-dismiss="deleteModal = false">
+      <IonCard class="ion-no-margin">
+        <IonCardHeader>
+          <IonCardTitle>Limpar notas</IonCardTitle>
+          <IonText class="ion-padding-vertical">
+            Tem certeza de que deseja limpar as notas?
+          </IonText>
+          <div style="display: flex;">
+            <IonButton
+              size="small"
+              style="margin-left: auto; margin-right: 8px; text-transform: capitalize;"
+              color="secondary"
+              @click="() => {
+                deleteModal = false
+              }"
+            >
+              Cancelar
+            </IonButton>
+            <IonButton
+              style="text-transform: capitalize;"
+              size="small"
+              color="danger"
+              @click="() => {
+                if (currentStudentToDelete) {
+                  handleClear(currentStudentToDelete)
+                }
+                deleteModal = false
+              }"
+            >
+              Confirmar
+            </IonButton>
+          </div>
+        </IonCardHeader>
+      </IonCard>
+    </IonModal>
 
-                  <IonAlert class="custom-alert"
-                    :is-open="showAlert"
-                    :header="gradesAreFilled ? 'Deseja finalizar os registros?' : 'Registros incompletos'"
-                    :subHeader="gradesAreFilled ? '' : 'Deseja finalizar assim mesmo?'"
-                    :buttons="[
-                      {
-                        text: 'Não',
-                        role: 'cancel',
-                        cssClass: 'alert-button-cancel',
-                        handler: () => { showAlert = false },
-                      },
-                      {
-                        text: 'Sim',
-                        cssClass: 'alert-button-confirm',
-                        handler: () => registerGrades(computedRegisteredGrade),
-                      },
-                    ]"
-                  />
+    <IonAlert
+      class="custom-alert"
+      :is-open="showAlert"
+      :header="gradesAreFilled ? 'Deseja finalizar os registros?' : 'Registros incompletos'"
+      :sub-header="gradesAreFilled ? '' : 'Deseja finalizar assim mesmo?'"
+      :buttons="[
+        {
+          text: 'Não',
+          role: 'cancel',
+          cssClass: 'alert-button-cancel',
+          handler: () => { showAlert = false },
+        },
+        {
+          text: 'Sim',
+          cssClass: 'alert-button-confirm',
+          handler: () => registerGrades(computedRegisteredGrade),
+        },
+      ]"
+    />
 
     <div style="height: 64px;" />
     <template #footer>
@@ -781,8 +815,10 @@ onMounted(async () => {
         <IonGrid>
           <IonRow>
             <IonCol size="12">
-              <IonButton :disabled="isLoading" color="secondary" expand="full"
-                @click="showAlert = true">
+              <IonButton
+                :disabled="isLoading" color="secondary" expand="full"
+                @click="showAlert = true"
+              >
                 Finalizar
               </IonButton>
             </IonCol>
@@ -794,7 +830,6 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-
 ion-modal {
     --width: fit-content;
     --min-width: 250px;
