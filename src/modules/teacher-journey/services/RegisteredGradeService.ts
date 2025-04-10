@@ -8,50 +8,22 @@ export default class RegisteredGradeService extends BaseService<RegisteredGrade>
     super(table)
   }
 
-  async getRegisteredGradesByEnrollmentId(enrollmentId: string) {
+  async getRegisteredGradesIsCompletedStatus(teacherId: string | null, classroomId: string, disciplineId: string, stageId: string) {
     const { data, error } = await this.client
       .from('registeredGrade')
       .select(`
-        *,
-        student:student (disability),
-        classroom:classroom (name),
-        stage:stage (name),
-        discipline:discipline (name),
-        registeredGradeByThematicUnit:registeredGradeByThematicUnit (
-          thematicUnitId,
-          grade,
-          thematicUnit:thematicUnit (name)
-        )
+        isCompleted
       `)
-      .eq('enrollmentId', enrollmentId)
+      .eq('teacherId', teacherId)
+      .eq('classroomId', classroomId)
+      .eq('disciplineId', disciplineId)
+      .eq('stageId', stageId)
 
     if (error) {
-      throw new Error(`Erro ao buscar notas registradas por matrícula: ${error.message}`)
+      throw new Error(`Erro ao buscar validação de preenchimento: ${error.message}`)
     }
-    if (!data) {
-      throw new Error('Nenhuma nota registrada encontrada')
-    }
-
-    return data
+    return !!(data[0] && data[0].isCompleted)
   }
-
-  // async createRegisteredGrade(registeredGrade: RegisteredToSave) {
-  //   const { data, error } = await this.client
-  //     .from('registeredGrade')
-  //     .insert(registeredGrade)
-  //     .select()
-  //     .single()
-
-  //   if (error) {
-  //     throw new Error(`Erro ao criar nota registrada: ${error.message}`)
-  //   }
-  //   if (!data) {
-  //     throw new Error('Falha ao criar nota registrada')
-  //   }
-
-  //   return data
-
-  // }
 
   async getRegistered(classroomId: string, disciplineId: string, stageId: string) {
     if (stageId) {
@@ -66,11 +38,12 @@ export default class RegisteredGradeService extends BaseService<RegisteredGrade>
       if (error) {
         throw new Error(`Erro ao buscar registro de notas finalizadas: ${error.message}`)
       }
-      if (!data) {
-        throw new Error('Nenhum registro finalizado encontrado')
+      if (!data || data.length === 0) {
+        console.log(data[0], 'Nenhum')
+        return data[0]
       }
 
-      return data
+      return data[0]
     }
   }
 

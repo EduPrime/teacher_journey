@@ -3,11 +3,11 @@ import type { MountedStudent, RegisteredToSave } from '../types/types'
 import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
 import showToast from '@/utils/toast-alert'
-import { IonAccordion, IonAccordionGroup, IonAlert, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol, IonGrid, IonIcon, IonInput, IonItem, IonLabel, IonLoading, IonModal, IonRadio, IonRadioGroup, IonRow, IonSegment, IonSegmentButton, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
+import { IonAccordion, IonAccordionGroup, IonAlert, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol, IonGrid, IonIcon, IonInput, IonItem, IonLabel, IonModal, IonRow, IonText, IonToolbar } from '@ionic/vue'
 import Decimal from 'decimal.js'
 
 import { alertOutline, calculator, checkmarkCircleOutline, checkmarkOutline, helpOutline, lockClosedOutline } from 'ionicons/icons'
-import { ErrorMessage, Field, Form, useForm } from 'vee-validate'
+import { ErrorMessage, Field, Form } from 'vee-validate'
 
 import { computed, onMounted, ref, watch } from 'vue'
 import EduStageTabs from '../components/StageTabs.vue'
@@ -37,12 +37,12 @@ const numericGradeService = new NumericGradeSevice()
 const registeredGradeService = new RegisteredGradeService()
 
 const stages = ref()
-const showSaveConfirm = ref(false)
-const showDeleteConfirm = ref(false)
+// const showSaveConfirm = ref(false)
+// const showDeleteConfirm = ref(false)
 const eduFProfile = ref()
 const currentStage = ref()
 const students = ref()
-const showFinalizeConfirm = ref(false)
+// const showFinalizeConfirm = ref(false)
 const numericStudentList = ref()
 const isLoading = ref(false)
 const currentStudentToSave = ref<StudentGrade | null>(null)
@@ -54,7 +54,7 @@ const saveModal = ref(false)
 const deleteModal = ref(false)
 
 const showAlert = ref(false)
-const stageFinished = ref<RegisteredToSave[]>()
+const stageFinished = ref<RegisteredToSave>()
 
 const registeredToSave = ref<RegisteredToSave>({
   isCompleted: false,
@@ -205,10 +205,10 @@ watch([eduFProfile, currentStage], async ([newEduFProfile, newCurrentStage]) => 
   numericStudentList.value = []
   studentList.value = []
 
-  if (newEduFProfile?.classroomId && newEduFProfile?.disciplineId) {
+  if (newEduFProfile?.classroomId && newEduFProfile?.disciplineId && newCurrentStage?.id) {
     // Checa se registro de notas já foi finalizado
 
-    stageFinished.value = await registeredGradeService.getRegistered(newEduFProfile.classroomId, newEduFProfile.disciplineId, newCurrentStage?.id)
+    stageFinished.value = await registeredGradeService.getRegistered(newEduFProfile.classroomId, newEduFProfile.disciplineId, newCurrentStage.id)
 
     // Carrega as notas numéricas existentes
     numericStudentList.value = await numericGradeService.getNumericGrade(newEduFProfile.classroomId, newEduFProfile.disciplineId)
@@ -233,7 +233,7 @@ watch([eduFProfile, currentStage], async ([newEduFProfile, newCurrentStage]) => 
         disciplineId: newEduFProfile.disciplineId,
         studentId: i.studentId,
         schoolId: i.schoolId,
-        stageId: newCurrentStage?.id || '', // Atualiza o stageId com o currentStage
+        stageId: newCurrentStage.id || '', // Atualiza o stageId com o currentStage
         status: calculateStatus(i, studentNumeric?.grade),
         situation: i.situation,
         disability: i.student.disability,
@@ -330,7 +330,9 @@ async function handleSave(s: any) {
       grade: convertToDecimal(s.grade),
     }
     await numericGradeService.upsertNumericGrade(payload)
+    // eslint-disable-next-line no-shadow
     const student = studentList.value?.find((s: any) => s.enrollmentId === payload.enrollmentId)
+    // eslint-disable-next-line ts/no-unused-expressions
     student ? student.status = 'CONCLUÍDO' : false
     showToast('Nota salva com sucesso', 'top', 'success')
   }
@@ -360,6 +362,7 @@ async function handleClear(s: StudentGrade) {
 
     showToast('Nota apagada com sucesso!', 'top', 'success')
     const student = studentList.value?.find((st: any) => st.enrollmentId === s.enrollmentId)
+    // eslint-disable-next-line ts/no-unused-expressions
     student ? student.status = 'INCOMPLETO' : false
   }
   catch (error: any) {
@@ -440,15 +443,15 @@ onMounted(async () => {
     <div v-if="eduFProfile?.classroomId && eduFProfile?.disciplineId">
       <EduStageTabs v-model="currentStage" :stages="stages">
         <template v-for="stage in stages" :key="stage" #[stage.numberStage]>
-          <IonCard v-if="stageFinished?.length > 0" color="success">
+          <IonCard v-if="stageFinished" :color="stageFinished.isCompleted ? 'success' : 'info'">
             <IonCardContent>
-              <IonText v-if="stageFinished[0].isCompleted" style="display: flex;">
+              <IonText v-if="stageFinished.isCompleted" style="display: flex;">
                 <IonIcon size="small" style="margin-top: auto; margin-bottom: auto;" :icon="checkmarkCircleOutline" />
                 <span style="margin-top: auto; margin-bottom: auto; margin-left: 5px;">
                   Registro Completo de notas na {{ stage.numberStage }}º Etapa.
                 </span>
               </IonText>
-              <IonText v-if="!stageFinished[0].isCompleted" style="display: flex;">
+              <IonText v-if="!stageFinished.isCompleted" style="display: flex;">
                 <IonIcon size="small" style="margin-top: auto; margin-bottom: auto;" :icon="alertOutline" />
                 <span style="margin-top: auto; margin-bottom: auto; margin-left: 5px;">
                   Registro Parcial de notas na {{ stage.numberStage }}º Etapa.
@@ -478,7 +481,7 @@ onMounted(async () => {
                       fontWeight: 'bold',
                     }"
                   >
-                    Média: {{ computedMean(s).toFixed(1) }}
+                    Média: {{ computedMean(s).toFixed(1).replace('.', ',') }}
                   </IonChip>
                   <IonChip
                     v-if="!s.disability && s.situation === 'CURSANDO'" class="ion-no-margin"
