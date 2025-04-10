@@ -39,12 +39,28 @@ export default class RegisteredGradeService extends BaseService<RegisteredGrade>
         throw new Error(`Erro ao buscar registro de notas finalizadas: ${error.message}`)
       }
       if (!data || data.length === 0) {
-        console.log(data[0], 'Nenhum')
         return data[0]
       }
 
       return data[0]
     }
+  }
+
+  async updateRegisteredGradeIsCompleted(teacherId: string | null, classroomId: string, disciplineId: string, stageId: string, isCompleted: boolean) {
+    const { data, error } = await this.client
+      .from(table)
+      .update({ isCompleted })
+
+      .eq('teacherId', teacherId)
+      .eq('classroomId', classroomId)
+      .eq('disciplineId', disciplineId)
+      .eq('stageId', stageId)
+
+    if (error) {
+      throw new Error(`Erro ao atualizar o status de conclusão: ${error.message}`)
+    }
+
+    return data
   }
 
   async upsertRegisteredGrade(registeredGrade: RegisteredToSave) {
