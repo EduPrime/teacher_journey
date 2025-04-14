@@ -277,7 +277,7 @@ async function saveFrequency() {
 
       // Salva a frequência dos alunos
       const createdRecords = await attendanceService.createAttendance(frequencyToSave.value)
-      if (createdRecords.length > 0) {
+      if (createdRecords && createdRecords.length > 0) {
         isWarningInformation.value = false
         showToast('Frequência salva com sucesso', 'top', 'success')
       }

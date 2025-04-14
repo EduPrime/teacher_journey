@@ -1,4 +1,4 @@
-import type Enrollment from '@prisma/client'
+import type { Enrollment } from '@prisma/client'
 import BaseService from '@/services/BaseService'
 import errorHandler from '@/utils/error-handler'
 import { QueryEnrollments, QueryGrades, QueryEmptyGrades } from '../types/types'
