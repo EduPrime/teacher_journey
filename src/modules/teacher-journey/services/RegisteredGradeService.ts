@@ -19,12 +19,15 @@ export default class RegisteredGradeService extends BaseService<RegisteredGrade>
       .eq('classroomId', classroomId)
       .eq('disciplineId', disciplineId)
       .eq('stageId', stageId)
+      .single()
 
     if (error) {
       errorHandler(error, 'Erro ao buscar status de notas registradas')
     }
-    
-    return !!(data[0] && data[0].isCompleted)
+    if (data && data.isCompleted) {
+      return true
+    }
+    return false
   }
 
   async getRegistered(classroomId: string, disciplineId: string, stageId: string) {
@@ -41,7 +44,7 @@ export default class RegisteredGradeService extends BaseService<RegisteredGrade>
         errorHandler(error, 'Erro ao buscar notas registradas')
       }
       if (!data || data.length === 0) {
-        return data[0]
+        return null
       }
 
       return data[0]
