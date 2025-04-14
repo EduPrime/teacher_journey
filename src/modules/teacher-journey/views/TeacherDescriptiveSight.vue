@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
-import { IonAccordion, IonAccordionGroup, IonIcon, IonText } from '@ionic/vue'
-import { shapes } from 'ionicons/icons'
+import { IonAccordion, IonAccordionGroup, IonButton, IonCardHeader, IonIcon, IonItem, IonLabel, IonText } from '@ionic/vue'
+import { barChartOutline, calendarClearOutline, calendarOutline, shapes } from 'ionicons/icons'
+
+import { DateTime } from 'luxon'
 
 import { ref, watch } from 'vue'
 
@@ -22,6 +24,11 @@ watch(eduFProfile, async (newValue) => {
     students.value = undefined
   }
 })
+
+function luxonFormatDate(dateString: string) {
+  const date = DateTime.fromISO(dateString)
+  return date.setLocale('pt-BR').toFormat('dd MMM yyyy')
+}
 </script>
 
 <template>
@@ -44,7 +51,58 @@ watch(eduFProfile, async (newValue) => {
           </IonLabel>
         </IonItem>
         <div slot="content" class="ion-padding">
-          {{ s }}
+          <IonCardHeader
+            id="accordionContentHeader"
+            class="ion-no-padding" style="padding: 8px; margin-bottom: 20px; background-color: rgba(var(--ion-color-secondary-rgb), 0.1);"
+            :translucent="true"
+          >
+            <IonText color="primary" style="display: flex; align-items: center; height: 15px;">
+              <IonIcon :icon="barChartOutline" style="margin-right: 10px;" />
+              Descrição parcial da criança
+            </IonText>
+          </IonCardHeader>
+
+          <div class="ion-margin-top">
+            <ion-textarea
+              color="secondary"
+              class="ion-content"
+              label="Parecer Descritivo"
+              label-placement="floating"
+              fill="outline"
+              :style="`min-height: ${70}px;`"
+              oninput="this.style.minHeight = `${70 + this.value.length / 2}px`"
+              placeholder="Enter text"
+              :counter="true"
+              :maxlength="800"
+            />
+          </div>
+          <!-- Data de criação do parecer descritivo -->
+          <IonCardHeader
+            id="accordionContentHeader"
+            class="ion-no-padding" style="padding: 8px;"
+            :translucent="true"
+          >
+            <IonText color="primary" style="display: flex; align-items: center; height: 15px;">
+              <IonIcon :icon="calendarClearOutline" style="margin-right: 10px;" />
+              Criado em {{ luxonFormatDate(s.createdAt) }}
+            </IonText>
+          </IonCardHeader>
+          <!-- Data de *ATUALIZAÇÂO do parecer descritivo -->
+          <IonCardHeader
+            id="accordionContentHeader"
+            class="ion-no-padding" style="padding: 8px;"
+            :translucent="true"
+          >
+            <IonText color="primary" style="display: flex; align-items: center; height: 15px;">
+              <IonIcon :icon="calendarOutline" style="margin-right: 10px;" />
+              Atualizado em {{ luxonFormatDate(s.createdAt) }}
+            </IonText>
+          </IonCardHeader>
+          <div class="ion-content" style="display: flex; justify-content: right; padding-top: 8px; padding-bottom: 8px;">
+            <IonButton color="secondary" style="text-transform: capitalize;">
+              Salvar
+            </IonButton>
+          </div>
         </div>
       </IonAccordion>
     </IonAccordionGroup>
