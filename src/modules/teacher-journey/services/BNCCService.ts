@@ -1,5 +1,5 @@
 import BaseService from '@/services/BaseService'
-// import type { BNCC } from '@prisma/client'
+import errorHandler from '@/utils/error-handler'
 
 const table = 'bncc' as const // Modifique para sua tabela
 
@@ -24,7 +24,7 @@ export default class BNCCService extends BaseService<any> {
 
     // .eq('classroomId',classroomId)
     if (error) {
-      throw new Error(`Erro ao trazer os curriculos: ${error.message}`)
+      errorHandler(error, 'Erro ao listar frequencias')
     }
     if (!data) {
       throw new Error('Nenhum curriculo encontrado')

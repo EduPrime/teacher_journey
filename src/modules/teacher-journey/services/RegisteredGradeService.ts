@@ -1,6 +1,7 @@
 import type { RegisteredGrade } from '@prisma/client'
 import type { RegisteredToSave } from '../types/types'
 import BaseService from '@/services/BaseService'
+import errorHandler from '@/utils/error-handler'
 
 const table = 'registeredGrade' as const
 export default class RegisteredGradeService extends BaseService<RegisteredGrade> {
@@ -20,7 +21,7 @@ export default class RegisteredGradeService extends BaseService<RegisteredGrade>
       .eq('stageId', stageId)
 
     if (error) {
-      throw new Error(`Erro ao buscar validação de preenchimento: ${error.message}`)
+      errorHandler(error, 'Erro ao buscar status de notas registradas')
     }
     
     return !!(data[0] && data[0].isCompleted)
@@ -37,7 +38,7 @@ export default class RegisteredGradeService extends BaseService<RegisteredGrade>
         .is('deletedAt', null)
 
       if (error) {
-        throw new Error(`Erro ao buscar registro de notas finalizadas: ${error.message}`)
+        errorHandler(error, 'Erro ao buscar notas registradas')
       }
       if (!data || data.length === 0) {
         return data[0]
@@ -58,7 +59,7 @@ export default class RegisteredGradeService extends BaseService<RegisteredGrade>
       .eq('stageId', stageId)
  
     if (error) {
-      throw new Error(`Erro ao atualizar o status de conclusão: ${error.message}`)
+      errorHandler(error, 'Erro ao atualizar status de notas registradas')
     }
  
     return data
@@ -70,7 +71,7 @@ export default class RegisteredGradeService extends BaseService<RegisteredGrade>
       .upsert(registeredGrade, { onConflict: 'teacherId, classroomId, disciplineId, stageId' })
 
     if (error) {
-      throw new Error(`Erro ao criar ou atualizar nota registrada: ${error.message}`)
+      errorHandler(error, 'Erro ao atualizar ou inserir nota')
     }
 
     return data

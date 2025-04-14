@@ -1,5 +1,6 @@
 import type { ConceptualGrade } from '@prisma/client'
 import BaseService from '@/services/BaseService'
+import errorHandler from '@/utils/error-handler'
 import type { Grades, MountedStudent } from '../types/types'
 
 const table = 'conceptualGrade' as const
@@ -24,7 +25,6 @@ export default class ConceptualGradeService extends BaseService<ConceptualGrade>
       )
       .select()
       .single()
-    console.log(conceptualGradeResult)
     if (!conceptualGradeResult || !conceptualGradeResult.id) {
       throw new Error('Falha ao obter ID da nota conceitual criada');
     }
@@ -43,18 +43,18 @@ export default class ConceptualGradeService extends BaseService<ConceptualGrade>
       .select()
 
     if (conceptualGradeByThematicUnitError) {
-      throw new Error(`Erro ao criar nota conceitual por unidade temática: ${conceptualGradeByThematicUnitError.message}`);
+      errorHandler(conceptualGradeByThematicUnitError, 'Erro ao criar nota conceitual por unidade temática')
     }
 
     if (!conceptualGradeByThematicUnitData) {
-      throw new Error('Falha ao criar nota conceitual por unidade temática');
+      throw new Error('Falha ao criar nota conceitual por unidade temática')
     }
 
     if (conceptualGradeError) {
-      throw new Error(`Erro ao criar nota conceitual: ${conceptualGradeError.message}`);
+      throw new Error(`Erro ao criar nota conceitual: ${conceptualGradeError.message}`)
     }
     if (!conceptualGradeResult || conceptualGradeResult.length === 0) {
-      throw new Error('Falha ao criar nota conceitual');
+      throw new Error('Falha ao criar nota conceitual')
     }
     return conceptualGradeByThematicUnitData
   }
@@ -72,7 +72,7 @@ export default class ConceptualGradeService extends BaseService<ConceptualGrade>
         .eq('conceptualGradeId', grade.conceptualGradeId)
 
       if (updateGradeError) {
-        throw new Error(`Erro ao atualizar nota conceitual: ${updateGradeError.message}`);
+        errorHandler(updateGradeError, 'Erro ao atualizar nota conceitual por unidade temática')
       }
     }
   }
@@ -84,7 +84,7 @@ export default class ConceptualGradeService extends BaseService<ConceptualGrade>
       .eq('id', conceptualGradeId)
 
     if (deleteConceptualGradeError) {
-      throw new Error(`Erro ao deletar nota conceitual: ${deleteConceptualGradeError.message}`);
+      errorHandler(deleteConceptualGradeError, 'Erro ao deletar nota conceitual')
     } else {
       const { error: deleteConceptualGradeByThematicUnitError } = await this.client
         .from('conceptualGradeByThematicUnit')
@@ -92,7 +92,7 @@ export default class ConceptualGradeService extends BaseService<ConceptualGrade>
         .eq('conceptualGradeId', conceptualGradeId)
 
       if (deleteConceptualGradeByThematicUnitError) {
-        throw new Error(`Erro ao deletar nota conceitual por unidade temática: ${deleteConceptualGradeByThematicUnitError.message}`);
+        errorHandler(deleteConceptualGradeByThematicUnitError, 'Erro ao deletar nota conceitual por unidade temática')
       }
     }
 
