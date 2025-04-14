@@ -55,10 +55,19 @@ const deleteModal = ref(false)
 
 const showAlert = ref(false)
 const stageFinished = ref<RegisteredToSave>()
+const gradesAreFilled = ref(false)
 
 const registeredToSave = ref<RegisteredToSave>({
   isCompleted: false,
   teacherId: localStorage.getItem('teacherId'),
+  classroomId: '',
+  disciplineId: '',
+  stageId: '',
+})
+
+const computedRegisteredGrade = ref({
+  isCompleted: false,
+  teacherId: registeredToSave.value.teacherId,
   classroomId: '',
   disciplineId: '',
   stageId: '',
@@ -82,10 +91,6 @@ interface StudentGrade extends MountedStudent {
   grade: string
   teacherId: string
 }
-
-const gradesAreFilled = computed (() => studentList.value?.every(item =>
-  item.situation !== 'CURSANDO' || (checkMinimalActivities(item) && checkMinimalGrade(item)),
-) ?? false)
 
 const getStatusIcon = computed(() => (status: string) => {
   switch (status) {
@@ -176,19 +181,6 @@ function evaluationValidate(s: StudentGrade): boolean {
   return true
 }
 
-/* function computedMeanWithMakeUp(s: StudentGrade): number {
-  const activityEvaluation = computedEvaluationActivity(s)
-  const exam2Evaluation = parseFloat(s.grade || '0')
-  const makeUpEvaluation = parseFloat(s.makeUp || '0')
-
-  const minorEvaluation = Math.min(activityEvaluation, exam2Evaluation)
-  const hightestEvaluation = Math.max(activityEvaluation, exam2Evaluation)
-
-  if (makeUpEvaluation > minorEvaluation) return (makeUpEvaluation + hightestEvaluation) / 2
-
-  return (activityEvaluation + exam2Evaluation) / 2
-} */
-
 function calculateStatus(s: StudentGrade, grade: any): string {
   if (s.situation !== 'CURSANDO') {
     return 'BLOQUEADO'
@@ -216,10 +208,22 @@ function convertToDecimal(value: any): Decimal {
 watch([eduFProfile, currentStage], async ([newEduFProfile, newCurrentStage]) => {
   numericStudentList.value = []
   studentList.value = []
+  gradesAreFilled.value = false // Reseta gradesAreFilled inicialmente
+  computedRegisteredGrade.value = {
+    isCompleted: false,
+    teacherId: registeredToSave.value.teacherId,
+    classroomId: '',
+    disciplineId: '',
+    stageId: '',
+  } // Reseta computedRegisteredGrade inicialmente
 
   if (newEduFProfile?.classroomId && newEduFProfile?.disciplineId && newCurrentStage?.id) {
     // Checa se registro de notas já foi finalizado
-    stageFinished.value = await registeredGradeService.getRegistered(newEduFProfile.classroomId, newEduFProfile.disciplineId, newCurrentStage.id)
+    stageFinished.value = await registeredGradeService.getRegistered(
+      newEduFProfile.classroomId,
+      newEduFProfile.disciplineId,
+      newCurrentStage.id,
+    )
 
     // Carrega as notas numéricas existentes
     numericStudentList.value = await numericGradeService.getNumericGrade(newEduFProfile.classroomId, newEduFProfile.disciplineId)
@@ -258,11 +262,37 @@ watch([eduFProfile, currentStage], async ([newEduFProfile, newCurrentStage]) => 
         grade: studentNumeric?.grade ? (Number(studentNumeric.grade).toFixed(2)).replace('.', ',') : '',
       }
     })
+
+    // Atualiza gradesAreFilled com base na nova studentList
+    gradesAreFilled.value = (studentList.value ?? []).some(
+      item =>
+        item.situation === 'CURSANDO' // Apenas alunos "CURSANDO" são considerados
+        && checkMinimalActivities(item)
+        && checkMinimalGrade(item),
+    )
+
+    // Atualiza computedRegisteredGrade dinamicamente
+    computedRegisteredGrade.value = {
+      isCompleted: gradesAreFilled.value,
+      teacherId: registeredToSave.value.teacherId,
+      classroomId: newEduFProfile.classroomId,
+      disciplineId: newEduFProfile.disciplineId,
+      stageId: newCurrentStage.id || '',
+    }
+
     oldList.value = JSON.parse(JSON.stringify(studentList.value))
   }
   else {
     students.value = undefined
     studentList.value = undefined
+    gradesAreFilled.value = false // Reseta gradesAreFilled caso os dados sejam inválidos
+    computedRegisteredGrade.value = {
+      isCompleted: false,
+      teacherId: registeredToSave.value.teacherId,
+      classroomId: '',
+      disciplineId: '',
+      stageId: '',
+    } // Reseta computedRegisteredGrade caso os dados sejam inválidos
   }
 })
 
@@ -294,6 +324,8 @@ watch([eduFProfile, currentStage], async ([newEduFProfile, newCurrentStage]) => 
 function checkMinimalActivities(s: StudentGrade): boolean {
   const activityFields = [s.at1, s.at2, s.at3, s.at4, s.at5]
   const validActivities = activityFields.filter((val) => {
+    if (val === '')
+      return false // Ignora campos vazios
     const parsed = Number.parseFloat(val)
     return !isNaN(parsed) && parsed >= 0 && parsed <= 10
   }).length >= 3
@@ -302,12 +334,10 @@ function checkMinimalActivities(s: StudentGrade): boolean {
 }
 
 function checkMinimalGrade(s: StudentGrade): boolean {
-  const gradeValid = (() => {
-    const gradeValue = Number.parseFloat(s.grade)
-    return !isNaN(gradeValue) && gradeValue >= 0 && gradeValue <= 10
-  })()
-
-  return gradeValid
+  if (s.grade === '')
+    return false // Ignora campos vazios
+  const gradeValue = Number.parseFloat(s.grade)
+  return !isNaN(gradeValue) && gradeValue >= 0 && gradeValue <= 10
 }
 
 async function handleSave(s: any) {
@@ -343,8 +373,9 @@ async function handleSave(s: any) {
     await numericGradeService.upsertNumericGrade(payload)
     // eslint-disable-next-line no-shadow
     const student = studentList.value?.find((s: any) => s.enrollmentId === payload.enrollmentId)
-    // eslint-disable-next-line ts/no-unused-expressions
-    student ? student.status = 'CONCLUÍDO' : false
+    if (student) {
+      student.status = 'CONCLUÍDO'
+    }
     showToast('Nota salva com sucesso', 'top', 'success')
   }
   catch (error: any) {
@@ -453,14 +484,6 @@ async function registerGrades(itemToSave: RegisteredToSave) {
   }
 }
 
-const computedRegisteredGrade = computed(() => ({
-  isCompleted: registeredToSave.value.isCompleted,
-  teacherId: registeredToSave.value.teacherId,
-  classroomId: eduFProfile.value?.classroomId || '',
-  disciplineId: eduFProfile.value?.disciplineId || '',
-  stageId: currentStage.value?.id || '',
-}))
-
 function compareGrades(oldStudents: StudentGrade[] | undefined, newStudent: StudentGrade) {
   const oldStudent = oldStudents?.find(s => s.enrollmentId === newStudent.enrollmentId)
   const equal = oldStudent && Object.keys(oldStudent).every(key => oldStudent[key as keyof StudentGrade] === newStudent[key as keyof StudentGrade])
@@ -494,18 +517,12 @@ onMounted(async () => {
     <div v-if="eduFProfile?.classroomId && eduFProfile?.disciplineId">
       <EduStageTabs v-model="currentStage" :stages="stages">
         <template v-for="stage in stages" :key="stage" #[stage.numberStage]>
-          <IonCard v-if="stageFinished" :color="stageFinished.isCompleted ? 'success' : 'info'">
+          <IonCard v-if="stageFinished" color="success">
             <IonCardContent>
-              <IonText v-if="stageFinished.isCompleted" style="display: flex;">
+              <IonText style="display: flex;">
                 <IonIcon size="small" style="margin-top: auto; margin-bottom: auto;" :icon="checkmarkCircleOutline" />
                 <span style="margin-top: auto; margin-bottom: auto; margin-left: 5px;">
-                  Registro Completo de notas na {{ stage.numberStage }}º Etapa.
-                </span>
-              </IonText>
-              <IonText v-if="!stageFinished.isCompleted" style="display: flex;">
-                <IonIcon size="small" style="margin-top: auto; margin-bottom: auto;" :icon="alertOutline" />
-                <span style="margin-top: auto; margin-bottom: auto; margin-left: 5px;">
-                  Registro Parcial de notas na {{ stage.numberStage }}º Etapa.
+                  Lançamento de notas da {{ stage.numberStage }}º Etapa concluído.
                 </span>
               </IonText>
             </IonCardContent>
@@ -832,8 +849,8 @@ onMounted(async () => {
     <IonAlert
       class="custom-alert"
       :is-open="showAlert"
-      :header="gradesAreFilled ? 'Deseja finalizar os registros?' : 'Registros incompletos'"
-      :sub-header="gradesAreFilled ? '' : 'Deseja finalizar assim mesmo?'"
+      header="Concluir Lançamento"
+      sub-header="Ao confirmar, você declara que todas as notas desta turma estão corretas e prontas para a secretaria. Deseja prosseguir?"
       :buttons="[
         {
           text: 'Não',
@@ -844,7 +861,9 @@ onMounted(async () => {
         {
           text: 'Sim',
           cssClass: 'alert-button-confirm',
-          handler: () => registerGrades(computedRegisteredGrade),
+          handler: async () => {
+            await registerGrades(computedRegisteredGrade)
+          },
         },
       ]"
     />
@@ -856,10 +875,13 @@ onMounted(async () => {
           <IonRow>
             <IonCol size="12">
               <IonButton
-                :disabled="isLoading" color="secondary" expand="full"
+                :disabled="!gradesAreFilled" color="secondary" expand="full"
                 @click="showAlert = true"
               >
-                Finalizar
+                <IonIcon size="small" style="margin-top: auto; margin-bottom: auto; margin-left:10px;" :icon="checkmarkCircleOutline" />
+                <span style="margin-top: auto; margin-bottom: auto; margin-left: 5px;">
+                  Concluir Lançamento
+                </span>
               </IonButton>
             </IonCol>
           </IonRow>
