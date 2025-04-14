@@ -16,6 +16,8 @@ import { computed, defineProps, ref, watch, onMounted } from "vue";
 import BNCCService from "../../services/BNCCService";
 import ContentService from "../../services/ContentService";
 import { Form, Field, ErrorMessage } from "vee-validate";
+import Multiselect from 'vue-multiselect'
+import 'vue-multiselect/dist/vue-multiselect.css'
 
 interface AvailableDisciplines {
   id: string
@@ -40,6 +42,11 @@ const bnccService = new BNCCService()
 const contentService = new ContentService()
 
 const bnccs = ref<any[]>([]);
+
+const selectedBnccObjects = ref<any[]>([])
+
+const originalBnccs = ref<any[]>([])
+
 const isLoadingBnccs = ref(false);
 
 const filledContent = ref({
@@ -88,11 +95,23 @@ watch(
 
 watch(
   () => filledContent.value.disciplines,
-  async (newValue) => {
-    if (newValue.length > 0) {
-      await getBNCCByDisciplines(newValue)
+  async (newDisciplines, oldDisciplines) => {
+    // 1) Se mudou a disciplina, limpa a seleção de BNCC
+    if (
+      oldDisciplines &&
+      JSON.stringify(newDisciplines) !== JSON.stringify(oldDisciplines)
+    ) {
+      selectedBnccObjects.value = []
+      filledContent.value.bnccs = []
+    }
+
+    if (newDisciplines.length > 0) {
+      await getBNCCByDisciplines(newDisciplines)
+    } else {
+      bnccs.value = []   
     }
   },
+  { immediate: true }
 )
 
 watch(
@@ -110,25 +129,55 @@ async function getBNCCByDisciplines(selectedDisciplines: string[]) {
   try {
     isLoadingBnccs.value = true;
     const data = await bnccService.getBNCC(selectedDisciplines, props.seriesId);
-    bnccs.value = data || [];
+    originalBnccs.value = data || [];
+    bnccs.value = originalBnccs.value;
     filledContent.value.bnccs = []; 
   } catch (error) {
     console.error("Erro ao carregar BNCCs:", error);
     bnccs.value = [];
+    originalBnccs.value = [];
   } finally {
     isLoadingBnccs.value = false;
   }
 }
 
-async function setBNCC(selectedBNCC: string[]) {
-  filledContent.value.bnccs = selectedBNCC
+function formatBnccLabel(option: any) {
+
+  console.log('option', option)
+  if (!option) return ''
+
+  const code = option.code ?? ''
+  const objective = option.objective ?? ''
+
+  if (code && objective) return `${code} - ${objective}`
+  if (code) return code
+  if (objective) return objective
+  return 'Sem dados'
 }
 
-async function saveContent() {
-  const data = await contentService.createContent({ ...filledContent.value })
-  emits('update:modelValue', { card: false, saved: !!data })
+function customFilter(option: any, label: string, search: string): boolean {
+  if (!search) return true;
+  const query = search.toLowerCase();
+  const code = (option.code ?? '').toLowerCase();
+  const objective  = (option.objective ?? '').toLowerCase();
+  return code.includes(query) || objective.includes(query);
+}
 
-  showToast('Conteúdo criado com sucesso', 'top', 'success')
+
+async function saveContent() {
+  try {
+    const payload = {
+      ...filledContent.value,
+      bnccs: selectedBnccObjects.value.map(bncc => bncc.id)
+    };
+    
+    const data = await contentService.createContent(payload);
+    emits('update:modelValue', { card: false, saved: !!data });
+    showToast('Conteúdo criado com sucesso', 'top', 'success');
+  } catch (error) {
+    console.error("Erro ao salvar conteúdo:", error);
+    showToast('Erro ao salvar conteúdo', 'top', 'danger');
+  }
 }
 </script>
 
@@ -220,28 +269,31 @@ async function saveContent() {
 
           <br>
           <Field v-slot="{ field }" name="Currículos" rules="required">
-            <IonSelect
-              v-bind="field"
-              v-model="filledContent.bnccs"
-              class="ion-select-card-content"
-              label="Currículos"
-              label-placement="floating"
-              fill="outline"
-              cancel-text="Cancelar"
-              style="--color: var(--ion-color-secondary);"
-              :multiple="true"
-              :disabled="isLoadingBnccs || bnccs.length === 0"
-              interface="alert"
-              @ion-change="setBNCC($event.detail.value)"
+            <Multiselect
+            class="bncc-scroll"
+            v-bind="field"
+            v-model="selectedBnccObjects"
+            :options="bnccs"
+            :multiple="true"
+            track-by="id"
+            :custom-label="formatBnccLabel"
+            :filterable="true"           
+            :internal-search="true"      
+            :custom-filter="customFilter"
+            placeholder="Busque ou selecione BNCC"
+            :disabled="isLoadingBnccs"
+            :no-results-text=" isLoadingBnccs 
+                ? 'Buscando...' 
+                : 'Nenhum resultado encontrado' "
+            no-options-text="Sem opções disponíveis"
+            :select-label="`Pressione Enter para selecionar`"
+            :deselect-label="`Pressione Backspace para remover`"
+            :selected-label="`Selecionado`"
             >
-              <IonSelectOption 
-                v-for="bncc in bnccs" 
-                :key="bncc.id" 
-                :value="bncc.id"
-              >
-                {{ bncc.code }} - {{ bncc.objective.slice(0, 125) }}
-              </IonSelectOption>
-            </IonSelect>
+            <template #noResult>
+              Nenhum resultado encontrado
+            </template>
+            </Multiselect>
           </Field>
           <ErrorMessage name="Currículos" v-slot="{ message }">
             <span class="error-message">{{ message }}</span>
