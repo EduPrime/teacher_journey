@@ -1,6 +1,7 @@
 import type { Attendance } from '@prisma/client'
 import type { AttendanceWithFrequencies, Frequency, TeacherFrequency, WarningFrequency } from '../types/types'
 import BaseService from '@/services/BaseService'
+import errorHandler from '@/utils/error-handler'
 
 const table = 'attendance' as const
 
@@ -26,7 +27,7 @@ export default class EnrollmentService extends BaseService<Attendance> {
     const { data, error } = await query
 
     if (error) {
-      throw new Error(`Erro ao listar aviso de alerta de frequência: ${error}`)
+      errorHandler(error, 'Erro ao listar frequencias')
     }
 
     return {
@@ -56,7 +57,7 @@ export default class EnrollmentService extends BaseService<Attendance> {
         .eq('classroomId', classroomId)
 
     if (error) {
-      throw new Error(`Erro listar todas as frequencias do dia ${selectedDate}: ${error.message}`)
+      errorHandler(error, 'Erro ao listar frequencias')
     }
     if (!data) {
       throw new Error('Nenhuma frequencia encontrada')
@@ -96,7 +97,7 @@ export default class EnrollmentService extends BaseService<Attendance> {
           .single()
 
         if (attendanceError) {
-          throw new Error(`Erro ao inserir ou atualizar frequência: ${attendanceError.message}`)
+          errorHandler(attendanceError, 'Erro ao inserir ou atualizar frequência')
         }
 
         // console.log('attendanceData', attendanceData)
@@ -117,7 +118,7 @@ export default class EnrollmentService extends BaseService<Attendance> {
             .upsert(numMissedRecords, { onConflict: 'attendanceId, name' }) // Garante atualização correta
 
           if (numMissedError) {
-            throw new Error(`Erro ao inserir ou atualizar registros de ausência: ${numMissedError.message}`)
+            errorHandler(numMissedError, 'Erro ao inserir ou atualizar frequências de ausência')
           }
         }
 
@@ -129,7 +130,7 @@ export default class EnrollmentService extends BaseService<Attendance> {
       return attendanceRecords
     }
     catch (error) {
-      throw new Error(`Erro ao inserir ou atualizar frequência: ${error}`)
+      errorHandler(error, 'Erro ao inserir ou atualizar frequência')
     }
   }
 
@@ -140,7 +141,7 @@ export default class EnrollmentService extends BaseService<Attendance> {
       .eq('enrollmentId', enrollmentId)
 
     if (error) {
-      throw new Error(`Erro listar todas as frequencias: ${error.message}`)
+      errorHandler(error, 'Erro ao listar frequencias')
     }
     if (!data) {
       throw new Error('Nenhuma frequencia encontrada')
@@ -155,7 +156,7 @@ export default class EnrollmentService extends BaseService<Attendance> {
       .eq('id', id)
 
     if (error) {
-      throw new Error(`Erro ao atualizar a frequencia: ${error.message}`)
+      errorHandler(error, 'Erro ao atualizar frequência')
     }
     if (!data) {
       throw new Error('Nenhuma frequencia encontrada para atualizar')
@@ -171,7 +172,7 @@ export default class EnrollmentService extends BaseService<Attendance> {
       .eq('id', id)
 
     if (error) {
-      throw new Error(`Erro ao atualizar detalhes da frequencia: ${error.message}`)
+      errorHandler(error, 'Erro ao atualizar frequência')
     }
     if (!data) {
       throw new Error('Nenhuma frequencia encontrada para atualizar')
@@ -198,8 +199,7 @@ export default class EnrollmentService extends BaseService<Attendance> {
       .single()
 
     if (errorAttendance) {
-      // console.log('errorAttendance', teacherFrequency)
-      throw new Error(`Erro ao inserir frequência do professor: ${errorAttendance.message}`)
+      errorHandler(errorAttendance, 'Erro ao inserir frequência do professor')
     }
   }
 
@@ -219,7 +219,7 @@ export default class EnrollmentService extends BaseService<Attendance> {
     const { data: datalistTeacherAttendance, error: errorlistTeacherAttendance } = await query
 
     if (errorlistTeacherAttendance) {
-      throw new Error(`Erro ao listar frequência do professor: ${errorlistTeacherAttendance.message}`)
+      errorHandler(errorlistTeacherAttendance, 'Erro ao listar frequencias do professor')
     }
 
     return datalistTeacherAttendance

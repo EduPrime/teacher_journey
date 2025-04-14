@@ -1,6 +1,7 @@
 import type { Stage } from '@prisma/client'
 import BaseService from '@/services/BaseService'
 import { DateTime } from 'luxon'
+import errorHandler from '@/utils/error-handler'
 
 const table = 'stage' as const
 
@@ -16,7 +17,7 @@ export default class StageService extends BaseService<Stage> {
       .order('numberStage', { ascending: true })
 
     if (error) {
-      console.error('getStages falhou e disparou erro ao buscar etapa:', error)
+      errorHandler(error, 'Erro ao buscar etapas')
     }
     else if (data) {
       return data
@@ -30,7 +31,7 @@ export default class StageService extends BaseService<Stage> {
       .eq('institutionId', institutionId)
 
     if (error) {
-      throw new Error(`Erro ao buscar etapa atual: ${error.message}`)
+      errorHandler(error, 'Erro ao buscar etapa atual')
     }
     if (!data || data.length === 0) {
       throw new Error('Nenhuma etapa encontrada')
@@ -66,7 +67,7 @@ export default class StageService extends BaseService<Stage> {
       .select('id, numberStage, startDate, endDate')
 
     if (error) {
-      throw new Error(`Erro ao buscar etapa atual: ${error.message}`)
+      errorHandler(error, 'Erro ao buscar etapa atual')
     }
     if (!data || data.length === 0) {
       throw new Error('Nenhuma etapa encontrada')

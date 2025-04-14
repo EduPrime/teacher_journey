@@ -1,5 +1,6 @@
 import type { ThematicUnit } from '@prisma/client'
 import BaseService from '@/services/BaseService'
+import errorHandler from '@/utils/error-handler'
 
 const table = 'thematicUnit' as const
 
@@ -17,7 +18,7 @@ export default class ThematicUnitService extends BaseService<ThematicUnit> {
             .eq('stageId', concept.stageId)
 
         if (error) {
-            throw new Error(`Erro ao buscar unidade tematica com dados dos alunos: ${error.message}`)
+            errorHandler(error, 'Erro ao buscar unidades tematicas')
         }
         if (!data) {
             throw new Error('Nenhuma unidade tematica encontrada')
