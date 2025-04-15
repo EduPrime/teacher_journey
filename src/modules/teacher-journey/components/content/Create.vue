@@ -32,6 +32,7 @@ interface Props {
   disciplineId?: string
   seriesId: string
   evaluation: string
+  isUpdateModalOpen: boolean
 }
 
 const props = defineProps<Props>()
@@ -48,6 +49,8 @@ const selectedBnccObjects = ref<any[]>([])
 const originalBnccs = ref<any[]>([])
 
 const isLoadingBnccs = ref(false);
+
+const modalOpened = ref(props.isUpdateModalOpen)
 
 const filledContent = ref({
   disciplines: props.disciplineId ? [props.disciplineId] : [] as string[],
@@ -182,151 +185,171 @@ async function saveContent() {
 </script>
 
 <template>
-  <Form
-    :initial-values="{
-      Disciplina: filledContent.disciplines,
-    }"
-    @submit="saveContent"
-  >
-    <IonCard id="NovoRegistroFormulario" class="ion-no-padding ion-margin-top">
-      <IonCardHeader color="secondary">
-        <div style="display: flex; align-items: center; height: 10px;">
-          <IonIcon :icon="save" size="small" style="margin-right: 8px;" />
-          <IonCardTitle style="font-size: medium;">
-            Registro de conteúdo
-          </IonCardTitle>
-        </div>
-      </IonCardHeader>
-
-      <div>
-        <IonCardContent class="ion-padding-top">
-          <Field name="Disciplina" v-slot="{ field }" rules="required">
-            <IonSelect 
-              v-if="props.evaluation === 'conceitual'"
-              v-bind="field"
-              v-model="filledContent.disciplines"
-              class="ion-select-card-content"
-              label="Disciplina"
-              label-placement="floating"
-              fill="outline"
-              cancel-text="Cancelar"
-              :multiple="true"
-              :disabled="!!props.disciplineId"
-              @ion-change="getBNCCByDisciplines($event.detail.value)"
-            >
-              <IonSelectOption 
-                v-for="(discipline, index) in availableDisciplines" 
-                :key="index" 
-                :value="discipline.id"
-              >
-                {{ discipline.name }}
-              </IonSelectOption>
-            </IonSelect>
-            <IonSelect 
-              v-else
-              v-bind="field"
-              v-model="filledContent.disciplines"
-              class="ion-select-card-content"
-              label="Disciplina"
-              label-placement="floating"
-              fill="outline"
-              cancel-text="Cancelar"
-              :multiple="false"
-              :disabled="true"
-              @ion-change="getBNCCByDisciplines($event.detail.value)"
-            >
-              <IonSelectOption 
-                v-for="(discipline, index) in availableDisciplines" 
-                :key="index" 
-                :value="discipline.id" 
-                :selected="filledContent.disciplines.includes(discipline.id)"
-              >
-                {{ discipline.name }}
-              </IonSelectOption>
-            </IonSelect>
-          </Field>
-          <ErrorMessage name="Disciplina" v-slot="{ message }">
-            <span class="error-message">{{ message }}</span>
-          </ErrorMessage>
-
-          <br>
-          <Field v-slot="{ field }" name="Conteúdo" rules="required|min:2|max:360">
-            <IonTextarea
-              v-bind="field"
-              v-model="filledContent.description"
-              label="Conteúdo"
-              label-placement="floating"
-              fill="outline"
-              placeholder="Digite o conteúdo"
-              style="--color: var(--ion-color-secondary);"
-              :auto-grow="true"
-              :maxlength="361"
-            />
-          </Field>
-          <ErrorMessage name="Conteúdo" v-slot="{ message }">
-            <span class="error-message">{{ message }}</span>
-          </ErrorMessage>
-
-          <br>
-          <Field v-slot="{ field }" name="Currículos" rules="required">
-            <Multiselect
-            class="bncc-scroll"
-            v-bind="field"
-            v-model="selectedBnccObjects"
-            :options="bnccs"
-            :multiple="true"
-            track-by="id"
-            :custom-label="formatBnccLabel"
-            :filterable="true"           
-            :internal-search="true"      
-            :custom-filter="customFilter"
-            placeholder="Busque ou selecione BNCC"
-            :disabled="isLoadingBnccs"
-            :no-results-text=" isLoadingBnccs 
-                ? 'Buscando...' 
-                : 'Nenhum resultado encontrado' "
-            no-options-text="Sem opções disponíveis"
-            :select-label="`Pressione Enter para selecionar`"
-            :deselect-label="`Pressione Backspace para remover`"
-            :selected-label="`Selecionado`"
-            >
-            <template #noResult>
-              Nenhum resultado encontrado
-            </template>
-            </Multiselect>
-          </Field>
-          <ErrorMessage name="Currículos" v-slot="{ message }">
-            <span class="error-message">{{ message }}</span>
-          </ErrorMessage>
-
-          <div class="ion-margin-top" style="display: flex; justify-content: right;">
-            <IonButton 
-              color="danger" 
-              size="small" 
-              style="text-transform: capitalize;" 
-              @click="emits('update:modelValue', { card: false })"
-            >
-              Cancelar
-            </IonButton>
-            <IonButton 
-              type="submit" 
-              color="secondary" 
-              size="small" 
-              style="text-transform: capitalize;"
-              :disabled="isLoadingBnccs"
-            >
-              <span v-if="isLoadingBnccs">Carregando...</span>
-              <span v-else>Salvar</span>
-              <!-- @TODO: O botão deve aparecer mais aparente na tela -->
-            </IonButton>
+  <IonModal id="update-modal" class="ion-content" :is-open="props.isUpdateModalOpen" @ion-modal-did-dismiss="() => { modalOpened = false; emits('update:modelValue', false) }">
+    <Form
+      :initial-values="{
+        Disciplina: filledContent.disciplines,
+      }"
+      @submit="saveContent"
+    >
+      <IonCard id="NovoRegistroFormulario" class="ion-no-padding ion-margin-top">
+        <IonCardHeader color="secondary">
+          <div style="display: flex; align-items: center; height: 10px;">
+            <IonIcon :icon="save" size="small" style="margin-right: 8px;" />
+            <IonCardTitle style="font-size: medium;">
+              Registro de conteúdo
+            </IonCardTitle>
           </div>
-        </IonCardContent>
-      </div>
-    </IonCard>
-  </Form>
+        </IonCardHeader>
+
+        <div>
+          <IonCardContent class="ion-padding-top">
+            <Field name="Disciplina" v-slot="{ field }" rules="required">
+              <IonSelect 
+                v-if="props.evaluation === 'conceitual'"
+                v-bind="field"
+                v-model="filledContent.disciplines"
+                class="ion-select-card-content"
+                label="Disciplina"
+                label-placement="floating"
+                fill="outline"
+                cancel-text="Cancelar"
+                :multiple="true"
+                :disabled="!!props.disciplineId"
+                @ion-change="getBNCCByDisciplines($event.detail.value)"
+              >
+                <IonSelectOption 
+                  v-for="(discipline, index) in availableDisciplines" 
+                  :key="index" 
+                  :value="discipline.id"
+                >
+                  {{ discipline.name }}
+                </IonSelectOption>
+              </IonSelect>
+              <IonSelect 
+                v-else
+                v-bind="field"
+                v-model="filledContent.disciplines"
+                class="ion-select-card-content"
+                label="Disciplina"
+                label-placement="floating"
+                fill="outline"
+                cancel-text="Cancelar"
+                :multiple="false"
+                :disabled="true"
+                @ion-change="getBNCCByDisciplines($event.detail.value)"
+              >
+                <IonSelectOption 
+                  v-for="(discipline, index) in availableDisciplines" 
+                  :key="index" 
+                  :value="discipline.id" 
+                  :selected="filledContent.disciplines.includes(discipline.id)"
+                >
+                  {{ discipline.name }}
+                </IonSelectOption>
+              </IonSelect>
+            </Field>
+            <ErrorMessage name="Disciplina" v-slot="{ message }">
+              <span class="error-message">{{ message }}</span>
+            </ErrorMessage>
+
+            <br>
+            <Field v-slot="{ field }" name="Conteúdo" rules="required|min:2|max:360">
+              <IonTextarea
+                v-bind="field"
+                v-model="filledContent.description"
+                label="Conteúdo"
+                label-placement="floating"
+                fill="outline"
+                placeholder="Digite o conteúdo"
+                style="--color: var(--ion-color-secondary);"
+                :auto-grow="true"
+                :maxlength="361"
+              />
+            </Field>
+            <ErrorMessage name="Conteúdo" v-slot="{ message }">
+              <span class="error-message">{{ message }}</span>
+            </ErrorMessage>
+
+            <br>
+            <Field v-slot="{ field }" name="Currículos" rules="required">
+              <Multiselect
+              class="bncc-scroll"
+              v-bind="field"
+              v-model="selectedBnccObjects"
+              :options="bnccs"
+              :multiple="true"
+              track-by="id"
+              :custom-label="formatBnccLabel"
+              :filterable="true"           
+              :internal-search="true"      
+              :custom-filter="customFilter"
+              placeholder="Busque ou selecione BNCC"
+              :disabled="isLoadingBnccs"
+              :no-results-text=" isLoadingBnccs 
+                  ? 'Buscando...' 
+                  : 'Nenhum resultado encontrado' "
+              no-options-text="Sem opções disponíveis"
+              :select-label="`Pressione Enter para selecionar`"
+              :deselect-label="`Pressione Backspace para remover`"
+              :selected-label="`Selecionado`"
+              >
+              <template #noResult>
+                Nenhum resultado encontrado
+              </template>
+              </Multiselect>
+            </Field>
+            <ErrorMessage name="Currículos" v-slot="{ message }">
+              <span class="error-message">{{ message }}</span>
+            </ErrorMessage>
+
+            <div class="ion-margin-top" style="display: flex; justify-content: right;">
+              <IonButton 
+                color="danger" 
+                size="small" 
+                style="text-transform: capitalize;" 
+                @click="emits('update:modelValue', { card: false })"
+              >
+                Cancelar
+              </IonButton>
+              <IonButton 
+                type="submit" 
+                color="secondary" 
+                size="small" 
+                style="text-transform: capitalize;"
+                :disabled="isLoadingBnccs"
+              >
+                <span v-if="isLoadingBnccs">Carregando...</span>
+                <span v-else>Salvar</span>
+                <!-- @TODO: O botão deve aparecer mais aparente na tela -->
+              </IonButton>
+            </div>
+          </IonCardContent>
+        </div>
+      </IonCard>
+    </Form>
+  </IonModal>
 </template>
 
 <style scoped>
+
+ion-modal#update-modal {
+    --height: 50vh;
+    --width: 40vw;
+    --min-width: 300px;
+  }
+
+  ion-modal#update-modal,
+  ion-card#NovoRegistroFormulario {
+    box-shadow: none ;
+  }
+
+  .update-modal-content {
+    max-height: calc(50vh - 48px); 
+    overflow-y: auto;
+    padding: 16px;
+    box-sizing: border-box;
+  }
 .error-message {
   color: red;
   font-size: 1em;

@@ -349,7 +349,7 @@ function luxonFormatDate(dateString: string) {
   
   ion-modal#update-modal,
   ion-card#EditarRegistroFormulario {
-    box-shadow: none !important;
+    box-shadow: none ;
   }
 
   .update-modal-content {
