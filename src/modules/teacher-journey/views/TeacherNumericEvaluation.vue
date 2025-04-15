@@ -517,7 +517,7 @@ onMounted(async () => {
     <div v-if="eduFProfile?.classroomId && eduFProfile?.disciplineId">
       <EduStageTabs v-model="currentStage" :stages="stages">
         <template v-for="stage in stages" :key="stage" #[stage.numberStage]>
-          <IonCard v-if="stageFinished" color="success">
+          <IonCard v-if="stageFinished" class="success-card">
             <IonCardContent>
               <IonText style="display: flex;">
                 <IonIcon size="small" style="margin-top: auto; margin-bottom: auto;" :icon="checkmarkCircleOutline" />
@@ -731,35 +731,6 @@ onMounted(async () => {
           </IonAccordionGroup>
         </template>
       </EduStageTabs>
-      <!-- <IonAccordionGroup v-if="studentList && studentList.length > 0" class="ion-content" expand="inset">
-        <IonAccordion v-for="(s, i) in studentList" :key="i" :value="`${i}`" class="no-border-accordion">
-          <IonItem slot="header">
-            <IonLabel style="display: flex">
-              <IonText color="secondary" style="margin: auto 0 auto 0;">
-                {{ s.name }}
-              </IonText>
-              <IonChip v-if="s.situation === 'CURSANDO'" class="ion-no-margin" style="margin: auto 0 auto auto;" :style="!s.disability ? 'margin-right: 0px;' : ''" mode="md" color="light">
-                {{ s.situation.toLowerCase() }}
-              </IonChip>
-              <IonChip v-if="!s.disability" class="ion-no-margin" style="margin: auto 0 auto auto;" :style=" s.situation === 'CURSANDO' ? 'margin-left: 0px;' : ''" mode="md" color="tertiary">
-                PCD
-              </IonChip>
-            </IonLabel>
-          </IonItem>
-          <div slot="content" class="ion-padding" />
-        </IonAccordion>
-      </IonAccordionGroup> -->
-      <!-- <IonCard v-else color="warning">
-        <IonCardHeader>
-          <IonCardTitle>Alunos não encontrados</IonCardTitle>
-        </IonCardHeader>
-
-        <IonCardContent>
-          <IonText>
-            Nenhum aluno encontrado. Por favor entre em contato com a secretaria de sua escola para verificar se sua turma foi cadastrada corretamente.
-          </IonText>
-        </IonCardContent>
-      </IonCard> -->
     </div>
 
     <IonCard v-else color="info">
