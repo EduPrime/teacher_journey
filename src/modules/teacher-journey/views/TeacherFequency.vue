@@ -8,7 +8,7 @@ import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, Io
 import { calendarOutline, checkmarkCircleOutline, checkmarkDone, layers, warningOutline } from 'ionicons/icons'
 import { DateTime } from 'luxon'
 
-import { onMounted, ref, watch } from 'vue'
+import { nextTick, ref, watch } from 'vue'
 
 import FrequencyMultiSelect from '../components/frequency/MultiSelect.vue'
 import AttendanceService from '../services/AttendanceService'
@@ -148,10 +148,11 @@ watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo
   isLoadingWarning.value = false // Finaliza o carregamento
 })
 
-watch(selectedStudent, () => {
-  // frequencyToSave.value.quantifiedPresence = undefined
-  checkboxModal.value.quantifiedPresence = undefined
-  cleanChecks.value = true
+watch(selectedStudent, (newValue, oldValue) => {
+  if (newValue && newValue !== oldValue) {
+    checkboxModal.value.quantifiedPresence = undefined
+    cleanChecks.value = true
+  }
 })
 
 watch(() => checkboxModal.value.quantifiedPresence, (newValue) => {
@@ -317,6 +318,18 @@ function onPresenceChange(student: FrequencyToSave) {
     student.justificationId = undefined;
   }
 }
+
+function openMultiSelectModal(student: any) {
+  // Resetar o estado primeiro
+  selectedStudent.value = null
+  checkboxModal.value.modal = false
+  
+  // Usar nextTick para garantir que o estado foi resetado
+  nextTick(() => {
+    selectedStudent.value = student
+    checkboxModal.value.modal = true
+  })
+}
 </script>
 
 <template>
@@ -411,7 +424,7 @@ function onPresenceChange(student: FrequencyToSave) {
                 Ausente
               </IonRadio>
             </IonRadioGroup>
-            <IonButton v-if="eduFProfile.frequency === 'disciplina' && !s.presence" size="small" style="margin-top: auto; margin-bottom: auto; margin-left: auto;" shape="round" @click="() => { selectedStudent = s; checkboxModal.modal = true }">
+            <IonButton v-if="eduFProfile.frequency === 'disciplina' && !s.presence" size="small" style="margin-top: auto; margin-bottom: auto; margin-left: auto;" shape="round" @click="openMultiSelectModal(s)">
               <IonIcon slot="icon-only" :icon="layers" />
             </IonButton>
 
