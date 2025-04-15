@@ -305,6 +305,18 @@ function luxonFormatDate(dateString: string) {
   const date = DateTime.fromISO(dateString)
   return date.setLocale('pt-BR').toFormat('dd/MM/yyyy')
 }
+
+function onPresenceChange(student: FrequencyToSave) {
+  if (student.presence === false) {
+    console.log('justifyOptions.value', justifyOptions.value)
+    const defaultJustification = justifyOptions.value?.find(j => j.name === "Não informada");
+    if (defaultJustification) {
+      student.justificationId = defaultJustification.id;
+    }
+  } else {
+    student.justificationId = undefined;
+  }
+}
 </script>
 
 <template>
@@ -391,7 +403,7 @@ function luxonFormatDate(dateString: string) {
         </IonItem>
         <div slot="content" class="ion-padding">
           <IonRow>
-            <IonRadioGroup v-model="s.presence" style="color: var(--ion-color-secondary); margin-top: auto; margin-bottom: auto;">
+            <IonRadioGroup v-model="s.presence" style="color: var(--ion-color-secondary); margin-top: auto; margin-bottom: auto;" @ionChange="() => onPresenceChange(s)">
               <IonRadio label-placement="end" color="secondary" style="padding-right: 16px; scale: 0.9;" :value="true">
                 Presente
               </IonRadio>
@@ -403,7 +415,7 @@ function luxonFormatDate(dateString: string) {
               <IonIcon slot="icon-only" :icon="layers" />
             </IonButton>
 
-            <IonSelect v-if="!s.presence" v-model="s.justificationId" class="custom-floating-label ion-margin-vertical" label-placement="floating" justify="space-between" label="Justificativa de falta" fill="outline">
+            <IonSelect v-if="!s.presence" v-model="s.justificationId" class="custom-floating-label ion-margin-vertical" label-placement="floating" justify="space-between" placeholder="Não informada" fill="outline">
               <!-- @TODO: As justificativas disponiveis ainda estão estáticas, é necessário consultar e receber estas informações de forma dinâmica -->
               <IonSelectOption v-for="(j, index) in justifyOptions" :key="index" :value="j.id">
                 {{ j.name }}
