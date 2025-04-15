@@ -3,7 +3,8 @@ import type { MountedStudent, RegisteredToSave } from '../types/types'
 import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
 
-import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol, IonGrid, IonIcon, IonItem, IonLabel, IonLoading, IonModal, IonRow, IonAlert, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
+import showToast from '@/utils/toast-alert'
+import { IonAccordion, IonAccordionGroup, IonAlert, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol, IonGrid, IonIcon, IonItem, IonLabel, IonLoading, IonModal, IonRow, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
 import { alertOutline, apps, checkmarkOutline, helpOutline, lockClosedOutline, text, warningOutline } from 'ionicons/icons'
 import { computed, onMounted, ref, watch } from 'vue'
 import EduStageTabs from '../components/StageTabs.vue'
@@ -12,7 +13,6 @@ import EnrollmentService from '../services/EnrollmentService'
 import EvaluationRuleService from '../services/EvaluationRuleService'
 import RegisteredGradeService from '../services/RegisteredGradeService'
 import StageService from '../services/StageService'
-import showToast from '@/utils/toast-alert'
 
 const stageService = new StageService()
 const evaluationRuleService = new EvaluationRuleService()
@@ -77,7 +77,7 @@ onMounted(async () => {
 })
 
 async function saveGrades(student: MountedStudent) {
-  const isNotEmpty = student.grades.every(item => item['grade'])
+  const isNotEmpty = student.grades.every(item => item.grade)
   try {
     if (!student.conceptualGradeId) {
       const response = await conceptualGradeService.createConceptualGrade(student)
@@ -149,15 +149,18 @@ function registerGrades(itemToSave: RegisteredToSave) {
       itemToSave.isCompleted = true
       registeredGradeService.upsertRegisteredGrade(itemToSave)
       showToast('Registro de notas completas finalizado com sucesso!', 'top', 'success')
-    } else {
+    }
+    else {
       itemToSave.isCompleted = false
       registeredGradeService.upsertRegisteredGrade(itemToSave)
       showToast('Registro de notas incompletas finalizado com sucesso!', 'top', 'success')
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('Erro ao registrar notas:', error)
     showToast('Ocorreu um erro ao finalizar o registro de notas.', 'top', 'danger')
-  } finally {
+  }
+  finally {
     isLoading.value = false
   }
 }
@@ -211,30 +214,29 @@ const getStatusColor = computed(() => (status: string) => {
 <template>
   <ContentLayout>
     <EduFilterProfile :discipline="true" @update:filtered-ocupation="($event) => eduFProfile = $event" />
-      <div v-if="deadline && diffDays <= 10 && diffDays >= 0 && !computedRegisteredGrade.isCompleted && studentList" class="warning-close-information">
-        <div class="title">
-          Registro irregular
-        </div>
-        <div class="text">
-          <IonIcon :icon="warningOutline"/>
-          <div>
-            Olá professor, o prazo de preenchimento se encerra em {{ diffDays }} {{ diffDays === 1 ? 'dia' : 'dias' }}, caso haja pendência será necessária entrar em contato com a secretaria.
-          </div>
+    <div v-if="deadline && diffDays <= 10 && diffDays >= 0 && !computedRegisteredGrade.isCompleted && studentList" class="warning-close-information">
+      <div class="title">
+        Registro irregular
+      </div>
+      <div class="text">
+        <IonIcon :icon="warningOutline" />
+        <div>
+          Olá professor, o prazo de preenchimento se encerra em {{ diffDays }} {{ diffDays === 1 ? 'dia' : 'dias' }}, caso haja pendência será necessária entrar em contato com a secretaria.
         </div>
       </div>
-      <div v-else-if="deadline && diffDays < 0 && !computedRegisteredGrade.isCompleted && studentList" class="warning-close-information">
-          <div class="title">
-          Registro irregular
-        </div>
-        <div class="text">
-          <IonIcon :icon="warningOutline"/>
-          <div>
-            Olá professor, o prazo de preenchimento se encerrou, entre em contato com a secretaria para resolver as pendências.
-          </div>
+    </div>
+    <div v-else-if="deadline && diffDays < 0 && !computedRegisteredGrade.isCompleted && studentList" class="warning-close-information">
+      <div class="title">
+        Registro irregular
+      </div>
+      <div class="text">
+        <IonIcon :icon="warningOutline" />
+        <div>
+          Olá professor, o prazo de preenchimento se encerrou, entre em contato com a secretaria para resolver as pendências.
         </div>
       </div>
-      <div v-else>
-      </div>
+    </div>
+    <div v-else />
     <h3>
       <IonText color="secondary" class="ion-content ion-padding-bottom" style="display: flex; align-items: center;">
         <IonIcon color="secondary" style="margin-right: 10px;" aria-hidden="true" :icon="text" />
@@ -298,9 +300,12 @@ const getStatusColor = computed(() => (status: string) => {
                                 tu.grade = e.detail.value
                                 s.status = 'PENDENTE'
                                 s.isCleansed = false
-                              }">
-                              <IonSelectOption v-for="conceptualType in conceptualTypes" :key="conceptualType.index"
-                                :value="conceptualType">
+                              }"
+                            >
+                              <IonSelectOption
+                                v-for="conceptualType in conceptualTypes" :key="conceptualType.index"
+                                :value="conceptualType"
+                              >
                                 {{ conceptualType }}
                               </IonSelectOption>
                             </IonSelect>
@@ -395,10 +400,11 @@ const getStatusColor = computed(() => (status: string) => {
       </IonCard>
     </IonModal>
 
-    <IonAlert class="custom-alert"
+    <IonAlert
+      class="custom-alert"
       :is-open="showAlert"
       :header="isGradesFilled ? 'Deseja finalizar os registros?' : 'Registros incompletos'"
-      :subHeader="isGradesFilled ? '' : 'Deseja finalizar assim mesmo?'"
+      :sub-header="isGradesFilled ? '' : 'Deseja finalizar assim mesmo?'"
       :buttons="[
         {
           text: 'Não',
@@ -555,5 +561,4 @@ ion-loading.custom-save-loading {
 
     color: var(--ion-color-info);
 }
-
 </style>

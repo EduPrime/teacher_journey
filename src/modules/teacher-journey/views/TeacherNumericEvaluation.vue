@@ -6,7 +6,7 @@ import showToast from '@/utils/toast-alert'
 import { IonAccordion, IonAccordionGroup, IonAlert, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol, IonGrid, IonIcon, IonInput, IonItem, IonLabel, IonModal, IonRow, IonText, IonToolbar } from '@ionic/vue'
 import Decimal from 'decimal.js'
 
-import { alertOutline, calculator, checkmarkCircleOutline, checkmarkOutline, helpOutline, lockClosedOutline } from 'ionicons/icons'
+import { alertOutline, calculator, checkmarkCircleOutline, checkmarkOutline, helpOutline, lockClosedOutline, warningOutline } from 'ionicons/icons'
 import { ErrorMessage, Field, Form } from 'vee-validate'
 
 import { computed, onMounted, ref, watch } from 'vue'
@@ -285,26 +285,19 @@ watch([eduFProfile, currentStage], async ([newEduFProfile, newCurrentStage]) => 
 
     oldList.value = JSON.parse(JSON.stringify(studentList.value))
 
-    // deadline.value = {
-    //   const currentDate = new Date()
-    //   const deadlineDate = new Date(newCurrentStage.value?.endDate)
-    //   if (isNaN(deadlineDate.getTime())) {
-    //     return false as false | number
-    //   }
-    //   const diffTime = deadlineDate.getTime() - currentDate.getTime()
-    //   diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    //   return diffDays
-    // }
-
     deadline.value = (() => {
       const currentDate = new Date()
-      const deadlineDate = new Date(newCurrentStage.value?.endDate)
+      const deadlineDate = new Date(newCurrentStage?.endDate)
+
       if (isNaN(deadlineDate.getTime())) {
-      return false
+        return false // Retorna false se a data de término for inválida
       }
+
       const diffTime = deadlineDate.getTime() - currentDate.getTime()
-      diffDays.value = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-      return diffDays
+      const calculatedDiffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) // Calcula os dias restantes
+
+      diffDays.value = calculatedDiffDays // Atualiza o valor reativo de diffDays
+      return calculatedDiffDays // Retorna o valor calculado
     })()
   }
   else {
@@ -320,31 +313,6 @@ watch([eduFProfile, currentStage], async ([newEduFProfile, newCurrentStage]) => 
     } // Reseta computedRegisteredGrade caso os dados sejam inválidos
   }
 })
-
-/* async function handleFinalize() {
-  if (!eduFProfile.value || !currentStage.value) return
-
-  try {
-    isLoading.value = true
-
-    export interface RegisteredToSave {
-      id?: string
-      isCompleted: boolean
-      teacherId: string | null
-      classroomId: string
-      disciplineId: string
-      stageId: string
-    }
-
-    await registeredGradeService.upsertRegisteredGrade(payload)
-    showToast('Notas finalizadas com sucesso!', 'top', 'success')
-  } catch (err: any) {
-    showToast(`Erro ao finalizar: ${err.message}`, 'top', 'danger')
-    console.error(err)
-  } finally {
-    isLoading.value = false
-  }
-} */
 
 function checkMinimalActivities(s: StudentGrade): boolean {
   const activityFields = [s.at1, s.at2, s.at3, s.at4, s.at5]
@@ -532,29 +500,27 @@ onMounted(async () => {
 <template>
   <ContentLayout>
     <EduFilterProfile :discipline="true" @update:filtered-ocupation="($event) => eduFProfile = $event" />
-    <div v-if="deadline && diffDays <= 10 && diffDays >= 0 && !computedRegisteredGrade.isCompleted && studentList" class="warning-close-information">
+    <div v-if="deadline && diffDays <= 10 && diffDays >= 0 && !stageFinished && studentList" class="warning-close-information">
       <div class="title">
         Registro irregular
       </div>
       <div class="text">
-        <IonIcon :icon="warningOutline"/>
+        <IonIcon :icon="warningOutline" />
         <div>
           Olá professor, o prazo de preenchimento se encerra em {{ diffDays }} {{ diffDays === 1 ? 'dia' : 'dias' }}, caso haja pendência será necessária entrar em contato com a secretaria.
         </div>
       </div>
     </div>
-    <div v-else-if="deadline && diffDays < 0 && !computedRegisteredGrade.isCompleted && studentList" class="warning-close-information">
-        <div class="title">
+    <div v-else-if="deadline && diffDays < 0 && !stageFinished && studentList" class="warning-close-information">
+      <div class="title">
         Registro irregular
       </div>
       <div class="text">
-        <IonIcon :icon="warningOutline"/>
+        <IonIcon :icon="warningOutline" />
         <div>
           Olá professor, o prazo de preenchimento se encerrou, entre em contato com a secretaria para resolver as pendências.
         </div>
       </div>
-    </div>
-    <div v-else>
     </div>
     <h3>
       <IonText color="secondary" class="ion-content ion-padding-bottom" style="display: flex; align-items: center;">
@@ -1024,6 +990,35 @@ ion-modal#cancel-modal .wrapper {
     display: flex;
     align-items: start;
     font-size: 15px;
+  }
+}
+.warning-close-information {
+  margin: 10px 10px 20px 10px;
+  background-color: #F5C228E6;
+  color: #000000B3;
+  padding: 15px 18px 16px 6px;
+  border-radius: 3px;
+
+  .title {
+    font-size: 17px;
+    word-spacing: -2px;
+    font-weight: 600;
+    padding: 0px 0px 8px 27px;
+  }
+
+  .text {
+    ion-icon {
+      width: 55px;
+      margin-left: 5px;
+      margin-right: 5px;
+      margin-top: -3px;
+    }
+
+    display: flex;
+    font-weight: 300;
+    text-align: justify-left;
+    align-items: start;
+    font-size: 14px;
   }
 }
 
