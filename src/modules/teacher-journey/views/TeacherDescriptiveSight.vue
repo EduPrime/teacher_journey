@@ -14,6 +14,7 @@ const enrollmentService = new EnrollmentService()
 
 const eduFProfile = ref()
 const students = ref()
+const screenWidth = ref(window.innerWidth)
 
 watch(eduFProfile, async (newValue) => {
   if (newValue?.teacherId) {
@@ -61,16 +62,15 @@ function luxonFormatDate(dateString: string) {
               Descrição parcial da criança
             </IonText>
           </IonCardHeader>
-
           <div class="ion-margin-top">
+            <!-- @TODO: esse atributo adicionado ao IonTextArea pode fazer o textarea crescer automaticamente mas eu não gostei do efeito ( testem se vcs gostam ) oninput="this.style.minHeight = `${ 70 + this.value.length / (3)}px`" -->
             <ion-textarea
               color="secondary"
               class="ion-content"
               label="Parecer Descritivo"
               label-placement="floating"
               fill="outline"
-              :style="`min-height: ${70}px;`"
-              oninput="this.style.minHeight = `${70 + this.value.length / 2}px`"
+              :style="`min-height: ${screenWidth <= 480 ? 100 : 180}px;`"
               placeholder="Enter text"
               :counter="true"
               :maxlength="800"
