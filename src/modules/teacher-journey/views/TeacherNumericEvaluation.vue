@@ -57,6 +57,9 @@ const showAlert = ref(false)
 const stageFinished = ref<RegisteredToSave>()
 const gradesAreFilled = ref(false)
 
+const deadline = ref()
+const diffDays = ref(0)
+
 const registeredToSave = ref<RegisteredToSave>({
   isCompleted: false,
   teacherId: localStorage.getItem('teacherId'),
@@ -281,6 +284,28 @@ watch([eduFProfile, currentStage], async ([newEduFProfile, newCurrentStage]) => 
     }
 
     oldList.value = JSON.parse(JSON.stringify(studentList.value))
+
+    // deadline.value = {
+    //   const currentDate = new Date()
+    //   const deadlineDate = new Date(newCurrentStage.value?.endDate)
+    //   if (isNaN(deadlineDate.getTime())) {
+    //     return false as false | number
+    //   }
+    //   const diffTime = deadlineDate.getTime() - currentDate.getTime()
+    //   diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    //   return diffDays
+    // }
+
+    deadline.value = (() => {
+      const currentDate = new Date()
+      const deadlineDate = new Date(newCurrentStage.value?.endDate)
+      if (isNaN(deadlineDate.getTime())) {
+      return false
+      }
+      const diffTime = deadlineDate.getTime() - currentDate.getTime()
+      diffDays.value = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      return diffDays
+    })()
   }
   else {
     students.value = undefined
@@ -507,6 +532,30 @@ onMounted(async () => {
 <template>
   <ContentLayout>
     <EduFilterProfile :discipline="true" @update:filtered-ocupation="($event) => eduFProfile = $event" />
+    <div v-if="deadline && diffDays <= 10 && diffDays >= 0 && !computedRegisteredGrade.isCompleted && studentList" class="warning-close-information">
+      <div class="title">
+        Registro irregular
+      </div>
+      <div class="text">
+        <IonIcon :icon="warningOutline"/>
+        <div>
+          Olá professor, o prazo de preenchimento se encerra em {{ diffDays }} {{ diffDays === 1 ? 'dia' : 'dias' }}, caso haja pendência será necessária entrar em contato com a secretaria.
+        </div>
+      </div>
+    </div>
+    <div v-else-if="deadline && diffDays < 0 && !computedRegisteredGrade.isCompleted && studentList" class="warning-close-information">
+        <div class="title">
+        Registro irregular
+      </div>
+      <div class="text">
+        <IonIcon :icon="warningOutline"/>
+        <div>
+          Olá professor, o prazo de preenchimento se encerrou, entre em contato com a secretaria para resolver as pendências.
+        </div>
+      </div>
+    </div>
+    <div v-else>
+    </div>
     <h3>
       <IonText color="secondary" class="ion-content ion-padding-bottom" style="display: flex; align-items: center;">
         <IonIcon color="secondary" style="margin-right: 10px;" aria-hidden="true" :icon="calculator" />
