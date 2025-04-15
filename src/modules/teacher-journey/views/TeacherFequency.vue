@@ -415,7 +415,7 @@ function onPresenceChange(student: FrequencyToSave) {
               <IonIcon slot="icon-only" :icon="layers" />
             </IonButton>
 
-            <IonSelect v-if="!s.presence" v-model="s.justificationId" class="custom-floating-label ion-margin-vertical" label-placement="floating" justify="space-between" placeholder="Não informada" fill="outline">
+            <IonSelect v-if="!s.presence" v-model="s.justificationId" class="custom-floating-label ion-margin-vertical" label-placement="floating" justify="space-between" label="Justificativa de falta" fill="outline">
               <!-- @TODO: As justificativas disponiveis ainda estão estáticas, é necessário consultar e receber estas informações de forma dinâmica -->
               <IonSelectOption v-for="(j, index) in justifyOptions" :key="index" :value="j.id">
                 {{ j.name }}
