@@ -2,11 +2,11 @@
 import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
 import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonIcon, IonItem, IonLabel, IonSegment, IonSegmentButton, IonText } from '@ionic/vue'
-import { barChartOutline, calendarClearOutline, calendarOutline, shapes } from 'ionicons/icons'
+import { alertOutline, barChartOutline, calendarClearOutline, calendarOutline, checkmarkOutline, helpOutline, lockClosedOutline, shapes } from 'ionicons/icons'
 
 import { DateTime } from 'luxon'
 
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import EnrollmentService from '../services/EnrollmentService'
 
@@ -24,6 +24,32 @@ watch(eduFProfile, async (newValue) => {
   }
   else {
     students.value = undefined
+  }
+})
+
+const getStatusColor = computed(() => (status: string) => {
+  switch (status) {
+    case 'CONCLUÍDO':
+      return 'success'
+    case 'INCOMPLETO':
+      return 'danger'
+    case 'PENDENTE':
+      return 'warning'
+    case 'BLOQUEADO':
+      return 'light'
+  }
+})
+
+const getStatusIcon = computed(() => (status: string) => {
+  switch (status) {
+    case 'CONCLUÍDO':
+      return checkmarkOutline
+    case 'INCOMPLETO':
+      return helpOutline
+    case 'PENDENTE':
+      return alertOutline
+    case 'BLOQUEADO':
+      return lockClosedOutline
   }
 })
 
@@ -65,6 +91,10 @@ function simulateSlide() {
     }, 300) // Entry animation duration
   }, 300) // Exit animation duration
 }
+
+function verificaData(dataReferencia: string) {
+  return new Date() <= new Date(dataReferencia)
+}
 </script>
 
 <template>
@@ -76,16 +106,25 @@ function simulateSlide() {
         <span>Parecer descritivo</span>
       </IonText>
     </h3>
-    <div>
+
+    <div v-if="students">
       <div class="ion-content">
         <IonSegment v-model="selectedTad" mode="ios" value="disabled">
+          <!-- @TODO: O Botão "INICIAL" sempre deve estar habilitado -->
+
           <IonSegmentButton value="inicial">
             <IonLabel>Inicial</IonLabel>
           </IonSegmentButton>
-          <IonSegmentButton value="parcial">
+
+          <!-- @TODO: O disabled ta comparando a data atual com uma iserida ( acredito que podemos usar a data de inicio do 2º Bimetre para o caso "PARCIAL" ) -->
+
+          <IonSegmentButton :disabled="verificaData('2025-04-01')" value="parcial">
             <IonLabel>Parcial</IonLabel>
           </IonSegmentButton>
-          <IonSegmentButton :disabled="true" value="final">
+
+          <!-- @TODO: O disabled ta comparando a data atual com uma iserida ( acredito que podemos usar a data de encerramento do 3º Bimetre para o caso "FINAL" ) -->
+
+          <IonSegmentButton :disabled="verificaData('2025-07-01')" value="final">
             <IonLabel>Final</IonLabel>
           </IonSegmentButton>
         </IonSegment>
@@ -95,9 +134,15 @@ function simulateSlide() {
         class="content"
         :class="{ 'slide-out': slidingOut, 'slide-in': slidingIn }"
       >
-        <IonAccordionGroup v-if="students" class="ion-content" expand="inset">
+        <IonAccordionGroup class="ion-content" expand="inset">
           <IonAccordion v-for="(s, i) in students" :key="i" :value="`${i}`" class="no-border-accordion">
             <IonItem slot="header">
+              <!-- @TODO: Usar valores dinâmicos dentro das funções getStatusColor e getStatusIcon -->
+
+              <IonIcon
+                :color="getStatusColor('INCOMPLETO')" style="margin-right: 6px; font-size: 24px;"
+                :icon="getStatusIcon('INCOMPLETO')"
+              />
               <IonLabel>
                 <IonText color="secondary">
                   {{ s.name }}
@@ -160,20 +205,6 @@ function simulateSlide() {
             </div>
           </IonAccordion>
         </IonAccordionGroup>
-        <div v-else class="ion-padding-top">
-          <IonCard color="info">
-            <IonCardHeader>
-              <IonCardTitle>Selecione a escola, turma e disciplina</IonCardTitle>
-            </IonCardHeader>
-
-            <IonCardContent>
-              <IonText>
-                Olá, por favor selecione qual a <b>escola</b> e <b>turma</b> na qual deseja fazer o lançamento do parecer descritivo
-                conceituais
-              </IonText>
-            </IonCardContent>
-          </IonCard>
-        </div>
       </div>
 
       <!-- <IonSegmentView :disabled="true">
@@ -187,6 +218,21 @@ function simulateSlide() {
           final
         </IonSegmentContent>
       </IonSegmentView> -->
+    </div>
+
+    <div v-else class="ion-padding-top">
+      <IonCard color="info">
+        <IonCardHeader>
+          <IonCardTitle>Selecione a escola, turma e disciplina</IonCardTitle>
+        </IonCardHeader>
+
+        <IonCardContent>
+          <IonText>
+            Olá, por favor selecione qual a <b>escola</b> e <b>turma</b> na qual deseja fazer o lançamento do parecer descritivo
+            conceituais
+          </IonText>
+        </IonCardContent>
+      </IonCard>
     </div>
 
     <!-- <div style="height: 64px;" />
