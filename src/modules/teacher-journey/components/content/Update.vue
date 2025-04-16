@@ -163,7 +163,6 @@ async function getBNCCByDisciplines(selectedDisciplines: string[]) {
 
 function formatBnccLabel(option: any) {
 
-console.log('option', option)
 if (!option) return ''
 
 const code = option.code ?? ''

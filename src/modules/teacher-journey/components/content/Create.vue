@@ -140,7 +140,6 @@ async function getBNCCByDisciplines(selectedDisciplines: string[]) {
 
 function formatBnccLabel(option: any) {
 
-  console.log('option', option)
   if (!option) return ''
 
   const code = option.code ?? ''
@@ -179,7 +178,7 @@ async function saveContent() {
       )
       return
     }
-    
+
     const payload = {
       ...filledContent.value,
       bnccs: selectedBnccObjects.value.map(bncc => bncc.id)
