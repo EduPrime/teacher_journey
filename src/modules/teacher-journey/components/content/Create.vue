@@ -99,20 +99,15 @@ watch(
 watch(
   () => filledContent.value.disciplines,
   async (newDisciplines, oldDisciplines) => {
-    // 1) Se mudou a disciplina, limpa a seleção de BNCC
-    if (
-      oldDisciplines &&
-      JSON.stringify(newDisciplines) !== JSON.stringify(oldDisciplines)
-    ) {
-      selectedBnccObjects.value = []
-      filledContent.value.bnccs = []
-    }
+    if (!oldDisciplines) return 
 
-    if (newDisciplines.length > 0) {
-      await getBNCCByDisciplines(newDisciplines)
-    } else {
-      bnccs.value = []   
-    }
+    await getBNCCByDisciplines(newDisciplines)
+
+    selectedBnccObjects.value = selectedBnccObjects.value.filter(bncc => 
+      newDisciplines.includes(bncc.discipline.id)
+    )
+
+    filledContent.value.bnccs = selectedBnccObjects.value.map(b => b.id)
   },
   { immediate: true }
 )
@@ -129,12 +124,11 @@ watch(
 );
 
 async function getBNCCByDisciplines(selectedDisciplines: string[]) {
+  isLoadingBnccs.value = true;
   try {
-    isLoadingBnccs.value = true;
     const data = await bnccService.getBNCC(selectedDisciplines, props.seriesId);
     originalBnccs.value = data || [];
     bnccs.value = originalBnccs.value;
-    filledContent.value.bnccs = []; 
   } catch (error) {
     console.error("Erro ao carregar BNCCs:", error);
     bnccs.value = [];
@@ -169,6 +163,23 @@ function customFilter(option: any, label: string, search: string): boolean {
 
 async function saveContent() {
   try {
+    // Verifica se alguma disciplina não tem um bncc selecionado
+    const missing = filledContent.value.disciplines.filter(disciplineId =>
+      !selectedBnccObjects.value.some(bncc => bncc.discipline.id === disciplineId)
+    )
+
+    if (missing.length > 0) {
+      const missingDisciplinesNames = props.availableDisciplines
+      .filter(d => missing.includes(d.id))
+      .map(d => d.name)
+      showToast(
+      `Selecione ao menos uma BNCC para: ${missingDisciplinesNames.join(', ')}`,
+      'top',
+      'warning'
+      )
+      return
+    }
+    
     const payload = {
       ...filledContent.value,
       bnccs: selectedBnccObjects.value.map(bncc => bncc.id)
