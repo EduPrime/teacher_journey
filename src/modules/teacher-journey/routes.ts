@@ -2,6 +2,7 @@ import type { CustomRouteRecordRaw } from '@/router/RouterType'
 import { calculator, calendar, clipboard, clipboardSharp, create, extensionPuzzle, folderOutline, home, idCard, pencil, ribbon, saveSharp, shapes, star, text, trendingUp } from 'ionicons/icons'
 import TeacherConceptualEvaluation from './views/TeacherConceptualEvaluation.vue'
 import TeacherContent from './views/TeacherContent.vue'
+import TeacherDescriptiveSight from './views/TeacherDescriptiveSight.vue'
 import TeacherFrequency from './views/TeacherFequency.vue'
 import TeacherJourney from './views/TeacherJourney.vue'
 import TeacherNumericEvaluation from './views/TeacherNumericEvaluation.vue'
@@ -10,7 +11,7 @@ import TeacherView from './views/TeacherView.vue'
 const courseName = localStorage.getItem('courseName')
 
 const maternal = ['Parecer descritivo', 'Relatório parecer descritivo']
-const fundamental = ['Avaliação conceitual', 'Relatório de avaliação conceitual', 'Boletim conceitual']
+const fundamental = ['Avaliação conceitual', 'Parecer descritivo', 'Relatório de avaliação conceitual', 'Boletim conceitual']
 const fundamentalII = ['Avaliação numérica', 'Relatório de avaliação numérica', 'Boletim numérico']
 
 const fixedRoutes: Array<CustomRouteRecordRaw> = [
@@ -149,10 +150,11 @@ const dynamicRoutes: Array<CustomRouteRecordRaw> = [
       requiredRole: ['PROFESSOR'],
     },
   },
+
   {
     path: '/teacherjourney/parecer',
     name: 'TeacherParecer',
-    component: TeacherJourney,
+    component: TeacherDescriptiveSight,
     meta: {
       moduleName: 'TeacherJourney',
       moduleIcon: pencil,
