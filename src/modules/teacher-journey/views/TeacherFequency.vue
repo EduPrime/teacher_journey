@@ -343,7 +343,7 @@ function openMultiSelectModal(student: any) {
     </h3>
     <EduCalendar v-model="selectedDayInfo" :teacher-id="eduFProfile?.teacherId" :current-classroom="eduFProfile?.classroomId" :current-discipline="eduFProfile?.disciplineId" :frequency="eduFProfile?.frequency" />
 
-    <IonCard v-if="false" color="success">
+    <IonCard v-if="false" class="success-card">
       <IonCardContent>
         <IonText style="display: flex;">
           <IonIcon size="small" style="margin-top: auto; margin-bottom: auto;" :icon="checkmarkCircleOutline" />

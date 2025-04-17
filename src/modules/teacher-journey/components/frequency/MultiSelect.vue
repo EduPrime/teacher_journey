@@ -26,28 +26,35 @@ const allSelected = ref(false)
 watch(() => props.cleanChecks, (newValue) => {
   emits('update:clean', false)
   if (newValue && props.currentStudent?.frequencies?.length === 0) {
-    classesPerDay.value = classesPerDay.value.map((i: any) => {
-      return { ...i, absent: false }
-    })
+    classesPerDay.value = classesPerDay.value.map(i => ({ ...i, absent: false }))
     if (classesPerDay.value.length > 0) {
       classesPerDay.value[0].absent = true
     }
+    allSelected.value = classesPerDay.value.every(item => item.absent)
   }
 })
 
-watch(() => props.currentStudent, (newValue, oldValue) => {
-  if (newValue && newValue !== oldValue) {
-    if (newValue.frequencies && newValue.frequencies.length > 0) {
-      classesPerDay.value = newValue.frequencies
-    } else {
-      classesPerDay.value = Array.from({ length: props.numClasses }, (_, i) => ({
-        name: `${i + 1}º aula`,
-        absent: i === 0, 
-      }))
-    }
-    allSelected.value = classesPerDay.value.every(item => item.absent)
+watch(classesPerDay, (newList) => {
+  allSelected.value = newList.every(item => item.absent)
+}, { deep: true })
+
+const initialize = () => {
+  if (props.currentStudent?.frequencies?.length > 0) {
+    classesPerDay.value = props.currentStudent.frequencies.map((f: any) => ({ ...f }))
+  } else {
+    classesPerDay.value = Array.from({ length: props.numClasses }, (_, i) => ({
+      name: `${i + 1}º aula`,
+      absent: i === 0,
+    }))
   }
-}, { immediate: true })
+  allSelected.value = classesPerDay.value.every(item => item.absent)
+}
+
+watch(() => props.checkboxModal, (open) => {
+  if (open) {
+    initialize()
+  }
+})
 
 function toggleSelectAll() {
   allSelected.value = !allSelected.value
@@ -65,6 +72,7 @@ function saveQuantifiedPresence() {
   }
   
   emits('update:modelValue', classesPerDay.value)
+  //showToast(`Ausência de: ${props.currentStudent.name.toUpperCase()} salva com sucesso`, 'top', 'success')
   emits('update:openModal', false)
 }
 </script>
