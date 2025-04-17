@@ -23,6 +23,11 @@ const attendanceService = new AttendanceService()
 const justificationService = new JustificationService()
 const stageService = new StageService()
 
+interface JustificationOption {
+  id: string;
+  name: string;
+}
+
 const eduFProfile = ref()
 
 const schedules = ref(0)
@@ -44,7 +49,7 @@ const checkboxModal = ref({ modal: false, quantifiedPresence: undefined as any }
 const selectedStudent = ref()
 
 // const justification = ref([{ name: 'Gravidez', id: 1 }, { name: 'Atestado médico', id: 2 }, { name: 'Transporte escolar ausente', id: 2 }])
-const justifyOptions = ref()
+const justifyOptions = ref<JustificationOption[]>([])
 const cleanChecks = ref(false)
 const isContentSaved = ref({ card: false, saved: undefined as any })
 const isLoading = ref(false)
