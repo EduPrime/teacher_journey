@@ -104,6 +104,9 @@ function saveQuantifiedPresence() {
             }"
           >
             <i class="pi pi-check-square" style="font-size: 1.2rem;"></i>
+            <span style="margin-left: 4px; font-size: 0.9rem;">
+              {{ allSelected ? 'Limpar todas' : 'Marcar todas' }}
+            </span>
           </IonButton>
         </div>
       </IonCardHeader>
