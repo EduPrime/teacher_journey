@@ -866,7 +866,7 @@ onMounted(async () => {
               >
                 <IonIcon size="small" style="margin-top: auto; margin-bottom: auto; margin-left:10px;" :icon="checkmarkCircleOutline" />
                 <span style="margin-top: auto; margin-bottom: auto; margin-left: 5px;">
-                  Concluir Lançamento
+                  lançar notas
                 </span>
               </IonButton>
             </IonCol>
