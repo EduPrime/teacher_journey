@@ -312,6 +312,8 @@ watch([eduFProfile, currentStage], async ([newEduFProfile, newCurrentStage]) => 
       stageId: '',
     } // Reseta computedRegisteredGrade caso os dados sejam inválidos
   }
+}, {
+  immediate: true,
 })
 
 function checkMinimalActivities(s: StudentGrade): boolean {
