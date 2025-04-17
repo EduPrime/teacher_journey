@@ -5,7 +5,7 @@ import ContentLayout from '@/components/theme/ContentLayout.vue'
 
 import showToast from '@/utils/toast-alert'
 import { IonAccordion, IonAccordionGroup, IonAlert, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol, IonGrid, IonIcon, IonItem, IonLabel, IonLoading, IonModal, IonRow, IonSelect, IonSelectOption, IonText, IonToolbar } from '@ionic/vue'
-import { alertOutline, apps, checkmarkOutline, helpOutline, lockClosedOutline, text, warningOutline } from 'ionicons/icons'
+import { alertOutline, apps, checkmarkCircleOutline, checkmarkOutline, helpOutline, lockClosedOutline, text, warningOutline } from 'ionicons/icons'
 import { computed, onMounted, ref, watch } from 'vue'
 import EduStageTabs from '../components/StageTabs.vue'
 import ConceptualGradeService from '../services/ConceptualGradeService'
@@ -28,6 +28,8 @@ const currentStage = ref()
 const conceptualTypes = ref()
 const isLoading = ref(false)
 const showAlert = ref(false)
+const stageFinished = ref<RegisteredToSave>()
+let isDisabled = ref(false)
 let isGradesFilled = ref(false)
 let diffDays = 0
 const studentList = ref<MountedStudent[]>()
@@ -51,6 +53,14 @@ watch(eduFProfile, async (newValue) => {
       currentStage.value.id,
       newValue.seriesId,
     )
+    console.log('eduFProfile', isDisabled.value)
+        // Checa se registro de notas já foi finalizado
+    stageFinished.value = await registeredGradeService.getRegistered(
+      newValue?.classroomId,
+      newValue?.disciplineId,
+      currentStage.value?.id,
+    )
+    // isDisabled.value = studentList.value?.some(item => item.grades.some(tu => tu.grade !== '')) ?? false
   }
   else {
     studentList.value = undefined
@@ -68,6 +78,15 @@ watch((currentStage), async (newValue) => {
       newValue.id,
       eduFProfile.value.seriesId,
     )
+    isDisabled.value = false // WIP desabilita o botão LANÇAR NOTAS QUANDO O USUÁRIO TROCAR DE STAGE WIP (Resta esperar o componente global de stages(etapas) for refatorado).
+    console.log('currentStage', isDisabled.value)
+        // Checa se registro de notas já foi finalizado
+    stageFinished.value = await registeredGradeService.getRegistered(
+      eduFProfile.value.classroomId,
+      eduFProfile.value.disciplineId,
+      newValue.id,
+    )
+    // isDisabled.value = studentList.value?.some(item => item.grades.some(tu => tu.grade !== '')) ?? false
   }
 })
 
@@ -89,10 +108,12 @@ async function saveGrades(student: MountedStudent) {
       if (isNotEmpty) {
         student.status = 'CONCLUÍDO'
         student.isFull = true
+        isDisabled.value = true // desabilita o botão LANCAR NOTAS
         showToast('Notas salvas com sucesso', 'top', 'success')
       }
       else {
         student.status = 'INCOMPLETO'
+        isDisabled.value = true // desabilita o botão LANCAR NOTAS
         showToast('Notas salvas com sucesso', 'top', 'success')
       }
     }
@@ -101,10 +122,12 @@ async function saveGrades(student: MountedStudent) {
       if (isNotEmpty) {
         student.status = 'CONCLUÍDO'
         student.isFull = true
+        isDisabled.value = true // desabilita o botão LANCAR NOTAS
         showToast('Notas salvas com sucesso', 'top', 'success')
       }
       else {
         student.status = 'INCOMPLETO'
+        isDisabled.value = true // desabilita o botão LANCAR NOTAS
         showToast('Notas salvas com sucesso', 'top', 'success')
       }
     }
@@ -118,8 +141,8 @@ async function cleanGrades(student: MountedStudent) {
   if (student.conceptualGradeId) {
     try {
       await conceptualGradeService.softDeleteConceptualGrade(student.conceptualGradeId)
-      await registeredGradeService.updateRegisteredGradeIsCompleted(teacherId.value, student.classroomId, student.disciplineId, student.stageId, registeredToSave.value.isCompleted)
       registeredToSave.value.isCompleted = false
+      await registeredGradeService.updateRegisteredGradeIsCompleted(teacherId.value, student.classroomId, student.disciplineId, student.stageId, registeredToSave.value.isCompleted)
       showToast('Notas limpas com sucesso', 'top', 'success')
     }
     catch (error) {
@@ -132,6 +155,7 @@ async function cleanGrades(student: MountedStudent) {
   student.status = 'INCOMPLETO'
   student.conceptualGradeId = null
   student.isFull = false
+  isDisabled.value = false
   showToast('Notas limpas com sucesso', 'top', 'success')
 }
 
@@ -148,11 +172,13 @@ function registerGrades(itemToSave: RegisteredToSave) {
     if (isGradesFilled.value) {
       itemToSave.isCompleted = true
       registeredGradeService.upsertRegisteredGrade(itemToSave)
+      isDisabled.value = false
       showToast('Registro de notas completas finalizado com sucesso!', 'top', 'success')
     }
     else {
       itemToSave.isCompleted = false
       registeredGradeService.upsertRegisteredGrade(itemToSave)
+      isDisabled.value = false
       showToast('Registro de notas incompletas finalizado com sucesso!', 'top', 'success')
     }
   }
@@ -162,6 +188,7 @@ function registerGrades(itemToSave: RegisteredToSave) {
   }
   finally {
     isLoading.value = false
+    registeredToSave.value.isCompleted = itemToSave.isCompleted
   }
 }
 
@@ -243,10 +270,19 @@ const getStatusColor = computed(() => (status: string) => {
         <span>Registro Conceitual</span>
       </IonText>
     </h3>
-
     <div v-if="eduFProfile?.classroomId && eduFProfile?.disciplineId">
       <EduStageTabs v-model="currentStage" :stages="stages">
         <template v-for="stage in stages" :key="stage.numberStage" #[stage?.numberStage]>
+          <IonCard v-if="registeredToSave.isCompleted" class="success-card" style="margin:10px 0px 10px 0px;">
+            <IonCardContent>
+              <IonText style="display: flex;">
+                <IonIcon size="small" style="margin-top: auto; margin-bottom: auto;" :icon="checkmarkCircleOutline" />
+                <span style="margin-top: auto; margin-bottom: auto; margin-left: 5px;">
+                  Lançamento de notas da {{ stage.numberStage }}º Etapa concluído.
+                </span>
+              </IonText>
+            </IonCardContent>
+          </IonCard>
           <div v-if="studentList && studentList.length > 0" style="padding: 1px; margin-top: -10px;">
             <IonAccordionGroup expand="inset">
               <IonAccordion v-for="(s, i) in studentList" :key="i" :value="`${i}`" class="no-border-accordion">
@@ -434,10 +470,13 @@ const getStatusColor = computed(() => (status: string) => {
           <IonRow>
             <IonCol size="12">
               <IonButton
-                :disabled="isLoading || !eduFProfile?.disciplineId" color="secondary" expand="full"
+                :disabled="isLoading || !isDisabled || registeredToSave.isCompleted" color="secondary" expand="full"
                 @click="preRegisterGrades"
               >
-                Finalizar
+                <IonIcon size="small" style="margin-top: auto; margin-bottom: auto; margin-left:10px;" :icon="checkmarkCircleOutline" />
+                  <span style="margin-top: auto; margin-bottom: auto; margin-left: 5px;">
+                    lançar notas
+                  </span>
               </IonButton>
             </IonCol>
           </IonRow>

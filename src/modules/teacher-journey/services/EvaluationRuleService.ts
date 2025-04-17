@@ -1,5 +1,6 @@
 import type { EvaluationRule } from '@prisma/client'
 import BaseService from '@/services/BaseService'
+import errorHandler from '@/utils/error-handler'
 
 const table = 'evaluationRule' as const // Modifique para sua tabela
 
@@ -15,7 +16,7 @@ export default class EvaluationRuleService extends BaseService<EvaluationRule> {
       .eq('courseId', courseId)
 
     if (error) {
-      throw new Error(`Erro ao trazer as regras: ${error.message}`)
+      errorHandler(error, 'Erro ao trazer as regras de avaliação')
     }
     if (!data) {
       throw new Error('Nenhuma regra encontrada')
@@ -35,12 +36,10 @@ export default class EvaluationRuleService extends BaseService<EvaluationRule> {
       .eq('courseId', courseIds)
       .single()
 
-    console.log('EvaluationRulesService', data)
-
     const labels = data?.conceptualLabel.map((item: any) => item.rotulo)
 
     if (error) {
-      throw new Error(`Erro ao trazer os tipos de notas: ${error.message}`)
+      errorHandler(error, 'Erro ao trazer os tipos de notas')
     }
     if (!data) {
       throw new Error('Nenhum tipo de nota encontrado')

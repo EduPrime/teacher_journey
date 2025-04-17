@@ -1,5 +1,6 @@
 import type { Content } from '@prisma/client'
 import BaseService from '@/services/BaseService'
+import errorHandler from '@/utils/error-handler'
 
 const table = 'content' as const
 
@@ -7,18 +8,6 @@ export default class ContentService extends BaseService<Content> {
   constructor() {
     super(table)
   }
-
-  // async listContentTeacherId(teacherId: string) {
-  //   const { data, error } = await this.client
-  //     .from('content')
-  //     .select('*')
-  //     .eq('teacherId', teacherId)
-
-  //   if (error) {
-  //     throw new Error(`Erro ao encontrar conteúdo: ${error.message}`)
-  //   }
-  //   return data
-  // }
 
   async listContentByToday(classroomId: string, date: string) {
     const startOfDay = new Date(date)
@@ -41,10 +30,9 @@ export default class ContentService extends BaseService<Content> {
       .eq('classroomId', classroomId)
       .is('deletedAt', null)
       .order('createdAt', { ascending: true })
-    // .eq('teacherId', teacherId) // @TODO: teacherId não é util para ser um parametro do filtro ( pode ser que o professor mude durante o decorrer do ano )
-
+    
     if (error) {
-      throw new Error(`Erro ao encontrar conteúdo: ${error.message}`)
+      errorHandler(error, 'Erro ao listar conteúdos')
     }
     if (!data || data.length === 0) {
       throw new Error('Nenhum conteúdo encontrado')
@@ -78,7 +66,7 @@ export default class ContentService extends BaseService<Content> {
         .single()
 
       if (contentError) {
-        throw new Error(`Erro ao inserir conteúdo: ${contentError}`)
+        errorHandler(contentError, 'Erro ao inserir conteúdo')
       }
 
       const contentId = contentData.id
@@ -92,7 +80,7 @@ export default class ContentService extends BaseService<Content> {
         })))
 
       if (disciplineError) {
-        throw new Error(`Erro ao inserir disciplinas: ${disciplineError.message}`)
+        errorHandler(disciplineError, 'Erro ao inserir disciplinas')
       }
 
       // Verificar se o campo bnccs está preenchido antes de tentar fazer o insert
@@ -106,14 +94,14 @@ export default class ContentService extends BaseService<Content> {
           })))
 
         if (bnccError) {
-          throw new Error(`Erro ao inserir BNCCs: ${bnccError.message}`)
+          errorHandler(bnccError, 'Erro ao inserir BNCCs')
         }
       }
 
       return contentData
     }
     catch (contentError) {
-      throw new Error(`Erro ao inserir conteúdo: ${contentError}`)
+      errorHandler(contentError, 'Erro ao inserir conteúdo')
     }
   }
 
@@ -188,7 +176,7 @@ export default class ContentService extends BaseService<Content> {
         .single()
 
       if (currentContentError) {
-        throw new Error(`Erro ao obter conteúdo atual: ${currentContentError.message}`)
+        errorHandler(currentContentError, 'Erro ao obter conteúdo atual')
       }
 
       // Construir o objeto de atualização com apenas os campos modificados
@@ -217,7 +205,7 @@ export default class ContentService extends BaseService<Content> {
           .single()
 
         if (contentError) {
-          throw new Error(`Erro ao atualizar conteúdo: ${contentError.message}`)
+          errorHandler(contentError, 'Erro ao atualizar conteúdo')
         }
 
         contentData = data
@@ -241,7 +229,7 @@ export default class ContentService extends BaseService<Content> {
           .in('disciplineId', currentDisciplines)
 
         if (disciplineError) {
-          throw new Error(`Erro ao remover disciplinas antigas: ${disciplineError.message}`)
+          errorHandler(disciplineError, 'Erro ao remover disciplinas antigas')
         }
 
         const { error: newDisciplineError } = await this.client
@@ -252,7 +240,7 @@ export default class ContentService extends BaseService<Content> {
           })))
 
         if (newDisciplineError) {
-          throw new Error(`Erro ao inserir disciplinas: ${newDisciplineError.message}`)
+          errorHandler(newDisciplineError, 'Erro ao inserir disciplinas')
         }
       }
 
@@ -269,7 +257,7 @@ export default class ContentService extends BaseService<Content> {
           .in('bnccId', currentBnccs)
 
         if (bnccError) {
-          throw new Error(`Erro ao remover BNCCs antigas: ${bnccError.message}`)
+          errorHandler(bnccError, 'Erro ao remover BNCCs antigas')
         }
 
         const { error: newBnccError } = await this.client
@@ -280,14 +268,14 @@ export default class ContentService extends BaseService<Content> {
           })))
 
         if (newBnccError) {
-          throw new Error(`Erro ao inserir BNCCs: ${newBnccError.message}`)
+          errorHandler(newBnccError, 'Erro ao inserir BNCCs')
         }
       }
 
       return contentData
     }
     catch (contentError) {
-      throw new Error(`Erro ao atualizar: ${contentError}`)
+      errorHandler(contentError, 'Erro ao atualizar conteúdo')
     }
   }
 
@@ -304,13 +292,13 @@ export default class ContentService extends BaseService<Content> {
         .eq('id', content.id)
 
       if (error) {
-        throw new Error(`Erro ao apagar conteúdo: ${error.message}`)
+        errorHandler(error, 'Erro ao apagar conteúdo')
       }
 
       return data
     }
     catch (error) {
-      throw new Error(`Erro ao apagar conteúdo: ${error}`)
+      errorHandler(error, 'Erro ao apagar conteúdo')
     }
   }
 }
