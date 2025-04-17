@@ -230,6 +230,7 @@ function changeSelectedToUpdate(current: any): void {
         :frequency="eduFProfile.frequency"
         :evaluation="eduFProfile.evaluation"
         :discipline-id="eduFProfile?.disciplineId"
+        :is-update-modal-open="isUpdateModalOpen"
       />
 
       <ContentUpdate

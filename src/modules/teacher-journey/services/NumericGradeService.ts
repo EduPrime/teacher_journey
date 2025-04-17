@@ -1,6 +1,7 @@
 import type { NumericGrade } from '@prisma/client'
 import type { NumericToSave } from '../types/types'
 import BaseService from '@/services/BaseService'
+import errorHandler from '@/utils/error-handler'
 
 const table = 'numericGrade' as const
 export default class NumericGradeSevice extends BaseService<NumericGrade> {
@@ -16,7 +17,7 @@ export default class NumericGradeSevice extends BaseService<NumericGrade> {
       .eq('disciplineId', disciplineId)
       .is('deletedAt', null)
     if (error) {
-      throw new Error(`Erro listar todas as notas dos alunos: ${error.message}`)
+      errorHandler(error, 'Erro ao buscar notas')
     }
     if (!data) {
       throw new Error('Nenhuma nota encontrada')
@@ -34,7 +35,7 @@ export default class NumericGradeSevice extends BaseService<NumericGrade> {
       .is('deletedAt', null)
 
     if (error) {
-      throw new Error(`Erro ao buscar notas por etapa: ${error.message}`)
+      errorHandler(error, 'Erro ao buscar notas por etapa')
     }
     if (!data) {
       throw new Error('Nenhuma nota encontrada por etapa')
@@ -50,7 +51,7 @@ export default class NumericGradeSevice extends BaseService<NumericGrade> {
       .eq('studentId', studentId)
       .is('deletedAt', null)
     if (error) {
-      throw new Error(`Erro listar todas as notas do aluno: ${error.message}`)
+      errorHandler(error, 'Erro ao buscar notas do aluno')
     }
     if (!data) {
       throw new Error('Nenhuma nota encontrada para o aluno')
@@ -71,7 +72,7 @@ export default class NumericGradeSevice extends BaseService<NumericGrade> {
         .select(`*`)
 
       if (error) {
-        throw new Error(`Erro ao atualizar ou inserir nota: ${error.message}`)
+        errorHandler(error, 'Erro ao atualizar ou inserir nota')
       }
 
       if (!data || data.length === 0) {
@@ -81,7 +82,7 @@ export default class NumericGradeSevice extends BaseService<NumericGrade> {
       return data
     }
     catch (error) {
-      throw new Error(`Erro inesperado ao atualizar ou inserir nota: ${(error as Error).message}`)
+      errorHandler(error, 'Erro inesperado ao atualizar ou inserir nota')
     }
   }
 
@@ -139,13 +140,13 @@ export default class NumericGradeSevice extends BaseService<NumericGrade> {
         .eq('id', studentGradesId)
 
       if (error) {
-        throw new Error(`Erro ao tentar apagar notas do aluno: ${error.message}`)
+        errorHandler(error, 'Erro ao apagar notas do aluno')
       }
 
       return data
     }
     catch (error) {
-      throw new Error(`Erro inesperado ao apagar notas do aluno: ${error}`)
+      errorHandler(error, 'Erro inesperado ao apagar notas do aluno')
     }
   }
 

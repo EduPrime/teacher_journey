@@ -1,5 +1,6 @@
-import { status, type Enrollment } from '@prisma/client'
+import type { Enrollment } from '@prisma/client'
 import BaseService from '@/services/BaseService'
+import errorHandler from '@/utils/error-handler'
 import { QueryEnrollments, QueryGrades, QueryEmptyGrades } from '../types/types'
 
 const table = 'enrollment' as const
@@ -20,7 +21,7 @@ export default class EnrollmentService extends BaseService<Enrollment> {
       .eq('classroomId', classroomId)
 
     if (error) {
-      throw new Error(`Erro ao buscar matrículas com dados dos alunos: ${error.message}`)
+      errorHandler(error, 'Erro ao listar matrículas')
     }
     if (!data) {
       throw new Error('Nenhuma matrícula encontrada')
@@ -40,7 +41,7 @@ export default class EnrollmentService extends BaseService<Enrollment> {
       .eq('classroomId', classroomId) as unknown as QueryEnrollments
 
     if (enrollmentError) {
-      throw new Error(`Erro ao buscar matrículas com dados dos alunos: ${enrollmentError.message}`);
+      errorHandler(enrollmentError, 'Erro ao listar matrículas')
     }
     if (!enrollments || enrollments.length === 0) {
       throw new Error('Nenhuma matrícula encontrada');
@@ -68,7 +69,7 @@ export default class EnrollmentService extends BaseService<Enrollment> {
     // .is('thematicUnits.deletedAt', null)
 
     if (conceptualGradeError) {
-      throw new Error(`Erro ao buscar notas conceituais: ${conceptualGradeError.message}`);
+      errorHandler(conceptualGradeError, 'Erro ao listar notas conceituais')
     }
 
     const enrollmentsWithConceptualGrades = enrollments.filter((enrollment) => {
@@ -115,7 +116,7 @@ export default class EnrollmentService extends BaseService<Enrollment> {
         .eq('seriesId', seriesId) as unknown as QueryEmptyGrades
 
       if (errorEmptyConceptualGrades) {
-        throw new Error(`Erro ao buscar notas conceituais: ${errorEmptyConceptualGrades}`);
+        errorHandler(errorEmptyConceptualGrades, 'Erro ao listar unidades temáticas')
       }
       result.push(...enrollmentsWithoutConceptualGrades.map((enrollment) => {
         return {

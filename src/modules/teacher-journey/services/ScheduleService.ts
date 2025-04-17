@@ -1,6 +1,7 @@
+import { ref } from 'vue'
 import type { Schedule } from '@prisma/client'
 import BaseService from '@/services/BaseService'
-import { ref } from 'vue'
+import errorHandler from '@/utils/error-handler'
 
 const table = 'schedule' as const
 
@@ -21,7 +22,7 @@ export default class ScheduleService extends BaseService<Schedule> {
     }
 
     if (error) {
-      throw new Error(`Erro ao contar o número de escolas: ${error.message}`)
+      errorHandler(error, 'Erro ao contar o número de escolas')
     }
     if (!data) {
       throw new Error('Nenhuma escola encontrada')
@@ -47,7 +48,7 @@ export default class ScheduleService extends BaseService<Schedule> {
     }
 
     if (error) {
-      throw new Error(`Erro ao obter o id de instituição: ${error.message}`)
+      errorHandler(error, 'Erro ao buscar o id da instituição')
     }
     if (!data) {
       throw new Error('Nenhuma escola associada ao professor')
@@ -66,7 +67,7 @@ export default class ScheduleService extends BaseService<Schedule> {
     }
 
     if (error) {
-      throw new Error(`Erro ao contar o número de turmas: ${error.message}`)
+      errorHandler(error, 'Erro ao contar o número de turmas')
     }
     if (!data) {
       throw new Error('Nenhuma turma encontrada')
@@ -82,7 +83,7 @@ export default class ScheduleService extends BaseService<Schedule> {
       .eq('teacherId', teacherId)
 
     if (error) {
-      throw new Error(`Erro ao buscar turmas: ${error.message}`)
+      errorHandler(error, 'Erro ao listar as turmas')
     }
     if (!data || data.length === 0) {
       throw new Error('Nenhuma turma encontrada')
@@ -107,7 +108,7 @@ export default class ScheduleService extends BaseService<Schedule> {
       .order('start')
 
     if (error) {
-      throw new Error(`Erro ao buscar horários: ${error.message}`)
+      errorHandler(error, 'Erro ao buscar horários')
     }
     if (!data) {
       throw new Error('Nenhum horário encontrado')
@@ -137,7 +138,7 @@ export default class ScheduleService extends BaseService<Schedule> {
           .order('start')
 
         if (error) {
-          throw new Error(`Erro ao buscar total de aulas: ${error.message}`)
+          errorHandler(error, 'Erro ao buscar horários do professor')
         }
         if (!data) {
           throw new Error('Nenhuma aula encontrado')
@@ -147,7 +148,7 @@ export default class ScheduleService extends BaseService<Schedule> {
         return count
       }
       catch (error) {
-        throw new Error(`Erro na função getScheduleTeacherDay: ${(error as any).message}`)
+        errorHandler(error, 'Erro inesperado ao buscar horários do professor')
       }
     }
   }
@@ -181,7 +182,7 @@ export default class ScheduleService extends BaseService<Schedule> {
       return infoCourse.data?.[0]?.courseId
     }
     catch (error: any) {
-      throw new Error(`Erro ao buscar curso: ${error.message}`)
+      errorHandler(error, 'Erro ao buscar o curso do professor')
     }
   }
 
@@ -242,7 +243,7 @@ export default class ScheduleService extends BaseService<Schedule> {
       .eq('teacherId', teacherId)
 
     if (error) {
-      throw new Error(`Erro ao buscar horários: ${error.message}`)
+      errorHandler(error, 'Erro ao buscar horários')
     }
     if (!data) {
       throw new Error('Nenhum horário encontrado')

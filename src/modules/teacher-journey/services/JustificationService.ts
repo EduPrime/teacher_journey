@@ -1,5 +1,6 @@
 import type { Justification } from '@prisma/client'
 import BaseService from '@/services/BaseService'
+import errorHandler from '@/utils/error-handler'
 
 const table = 'justification' as const
 
@@ -14,7 +15,7 @@ export default class JustificationService extends BaseService<Justification> {
       .select(`*`)
 
     if (error) {
-      throw new Error(`Erro ao buscar Justificativa de faltas: ${error.message}`)
+      errorHandler(error, 'Erro ao trazer as justificativas')
     }
     if (!data) {
       throw new Error('Nenhuma Justificativa encontrada')

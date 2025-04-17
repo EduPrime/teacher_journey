@@ -1,5 +1,6 @@
 import type { Series } from '@prisma/client'
 import BaseService from '@/services/BaseService'
+import errorHandler from '@/utils/error-handler'
 
 const table = 'series' as const // Modifique para sua tabela
 
@@ -15,8 +16,7 @@ export default class SeriesService extends BaseService<Series> {
             .in('id', classes)
 
         if (error) {
-            throw new Error(`Erro ao buscar notas com dados dos alunos: ${error.message}`)
-        }
+            errorHandler(error, 'Erro ao trazer as séries e escolas')}
         if (!data) {
             throw new Error('Nenhuma nota encontrada')
         }
