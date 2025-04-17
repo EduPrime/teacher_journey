@@ -295,7 +295,6 @@ async function saveContent() {
               :internal-search="true"      
               :custom-filter="customFilter"
               :close-on-select="false"
-              :clear-on-select="false" 
               :preserve-search="true"
               :hide-selected="true"
               placeholder="Busque ou selecione BNCC"
