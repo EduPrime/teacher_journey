@@ -8,7 +8,7 @@ import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, Io
 import { calendarOutline, checkmarkCircleOutline, checkmarkDone, layers, warningOutline } from 'ionicons/icons'
 import { DateTime } from 'luxon'
 
-import { onMounted, ref, watch } from 'vue'
+import { nextTick, ref, watch } from 'vue'
 
 import FrequencyMultiSelect from '../components/frequency/MultiSelect.vue'
 import AttendanceService from '../services/AttendanceService'
@@ -22,6 +22,11 @@ const enrollmentService = new EnrollmentService()
 const attendanceService = new AttendanceService()
 const justificationService = new JustificationService()
 const stageService = new StageService()
+
+interface JustificationOption {
+  id: string;
+  name: string;
+}
 
 const eduFProfile = ref()
 
@@ -44,7 +49,7 @@ const checkboxModal = ref({ modal: false, quantifiedPresence: undefined as any }
 const selectedStudent = ref()
 
 // const justification = ref([{ name: 'Gravidez', id: 1 }, { name: 'Atestado médico', id: 2 }, { name: 'Transporte escolar ausente', id: 2 }])
-const justifyOptions = ref()
+const justifyOptions = ref<JustificationOption[]>([])
 const cleanChecks = ref(false)
 const isContentSaved = ref({ card: false, saved: undefined as any })
 const isLoading = ref(false)
@@ -148,10 +153,11 @@ watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo
   isLoadingWarning.value = false // Finaliza o carregamento
 })
 
-watch(selectedStudent, () => {
-  // frequencyToSave.value.quantifiedPresence = undefined
-  checkboxModal.value.quantifiedPresence = undefined
-  cleanChecks.value = true
+watch(selectedStudent, (newValue, oldValue) => {
+  if (newValue && newValue !== oldValue) {
+    checkboxModal.value.quantifiedPresence = undefined
+    cleanChecks.value = true
+  }
 })
 
 watch(() => checkboxModal.value.quantifiedPresence, (newValue) => {
@@ -305,6 +311,30 @@ function luxonFormatDate(dateString: string) {
   const date = DateTime.fromISO(dateString)
   return date.setLocale('pt-BR').toFormat('dd/MM/yyyy')
 }
+
+function onPresenceChange(student: FrequencyToSave) {
+  if (student.presence === false) {
+    console.log('justifyOptions.value', justifyOptions.value)
+    const defaultJustification = justifyOptions.value?.find(j => j.name === "Não informada");
+    if (defaultJustification) {
+      student.justificationId = defaultJustification.id;
+    }
+  } else {
+    student.justificationId = undefined;
+  }
+}
+
+function openMultiSelectModal(student: any) {
+  // Resetar o estado primeiro
+  selectedStudent.value = null
+  checkboxModal.value.modal = false
+  
+  // Usar nextTick para garantir que o estado foi resetado
+  nextTick(() => {
+    selectedStudent.value = student
+    checkboxModal.value.modal = true
+  })
+}
 </script>
 
 <template>
@@ -318,7 +348,7 @@ function luxonFormatDate(dateString: string) {
     </h3>
     <EduCalendar v-model="selectedDayInfo" :teacher-id="eduFProfile?.teacherId" :current-classroom="eduFProfile?.classroomId" :current-discipline="eduFProfile?.disciplineId" :frequency="eduFProfile?.frequency" />
 
-    <IonCard v-if="false" color="success">
+    <IonCard v-if="false" class="success-card">
       <IonCardContent>
         <IonText style="display: flex;">
           <IonIcon size="small" style="margin-top: auto; margin-bottom: auto;" :icon="checkmarkCircleOutline" />
@@ -391,7 +421,7 @@ function luxonFormatDate(dateString: string) {
         </IonItem>
         <div slot="content" class="ion-padding">
           <IonRow>
-            <IonRadioGroup v-model="s.presence" style="color: var(--ion-color-secondary); margin-top: auto; margin-bottom: auto;">
+            <IonRadioGroup v-model="s.presence" style="color: var(--ion-color-secondary); margin-top: auto; margin-bottom: auto;" @ionChange="() => onPresenceChange(s)">
               <IonRadio label-placement="end" color="secondary" style="padding-right: 16px; scale: 0.9;" :value="true">
                 Presente
               </IonRadio>
@@ -399,7 +429,7 @@ function luxonFormatDate(dateString: string) {
                 Ausente
               </IonRadio>
             </IonRadioGroup>
-            <IonButton v-if="eduFProfile.frequency === 'disciplina' && !s.presence" size="small" style="margin-top: auto; margin-bottom: auto; margin-left: auto;" shape="round" @click="() => { selectedStudent = s; checkboxModal.modal = true }">
+            <IonButton v-if="eduFProfile.frequency === 'disciplina' && !s.presence" size="small" style="margin-top: auto; margin-bottom: auto; margin-left: auto;" shape="round" @click="openMultiSelectModal(s)">
               <IonIcon slot="icon-only" :icon="layers" />
             </IonButton>
 
