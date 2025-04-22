@@ -103,6 +103,15 @@ export interface MountedStudent {
   isCleansed?: boolean
 }
 
+export interface DescriptiveStudent {
+  name: string
+  situation: string
+  disability: boolean
+  status: string
+  createdAt: string
+  updatedAt: string
+}
+
 export interface QueryEnrollments {
   data: {
     id: string

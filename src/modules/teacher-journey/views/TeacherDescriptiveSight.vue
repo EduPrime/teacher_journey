@@ -1,28 +1,44 @@
 <script setup lang="ts">
 import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
-import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonIcon, IonItem, IonLabel, IonSegment, IonSegmentButton, IonText } from '@ionic/vue'
+import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonIcon, IonItem, IonLabel, IonSegment, IonSegmentButton, IonText, IonChip } from '@ionic/vue'
 import { alertOutline, barChartOutline, calendarClearOutline, calendarOutline, checkmarkOutline, helpOutline, lockClosedOutline, shapes } from 'ionicons/icons'
 
 import { DateTime } from 'luxon'
 
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 
 import EnrollmentService from '../services/EnrollmentService'
+import StageService from '../services/StageService'
+
+import type { DescriptiveStudent } from '../types/types'
 
 const enrollmentService = new EnrollmentService()
+const stageService = new StageService()
 
 const eduFProfile = ref()
-const students = ref()
-const selectedTad = ref()
+const students = ref<DescriptiveStudent[] | undefined>(undefined)
+const selectedTad = ref('inicial')
 const screenWidth = ref(window.innerWidth)
+
+const stage1Start = ref<string|null>(null)
+const stage2Start = ref<string|null>(null)
+const stage3End = ref<string|null>(null)
+const isStage2Enabled = computed(() => stage2Start.value ? DateTime.local() >= DateTime.fromISO(stage2Start.value).startOf('day') : false)
+const isStage3Enabled = computed(() => stage3End.value ? DateTime.local() >= DateTime.fromISO(stage3End.value).startOf('day') : false)
 
 watch(eduFProfile, async (newValue) => {
   if (newValue?.teacherId) {
-    //
-    students.value = await enrollmentService.getClassroomStudents(newValue.classroomId)
-  }
-  else {
+    const raw = await enrollmentService.getClassroomStudents(newValue.classroomId)
+    students.value = raw.map(e => ({
+      name: e.name,
+      situation: e.situation,
+      disability: (e.student?.disability?.length ?? 0) > 0,
+      status: e.situation !== 'CURSANDO' ? 'BLOQUEADO' : 'INCOMPLETO',
+      createdAt: e.createdAt,
+      updatedAt: e.updatedAt
+    }))
+  } else {
     students.value = undefined
   }
 })
@@ -92,9 +108,18 @@ function simulateSlide() {
   }, 300) // Exit animation duration
 }
 
-function verificaData(dataReferencia: string) {
-  return new Date() <= new Date(dataReferencia)
-}
+onMounted(async () => {
+  try {
+    const stages = await stageService.getAllStages()
+    const st1 = stages?.find(s => s.numberStage === 1)
+    if (st1) stage1Start.value = st1.startDate
+    stage2Start.value = DateTime.fromISO('2025-06-30').toISO()
+    const st3 = stages?.find(s => s.numberStage === 3)
+    if (st3) stage3End.value = st3.endDate
+  } catch (error) {
+    console.error('Erro ao obter etapas', error)
+  }
+})
 </script>
 
 <template>
@@ -118,13 +143,13 @@ function verificaData(dataReferencia: string) {
 
           <!-- @TODO: O disabled ta comparando a data atual com uma iserida ( acredito que podemos usar a data de inicio do 2º Bimetre para o caso "PARCIAL" ) -->
 
-          <IonSegmentButton :disabled="verificaData('2025-04-01')" value="parcial">
+          <IonSegmentButton :disabled="!isStage2Enabled" value="parcial">
             <IonLabel>Parcial</IonLabel>
           </IonSegmentButton>
 
           <!-- @TODO: O disabled ta comparando a data atual com uma iserida ( acredito que podemos usar a data de encerramento do 3º Bimetre para o caso "FINAL" ) -->
 
-          <IonSegmentButton :disabled="verificaData('2025-07-01')" value="final">
+          <IonSegmentButton :disabled="!isStage3Enabled" value="final">
             <IonLabel>Final</IonLabel>
           </IonSegmentButton>
         </IonSegment>
@@ -136,17 +161,21 @@ function verificaData(dataReferencia: string) {
       >
         <IonAccordionGroup class="ion-content" expand="inset">
           <IonAccordion v-for="(s, i) in students" :key="i" :value="`${i}`" class="no-border-accordion">
-            <IonItem slot="header">
-              <!-- @TODO: Usar valores dinâmicos dentro das funções getStatusColor e getStatusIcon -->
-
+            <IonItem slot="header" style="--padding-top: 0; --padding-bottom: 0; align-items: center;">
               <IonIcon
-                :color="getStatusColor('INCOMPLETO')" style="margin-right: 6px; font-size: 24px;"
-                :icon="getStatusIcon('INCOMPLETO')"
+                :color="getStatusColor(s.status)" style="margin-right: 6px; font-size: 24px;"
+                :icon="getStatusIcon(s.status)"
               />
-              <IonLabel>
-                <IonText color="secondary">
-                  {{ s.name }}
+              <IonLabel style="display: flex; align-items: center; width: 100%;">
+                <IonText color="secondary" :style="s.situation !== 'CURSANDO' ? 'opacity: 0.4;' : ''">
+                  <b>{{ s.name }}</b>
                 </IonText>
+                <IonChip v-if="s.disability" class="ion-no-margin" style="margin: auto 0 auto auto;" mode="md" color="tertiary">
+                  PCD
+                </IonChip>
+                <IonChip v-if="s.situation !== 'CURSANDO'" style="margin: auto 0 auto auto;" mode="md">
+                  {{ s.situation.toLowerCase().replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase()) }}
+                </IonChip>
               </IonLabel>
             </IonItem>
             <div slot="content" class="ion-padding">
@@ -194,7 +223,7 @@ function verificaData(dataReferencia: string) {
               >
                 <IonText color="primary" style="display: flex; align-items: center; height: 15px;">
                   <IonIcon :icon="calendarOutline" style="margin-right: 10px;" />
-                  Atualizado em {{ luxonFormatDate(s.createdAt) }}
+                  Atualizado em {{ luxonFormatDate(s.updatedAt) }}
                 </IonText>
               </IonCardHeader>
               <div class="ion-content" style="display: flex; justify-content: right; padding-top: 8px; padding-bottom: 8px;">
