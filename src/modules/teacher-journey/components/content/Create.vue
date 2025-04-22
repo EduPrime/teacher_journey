@@ -162,22 +162,22 @@ function customFilter(option: any, label: string, search: string): boolean {
 
 async function saveContent() {
   try {
-    // Verifica se alguma disciplina não tem um bncc selecionado
-    const missing = filledContent.value.disciplines.filter(disciplineId =>
-      !selectedBnccObjects.value.some(bncc => bncc.discipline.id === disciplineId)
-    )
+    // // Verifica se alguma disciplina não tem um bncc selecionado
+    // const missing = filledContent.value.disciplines.filter(disciplineId =>
+    //   !selectedBnccObjects.value.some(bncc => bncc.discipline.id === disciplineId)
+    // )
 
-    if (missing.length > 0) {
-      const missingDisciplinesNames = props.availableDisciplines
-      .filter(d => missing.includes(d.id))
-      .map(d => d.name)
-      showToast(
-      `Selecione ao menos uma BNCC para: ${missingDisciplinesNames.join(', ')}`,
-      'top',
-      'warning'
-      )
-      return
-    }
+    // if (missing.length > 0) {
+    //   const missingDisciplinesNames = props.availableDisciplines
+    //   .filter(d => missing.includes(d.id))
+    //   .map(d => d.name)
+    //   showToast(
+    //   `Selecione ao menos uma BNCC para: ${missingDisciplinesNames.join(', ')}`,
+    //   'top',
+    //   'warning'
+    //   )
+    //   return
+    // }
 
     const payload = {
       ...filledContent.value,
@@ -282,7 +282,7 @@ async function saveContent() {
             </ErrorMessage>
 
             <br>
-            <Field v-slot="{ field }" name="Currículos" rules="required">
+            <Field v-slot="{ field }" name="Currículos">
               <Multiselect
               class="bncc-scroll"
               v-bind="field"
@@ -312,9 +312,9 @@ async function saveContent() {
               </template>
               </Multiselect>
             </Field>
-            <ErrorMessage name="Currículos" v-slot="{ message }">
+            <!-- <ErrorMessage name="Currículos" v-slot="{ message }">
               <span class="error-message">{{ message }}</span>
-            </ErrorMessage>
+            </ErrorMessage> -->
 
             <div class="ion-margin-top" style="display: flex; justify-content: right;">
               <IonButton 

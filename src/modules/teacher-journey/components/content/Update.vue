@@ -187,22 +187,22 @@ async function setBNCC(selectedBNCC: string[]) {
 }
 
 async function saveContent() {
-  // Verifica se alguma disciplina não tem um bncc selecionado
-  const missing = filledContent.value.disciplines.filter(dId =>
-    !selectedBnccObjects.value.some(b => b.discipline.id === dId)
-  )
-  if (missing.length > 0) {
-    // Pega o nome das dsisciplinas sem bnccs correspondentes
-    const nomesFaltantes = props.availableDisciplines
-      .filter(d => missing.includes(d.id))
-      .map(d => d.name)
-    showToast(
-      `Selecione ao menos uma BNCC para: ${nomesFaltantes.join(', ')}`,
-      'top',
-      'warning'
-    )
-    return
-  }
+  // // Verifica se alguma disciplina não tem um bncc selecionado
+  // const missing = filledContent.value.disciplines.filter(dId =>
+  //   !selectedBnccObjects.value.some(b => b.discipline.id === dId)
+  // )
+  // if (missing.length > 0) {
+  //   // Pega o nome das dsisciplinas sem bnccs correspondentes
+  //   const nomesFaltantes = props.availableDisciplines
+  //     .filter(d => missing.includes(d.id))
+  //     .map(d => d.name)
+  //   showToast(
+  //     `Selecione ao menos uma BNCC para: ${nomesFaltantes.join(', ')}`,
+  //     'top',
+  //     'warning'
+  //   )
+  //   return
+  // }
 
   filledContent.value.bnccs = selectedBnccObjects.value.map(b => b.id)
   await contentService.updateContent({ ...filledContent.value })
@@ -222,7 +222,7 @@ function luxonFormatDate(dateString: string) {
       :initial-values="{
         Disciplina: filledContent.disciplines,
         Conteúdo: filledContent.description,
-        Currículos: filledContent.bnccs,
+        // Currículos: filledContent.bnccs,
       }" @submit="saveContent"
     >
       <IonCard id="EditarRegistroFormulario" class="ion-no-padding ion-no-margin">
@@ -283,7 +283,7 @@ function luxonFormatDate(dateString: string) {
 
               
               <br>
-              <Field name="Currículos" v-slot="{ field }" rules="required">
+              <Field name="Currículos" v-slot="{ field }">
                 <Multiselect
                 class="bncc-scroll"
                 v-bind="field"
@@ -313,9 +313,9 @@ function luxonFormatDate(dateString: string) {
                 </template>
                 </Multiselect>
               </Field>
-              <ErrorMessage name="Currículos" v-slot="{ message }">
+              <!-- <ErrorMessage name="Currículos" v-slot="{ message }">
                 <span class="error-message">{{ message }}</span>
-              </ErrorMessage>
+              </ErrorMessage> -->
 
             <div class="ion-margin-top" style="display: flex; justify-content: right;">
               <IonButton color="danger" size="small" style="text-transform: capitalize;" @click="emits('update:modelValue', false)">
