@@ -217,7 +217,7 @@ function luxonFormatDate(dateString: string) {
 </script>
 
 <template>
-  <IonModal id="update-modal" class="ion-content" :is-open="props.isUpdateModalOpen" @ion-modal-did-dismiss="() => { modalOpened = false; emits('update:modelValue', false) }">
+  <IonModal id="update-modal" class="" :is-open="props.isUpdateModalOpen" @ion-modal-did-dismiss="() => { modalOpened = false; emits('update:modelValue', false) }">
     <Form
       :initial-values="{
         Disciplina: filledContent.disciplines,
@@ -236,7 +236,7 @@ function luxonFormatDate(dateString: string) {
         </IonCardHeader>
 
           <div>
-            <IonCardContent class="update-modal-content" style="display: flex; flex-direction: column; gap: 15px;">
+            <IonCardContent class="update-modal-content" style="display: flex; flex-direction: column; gap: 10px;">
               <Field name="Disciplina" v-slot="{ field }" rules="required">
                 <IonSelect
                   v-bind="field"
@@ -344,7 +344,13 @@ function luxonFormatDate(dateString: string) {
   }
 
   ion-modal#update-modal {
-    --height: 50vh;
+    --height: 45vh; /* Default height for desktop */
+    @media (max-width: 1024px) { /* Tablet */
+      --height: 80vh;
+    }
+    @media (max-width: 768px) { /* Mobile */
+      --height: 67vh;
+    }
     --width: 40vw;
     --min-width: 300px;
   }
@@ -355,9 +361,9 @@ function luxonFormatDate(dateString: string) {
   }
 
   .update-modal-content {
-    max-height: calc(50vh - 48px); 
+    max-height: calc(150vh - 200px);
     overflow-y: auto;
-    padding: 16px;
+    padding: 10px;
     box-sizing: border-box;
   }
 
