@@ -187,22 +187,22 @@ async function setBNCC(selectedBNCC: string[]) {
 }
 
 async function saveContent() {
-  // Verifica se alguma disciplina não tem um bncc selecionado
-  const missing = filledContent.value.disciplines.filter(dId =>
-    !selectedBnccObjects.value.some(b => b.discipline.id === dId)
-  )
-  if (missing.length > 0) {
-    // Pega o nome das dsisciplinas sem bnccs correspondentes
-    const nomesFaltantes = props.availableDisciplines
-      .filter(d => missing.includes(d.id))
-      .map(d => d.name)
-    showToast(
-      `Selecione ao menos uma BNCC para: ${nomesFaltantes.join(', ')}`,
-      'top',
-      'warning'
-    )
-    return
-  }
+  // // Verifica se alguma disciplina não tem um bncc selecionado
+  // const missing = filledContent.value.disciplines.filter(dId =>
+  //   !selectedBnccObjects.value.some(b => b.discipline.id === dId)
+  // )
+  // if (missing.length > 0) {
+  //   // Pega o nome das dsisciplinas sem bnccs correspondentes
+  //   const nomesFaltantes = props.availableDisciplines
+  //     .filter(d => missing.includes(d.id))
+  //     .map(d => d.name)
+  //   showToast(
+  //     `Selecione ao menos uma BNCC para: ${nomesFaltantes.join(', ')}`,
+  //     'top',
+  //     'warning'
+  //   )
+  //   return
+  // }
 
   filledContent.value.bnccs = selectedBnccObjects.value.map(b => b.id)
   await contentService.updateContent({ ...filledContent.value })
@@ -217,12 +217,12 @@ function luxonFormatDate(dateString: string) {
 </script>
 
 <template>
-  <IonModal id="update-modal" class="ion-content" :is-open="props.isUpdateModalOpen" @ion-modal-did-dismiss="() => { modalOpened = false; emits('update:modelValue', false) }">
+  <IonModal id="update-modal" class="" :is-open="props.isUpdateModalOpen" @ion-modal-did-dismiss="() => { modalOpened = false; emits('update:modelValue', false) }">
     <Form
       :initial-values="{
         Disciplina: filledContent.disciplines,
         Conteúdo: filledContent.description,
-        Currículos: filledContent.bnccs,
+        // Currículos: filledContent.bnccs,
       }" @submit="saveContent"
     >
       <IonCard id="EditarRegistroFormulario" class="ion-no-padding ion-no-margin">
@@ -236,7 +236,7 @@ function luxonFormatDate(dateString: string) {
         </IonCardHeader>
 
           <div>
-            <IonCardContent class="update-modal-content" style="display: flex; flex-direction: column; gap: 15px;">
+            <IonCardContent class="update-modal-content" style="display: flex; flex-direction: column; gap: 10px;">
               <Field name="Disciplina" v-slot="{ field }" rules="required">
                 <IonSelect
                   v-bind="field"
@@ -283,7 +283,7 @@ function luxonFormatDate(dateString: string) {
 
               
               <br>
-              <Field name="Currículos" v-slot="{ field }" rules="required">
+              <Field name="Currículos" v-slot="{ field }">
                 <Multiselect
                 class="bncc-scroll"
                 v-bind="field"
@@ -313,9 +313,9 @@ function luxonFormatDate(dateString: string) {
                 </template>
                 </Multiselect>
               </Field>
-              <ErrorMessage name="Currículos" v-slot="{ message }">
+              <!-- <ErrorMessage name="Currículos" v-slot="{ message }">
                 <span class="error-message">{{ message }}</span>
-              </ErrorMessage>
+              </ErrorMessage> -->
 
             <div class="ion-margin-top" style="display: flex; justify-content: right;">
               <IonButton color="danger" size="small" style="text-transform: capitalize;" @click="emits('update:modelValue', false)">
@@ -344,7 +344,13 @@ function luxonFormatDate(dateString: string) {
   }
 
   ion-modal#update-modal {
-    --height: 50vh;
+    --height: 45vh; /* Default height for desktop */
+    @media (max-width: 1024px) { /* Tablet */
+      --height: 80vh;
+    }
+    @media (max-width: 768px) { /* Mobile */
+      --height: 67vh;
+    }
     --width: 40vw;
     --min-width: 300px;
   }
@@ -355,9 +361,9 @@ function luxonFormatDate(dateString: string) {
   }
 
   .update-modal-content {
-    max-height: calc(50vh - 48px); 
+    max-height: calc(150vh - 200px);
     overflow-y: auto;
-    padding: 16px;
+    padding: 10px;
     box-sizing: border-box;
   }
 
