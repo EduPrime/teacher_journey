@@ -1,8 +1,39 @@
 <script setup lang="ts">
 import EduFilterProfile from '@/components/FilterProfile.vue'
 import ContentLayout from '@/components/theme/ContentLayout.vue'
-import { IonAccordion, IonAccordionGroup, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonIcon, IonItem, IonLabel, IonSegment, IonSegmentButton, IonText, IonChip } from '@ionic/vue'
-import { alertOutline, barChartOutline, calendarClearOutline, calendarOutline, checkmarkOutline, helpOutline, lockClosedOutline, shapes } from 'ionicons/icons'
+import { 
+  IonAccordion, 
+  IonAccordionGroup, 
+  IonButton, 
+  IonCard, 
+  IonCardContent, 
+  IonCardHeader, 
+  IonCardTitle, 
+  IonIcon, 
+  IonItem, 
+  IonLabel, 
+  IonSegment, 
+  IonSegmentButton, 
+  IonTextarea, 
+  IonText, 
+  IonChip, 
+  IonAlert, 
+  IonLoading, 
+  IonGrid, 
+  IonRow, 
+  IonCol, 
+  IonToolbar 
+} from '@ionic/vue'
+import { 
+  alertOutline, 
+  barChartOutline, 
+  calendarClearOutline, 
+  calendarOutline, 
+  checkmarkOutline, 
+  helpOutline, 
+  lockClosedOutline, 
+  shapes 
+} from 'ionicons/icons'
 
 import { DateTime } from 'luxon'
 
@@ -10,16 +41,46 @@ import { computed, ref, watch, onMounted } from 'vue'
 
 import EnrollmentService from '../services/EnrollmentService'
 import StageService from '../services/StageService'
+import showToast from '@/utils/toast-alert'
+import FeedbackService from '../services/FeedbackService'
+import RegisteredGradeService from '../services/RegisteredGradeService'
 
 import type { DescriptiveStudent } from '../types/types'
+import type { RegisteredToSave } from '../types/types'
+import type { StudentFeedback } from '@prisma/client'
+
+interface SightStudent extends DescriptiveStudent {
+  studentId: string
+  classroomId: string
+  enrollmentId: string
+  schoolId: string
+  disciplineId: string
+  feedbackId?: string | null
+  initialFeedback: string
+  partialFeedback: string
+  finalFeedback: string
+  isSaved: boolean
+}
 
 const enrollmentService = new EnrollmentService()
 const stageService = new StageService()
+const feedbackService = new FeedbackService()
+const registeredGradeService = new RegisteredGradeService()
 
 const eduFProfile = ref()
-const students = ref<DescriptiveStudent[] | undefined>(undefined)
+const students = ref<SightStudent[] | undefined>(undefined)
 const selectedTad = ref('inicial')
 const screenWidth = ref(window.innerWidth)
+const isFinalizedGlobal = ref(false)
+const isAnySaved = computed(() => students.value?.some(s => s.isSaved) ?? false)
+
+function isEdited(s: SightStudent): boolean { 
+  return s.initialFeedback !== '' || s.partialFeedback !== '' || s.finalFeedback !== ''
+}
+
+watch(students, (newList) => {
+  newList?.forEach(s => { if (isEdited(s)) isFinalizedGlobal.value = false })
+}, { deep: true })
 
 const stage1Start = ref<string|null>(null)
 const stage2Start = ref<string|null>(null)
@@ -27,19 +88,55 @@ const stage3End = ref<string|null>(null)
 const isStage2Enabled = computed(() => stage2Start.value ? DateTime.local() >= DateTime.fromISO(stage2Start.value).startOf('day') : false)
 const isStage3Enabled = computed(() => stage3End.value ? DateTime.local() >= DateTime.fromISO(stage3End.value).startOf('day') : false)
 
+const isLoading = ref(false)
+const showAlert = ref(false)
+const registeredToSave = ref<RegisteredToSave>({ isCompleted: false, teacherId: '', classroomId: '', disciplineId: '', stageId: '' })
+const isContentFilled = computed(() => students.value?.some(s => s.initialFeedback.trim() !== '' || s.partialFeedback.trim() !== '' || s.finalFeedback.trim() !== '') ?? false)
+const computedRegisteredFeedback = computed(() => ({ isCompleted: registeredToSave.value.isCompleted, teacherId: eduFProfile.value?.teacherId || '', classroomId: eduFProfile.value?.classroomId || '', disciplineId: eduFProfile.value?.disciplineId || '', stageId: selectedTad.value }))
+
 watch(eduFProfile, async (newValue) => {
   if (newValue?.teacherId) {
     const raw = await enrollmentService.getClassroomStudents(newValue.classroomId)
-    students.value = raw.map(e => ({
+
+    const enrichedStudents: SightStudent[] = raw.map(e => ({
       name: e.name,
       situation: e.situation,
       disability: (e.student?.disability?.length ?? 0) > 0,
       status: e.situation !== 'CURSANDO' ? 'BLOQUEADO' : 'INCOMPLETO',
       createdAt: e.createdAt,
-      updatedAt: e.updatedAt
+      updatedAt: e.updatedAt,
+      studentId: e.studentId,
+      classroomId: newValue.classroomId,
+      enrollmentId: e.id,
+      schoolId: e.schoolId,
+      disciplineId: newValue.disciplineId ?? '',
+      initialFeedback: '',
+      partialFeedback: '',
+      finalFeedback: '',
+      isSaved: false
     }))
+
+    const feedbackPromises = enrichedStudents.map(s => 
+      feedbackService.getStudentFeedback(s.enrollmentId)
+        .then(feedback => {
+          if (feedback?.length) {
+            s.feedbackId = feedback[0].id
+            s.initialFeedback = feedback[0].initialFeedback || ''
+            s.partialFeedback = feedback[0].partialFeedback || ''
+            s.finalFeedback = feedback[0].finalFeedback || ''
+            s.isSaved = true
+            s.createdAt = feedback[0].createdAt ? new Date(feedback[0].createdAt).toISOString() : s.createdAt
+            s.updatedAt = feedback[0].updatedAt ? new Date(feedback[0].updatedAt).toISOString() : s.updatedAt
+          }
+          return s;
+        })
+    );
+    
+    await Promise.all(feedbackPromises)
+    
+    students.value = enrichedStudents
   } else {
-    students.value = undefined
+    students.value = undefined;
   }
 })
 
@@ -74,8 +171,6 @@ function luxonFormatDate(dateString: string) {
   return date.setLocale('pt-BR').toFormat('dd MMM yyyy')
 }
 
-// tab content (simulada)
-// Observa o segment selecionado para disparar a animação de passagem de tela
 
 watch(selectedTad, (newValue) => {
   if (newValue) {
@@ -120,6 +215,83 @@ onMounted(async () => {
     console.error('Erro ao obter etapas', error)
   }
 })
+
+async function saveFeedback(s: SightStudent) {
+  
+  console.log('s', s)
+
+  try {
+    const payload = {
+      studentId: s.studentId,
+      enrollmentId: s.enrollmentId,
+      schoolId: s.schoolId,
+      disciplineId: s.disciplineId,
+      teacherId: eduFProfile.value.teacherId,
+      initialFeedback: s.initialFeedback,
+      partialFeedback: s.partialFeedback,
+      finalFeedback: s.finalFeedback
+    }
+    const records = await feedbackService.upsertStudentFeedback(payload)
+  
+    s.feedbackId = records[0].id
+    s.initialFeedback = records[0].initialFeedback || ''
+    s.partialFeedback = records[0].partialFeedback || ''
+    s.finalFeedback = records[0].finalFeedback || ''
+    s.updatedAt = records[0].updatedAt ? new Date(records[0].updatedAt).toISOString() : s.updatedAt
+    s.createdAt = records[0].createdAt ? new Date(records[0].createdAt).toISOString() : s.createdAt
+    s.isSaved = true
+    isFinalizedGlobal.value = false
+    
+    students.value = [...students.value!]
+    showToast('Parecer salvo com sucesso', 'top', 'success')
+  } catch (error) {
+    console.error(error)
+    showToast('Erro ao salvar parecer', 'top', 'danger')
+  }
+}
+
+async function clearFeedback(s: SightStudent) {
+  try {
+    const wasSaved = s.isSaved
+    if (s.feedbackId) await feedbackService.softDeleteStudentFeedback(s.feedbackId, eduFProfile.value?.teacherId)
+    s.initialFeedback = ''
+    s.partialFeedback = ''
+    s.finalFeedback = ''
+    if (wasSaved) s.isSaved = true
+    showToast('Parecer limpo com sucesso', 'top', 'success')
+    console.debug(`[Clear] Student ${s.studentId}: isSaved=${s.isSaved}, isFinalizedGlobal=${isFinalizedGlobal.value}`)
+  } catch (error) {
+    console.error(error)
+    showToast('Erro ao limpar parecer', 'top', 'danger')
+  }
+}
+
+function preRegisterFeedback() {
+  showAlert.value = true
+}
+
+async function registerFeedback() {
+  try {
+    isLoading.value = true
+    await registeredGradeService.upsertRegisteredGrade({
+      teacherId: eduFProfile.value?.teacherId || '',
+      isCompleted: true,
+      classroomId: eduFProfile.value?.classroomId,
+      disciplineId: eduFProfile.value?.disciplineId || '',
+      stageId: selectedTad.value
+    })
+    isFinalizedGlobal.value = true
+    students.value?.forEach(s => s.isSaved = false)
+    showToast('Parecer finalizado com sucesso', 'top', 'success')
+    showAlert.value = false
+    console.debug(`[Finalize] isFinalizedGlobal=${isFinalizedGlobal.value}, anySaved=${students.value?.some(s => s.isSaved)}`)
+  } catch (error) {
+    console.error(error)
+    showToast('Erro ao finalizar parecer', 'top', 'danger')
+  } finally {
+    isLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -135,19 +307,14 @@ onMounted(async () => {
     <div v-if="students">
       <div class="ion-content">
         <IonSegment v-model="selectedTad" mode="ios" value="disabled">
-          <!-- @TODO: O Botão "INICIAL" sempre deve estar habilitado -->
 
           <IonSegmentButton value="inicial">
             <IonLabel>Inicial</IonLabel>
           </IonSegmentButton>
 
-          <!-- @TODO: O disabled ta comparando a data atual com uma iserida ( acredito que podemos usar a data de inicio do 2º Bimetre para o caso "PARCIAL" ) -->
-
           <IonSegmentButton :disabled="!isStage2Enabled" value="parcial">
             <IonLabel>Parcial</IonLabel>
           </IonSegmentButton>
-
-          <!-- @TODO: O disabled ta comparando a data atual com uma iserida ( acredito que podemos usar a data de encerramento do 3º Bimetre para o caso "FINAL" ) -->
 
           <IonSegmentButton :disabled="!isStage3Enabled" value="final">
             <IonLabel>Final</IonLabel>
@@ -186,15 +353,44 @@ onMounted(async () => {
               >
                 <IonText color="primary" style="display: flex; align-items: center; height: 15px;">
                   <IonIcon :icon="barChartOutline" style="margin-right: 10px;" />
-                  Descrição parcial da criança
+                  {{ selectedTad === 'inicial' ? 'Descrição inicial da criança' : selectedTad === 'parcial' ? 'Descrição parcial da criança' : 'Descrição final da criança' }}
                 </IonText>
               </IonCardHeader>
               <div class="ion-margin-top">
-                <!-- @TODO: esse atributo adicionado ao IonTextArea pode fazer o textarea crescer automaticamente mas eu não gostei do efeito ( testem se vcs gostam )  oninput="this.style.minHeight = `${ (100 + this.value.length / (2)) <= 230 ? 100 + this.value.length / (2) : 230}px`" -->
-                <ion-textarea
+                <IonTextarea
+                  v-if="selectedTad === 'inicial'"
+                  v-model="s.initialFeedback"
                   color="secondary"
                   class="ion-content"
-                  label="Parecer Descritivo"
+                  label="Parecer Descritivo Inicial"
+                  label-placement="floating"
+                  fill="outline"
+                  :style="`min-height: ${screenWidth <= 480 ? 100 : 180}px;`"
+                  placeholder="Enter text"
+                  :counter="true"
+                  auto-grow
+                  :maxlength="800"
+                />
+                <IonTextarea
+                  v-if="selectedTad === 'parcial'"
+                  v-model="s.partialFeedback"
+                  color="secondary"
+                  class="ion-content"
+                  label="Parecer Descritivo Parcial"
+                  label-placement="floating"
+                  fill="outline"
+                  :style="`min-height: ${screenWidth <= 480 ? 100 : 180}px;`"
+                  placeholder="Enter text"
+                  :counter="true"
+                  auto-grow
+                  :maxlength="800"
+                />
+                <IonTextarea
+                  v-if="selectedTad === 'final'"
+                  v-model="s.finalFeedback"
+                  color="secondary"
+                  class="ion-content"
+                  label="Parecer Descritivo Final"
                   label-placement="floating"
                   fill="outline"
                   :style="`min-height: ${screenWidth <= 480 ? 100 : 180}px;`"
@@ -227,9 +423,8 @@ onMounted(async () => {
                 </IonText>
               </IonCardHeader>
               <div class="ion-content" style="display: flex; justify-content: right; padding-top: 8px; padding-bottom: 8px;">
-                <IonButton color="secondary" style="text-transform: capitalize;">
-                  Salvar
-                </IonButton>
+                <IonButton color="danger" size="small" style="margin-right: 8px; text-transform: capitalize;" :disabled="!(isEdited(s) || s.isSaved)" @click="clearFeedback(s)">Limpar</IonButton>
+                <IonButton color="secondary" size="small" style="text-transform: capitalize;" :disabled="!isEdited(s)" @click="saveFeedback(s)">Salvar</IonButton>
               </div>
             </div>
           </IonAccordion>
@@ -264,25 +459,19 @@ onMounted(async () => {
       </IonCard>
     </div>
 
-    <!-- <div style="height: 64px;" />
+    <IonAlert :is-open="showAlert" header="Deseja finalizar o registro de parecer?" buttons="[{ text: 'Não', role: 'cancel', cssClass: 'alert-button-cancel', handler: () => { showAlert = false } },{ text: 'Sim', cssClass: 'alert-button-confirm', handler: () => registerFeedback() }]"/>
+    <IonLoading :is-open="isLoading" message="Finalizando..." spinner="crescent" class="custom-save-loading"/>
     <template #footer>
       <IonToolbar>
         <IonGrid>
           <IonRow>
-            <IonCol size="6">
-              <IonButton :disabled="!isCancelEnabled" color="danger" expand="full" @click="cancelModal = !cancelModal">
-                Cancelar
-              </IonButton>
-            </IonCol>
-            <IonCol size="6">
-              <IonButton :disabled="isLoading" color="secondary" expand="full" @click="saveFrequency">
-                Salvar
-              </IonButton>
+            <IonCol size="12">
+              <IonButton :disabled="isLoading || !isAnySaved || isFinalizedGlobal" color="secondary" expand="full" @click="preRegisterFeedback">Finalizar</IonButton>
             </IonCol>
           </IonRow>
         </IonGrid>
       </IonToolbar>
-    </template> -->
+    </template>
   </ContentLayout>
 </template>
 
