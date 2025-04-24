@@ -24,8 +24,8 @@ const justificationService = new JustificationService()
 const stageService = new StageService()
 
 interface JustificationOption {
-  id: string;
-  name: string;
+  id: string
+  name: string
 }
 
 const eduFProfile = ref()
@@ -41,6 +41,7 @@ const isWarningInformation = ref<boolean | null>(null)
 const isLoadingSaveFrequency = ref(false) // Controla o estado do IonLoading
 
 const frequencyToSave = ref<FrequencyToSave[]>()
+const initialFrequencyToSave = ref<FrequencyToSave[] | null>(null) // Estado inicial da variável frequencyToSave
 const cancelModal = ref(false)
 const hasUnsavedChanges = ref(false)
 const isCancelEnabled = ref(false)
@@ -72,6 +73,26 @@ watch(frequencyToSave, (newValue, oldValue) => {
     hasUnsavedChanges.value = false
   }
 }, { deep: true })
+
+// Salva o estado inicial da variável frequencyToSave
+function saveInitialFrequencyState() {
+  initialFrequencyToSave.value = frequencyToSave.value ? JSON.parse(JSON.stringify(frequencyToSave.value)) : null
+}
+
+// Restaura o estado inicial da variável frequencyToSave e fecha o modal
+function resetFrequencyToInitialState() {
+  if (initialFrequencyToSave.value) {
+    frequencyToSave.value = JSON.parse(JSON.stringify(initialFrequencyToSave.value))
+  }
+  cancelModal.value = false // Fecha o modal
+}
+
+// Chama a função para salvar o estado inicial quando frequencyToSave for inicializada
+watch(frequencyToSave, (newValue) => {
+  if (newValue && !initialFrequencyToSave.value) {
+    saveInitialFrequencyState()
+  }
+})
 
 // Watcher para atualizar schedules quando eduFProfile ou selectedDayInfo mudarem
 watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo]) => {
@@ -286,6 +307,9 @@ async function saveFrequency() {
       if (createdRecords && createdRecords.length > 0) {
         isWarningInformation.value = false
         showToast('Frequência salva com sucesso', 'top', 'success')
+
+        // Atualiza o estado inicial para refletir o último estado salvo
+        saveInitialFrequencyState()
       }
       else {
         showToast('Nenhuma nova frequência foi criada', 'top', 'warning')
@@ -315,12 +339,13 @@ function luxonFormatDate(dateString: string) {
 function onPresenceChange(student: FrequencyToSave) {
   if (student.presence === false) {
     console.log('justifyOptions.value', justifyOptions.value)
-    const defaultJustification = justifyOptions.value?.find(j => j.name === "Não informada");
+    const defaultJustification = justifyOptions.value?.find(j => j.name === 'Não informada')
     if (defaultJustification) {
-      student.justificationId = defaultJustification.id;
+      student.justificationId = defaultJustification.id
     }
-  } else {
-    student.justificationId = undefined;
+  }
+  else {
+    student.justificationId = undefined
   }
 }
 
@@ -328,7 +353,7 @@ function openMultiSelectModal(student: any) {
   // Resetar o estado primeiro
   selectedStudent.value = null
   checkboxModal.value.modal = false
-  
+
   // Usar nextTick para garantir que o estado foi resetado
   nextTick(() => {
     selectedStudent.value = student
@@ -421,7 +446,7 @@ function openMultiSelectModal(student: any) {
         </IonItem>
         <div slot="content" class="ion-padding">
           <IonRow>
-            <IonRadioGroup v-model="s.presence" style="color: var(--ion-color-secondary); margin-top: auto; margin-bottom: auto;" @ionChange="() => onPresenceChange(s)">
+            <IonRadioGroup v-model="s.presence" style="color: var(--ion-color-secondary); margin-top: auto; margin-bottom: auto;" @ion-change="() => onPresenceChange(s)">
               <IonRadio label-placement="end" color="secondary" style="padding-right: 16px; scale: 0.9;" :value="true">
                 Presente
               </IonRadio>
@@ -480,7 +505,7 @@ function openMultiSelectModal(student: any) {
             <!-- @TODO: construir função para ao clicar em salvar inserir uma copia do registro de conteúdo atual para a turma selecionada -->
             <IonButton
               color="secondary"
-              style="text-transform: capitalize;" @click="cancelModal = false"
+              style="text-transform: capitalize;" @click="resetFrequencyToInitialState"
             >
               Confirmar
             </IonButton>
