@@ -49,6 +49,7 @@ const currentStudentToSave = ref<StudentGrade | null>(null)
 const currentStudentToDelete = ref<StudentGrade | null>(null)
 const studentList = ref<StudentGrade[]>()
 const oldList = ref<StudentGrade[]>()
+const initialStudentList = ref<StudentGrade[] | null>(null) // Lista inicial para comparação
 
 const saveModal = ref(false)
 const deleteModal = ref(false)
@@ -343,7 +344,6 @@ async function handleSave(s: any) {
       return false
     }
 
-    // const exam1 = computedEvaluationActivity(s)
     const atividadesSum = computedEvaluationActivity(s)
     if (atividadesSum > 10) {
       showToast('A soma das atividades não pode ser maior que 10', 'top', 'warning')
@@ -365,12 +365,17 @@ async function handleSave(s: any) {
       makeUp: convertToDecimal(s.makeUp),
       grade: convertToDecimal(s.grade),
     }
+
     await numericGradeService.upsertNumericGrade(payload)
-    // eslint-disable-next-line no-shadow
-    const student = studentList.value?.find((s: any) => s.enrollmentId === payload.enrollmentId)
-    if (student) {
-      student.status = 'CONCLUÍDO'
+
+    const index = studentList.value?.findIndex((st: any) => st.enrollmentId === payload.enrollmentId)
+    if (index !== undefined && index !== -1) {
+      const updatedStudent = { ...studentList.value[index], status: 'CONCLUÍDO' }
+      updateStudentList(index, updatedStudent) // Atualiza a lista de forma reativa
     }
+
+    gradesAreFilled.value = (studentList.value ?? []).some(item => checkMinimalActivities(item) && checkMinimalGrade(item))
+
     showToast('Nota salva com sucesso', 'top', 'success')
   }
   catch (error: any) {
@@ -388,19 +393,23 @@ async function handleClear(s: StudentGrade) {
       await numericGradeService.softDeleteNumericGrade(s.id, s.teacherId)
     }
 
-    s.at1 = ''
-    s.at2 = ''
-    s.at3 = ''
-    s.at4 = ''
-    s.at5 = ''
-    s.makeUp = ''
-    // s.exam1 = ''
-    s.grade = ''
+    const index = studentList.value?.findIndex((st: any) => st.enrollmentId === s.enrollmentId)
+    if (index !== undefined && index !== -1) {
+      const clearedStudent = {
+        ...studentList.value[index],
+        at1: '',
+        at2: '',
+        at3: '',
+        at4: '',
+        at5: '',
+        makeUp: '',
+        grade: '',
+        status: 'INCOMPLETO',
+      }
+      updateStudentList(index, clearedStudent) // Atualiza a lista de forma reativa
+    }
 
     showToast('Nota apagada com sucesso!', 'top', 'success')
-    const student = studentList.value?.find((st: any) => st.enrollmentId === s.enrollmentId)
-    // eslint-disable-next-line ts/no-unused-expressions
-    student ? student.status = 'INCOMPLETO' : false
   }
   catch (error: any) {
     showToast('Erro ao apagar nota', 'top', 'warning')
@@ -456,16 +465,15 @@ async function registerGrades(itemToSave: RegisteredToSave) {
   isLoading.value = true
 
   try {
-    // console.log('studentList.value', studentList.value)
-
     itemToSave.isCompleted = gradesAreFilled.value
 
     await registeredGradeService.upsertRegisteredGrade(itemToSave)
 
+    // Atualiza stageFinished para exibir o card de sucesso
+    stageFinished.value = itemToSave
+
     showToast(
-      gradesAreFilled.value
-        ? 'Registro de notas completas finalizado com sucesso!'
-        : 'Registro de notas incompletas finalizado com sucesso!',
+      'Registro de notas realizado com sucesso!',
       'top',
       'success',
     )
@@ -491,6 +499,61 @@ function compareGrades(oldStudents: StudentGrade[] | undefined, newStudent: Stud
   }
   else {
     newStudent.status = 'PENDENTE'
+  }
+}
+
+// Computa se o botão "Lançar Notas" deve ser habilitado
+const canLaunchGrades = computed(() => {
+  // Se stageFinished já existir e gradesAreFilled for true, o botão fica desabilitado
+  if (stageFinished.value && gradesAreFilled.value) {
+    return false
+  }
+
+  // Verifica se houve alterações na studentList em relação à lista inicial
+  const hasChanges = initialStudentList.value
+    ? studentList.value?.some((item, index) => JSON.stringify(item) !== JSON.stringify(initialStudentList.value?.[index]))
+    : false
+
+  return hasChanges
+})
+
+// Watch para monitorar alterações em studentList
+watch(
+  () => studentList.value, // Garante que o watch observe a referência reativa
+  (newValue) => {
+    // Atualiza gradesAreFilled com base nas alterações detectadas
+    gradesAreFilled.value = !!newValue?.some(item => checkMinimalActivities(item) && checkMinimalGrade(item))
+
+    // Atualiza o estado de canLaunchGrades ao detectar alterações
+    if (initialStudentList.value) {
+      const hasChanges = newValue?.some((item, index) => JSON.stringify(item) !== JSON.stringify(initialStudentList.value?.[index]))
+      if (hasChanges) {
+        gradesAreFilled.value = true // Habilita o botão "Lançar Notas"
+      }
+    }
+  },
+  { deep: true },
+)
+
+// Atualiza a lista inicial ao carregar os dados
+watch(
+  () => studentList.value,
+  (newStudentList) => {
+    if (!initialStudentList.value && newStudentList) {
+      initialStudentList.value = JSON.parse(JSON.stringify(newStudentList)) // Clona a lista inicial
+    }
+  },
+  { immediate: true },
+)
+
+// Garante que alterações na studentList sejam feitas de forma reativa
+function updateStudentList(index: number, updatedStudent: StudentGrade) {
+  if (studentList.value) {
+    studentList.value = [
+      ...studentList.value.slice(0, index),
+      updatedStudent,
+      ...studentList.value.slice(index + 1),
+    ]
   }
 }
 
@@ -539,7 +602,7 @@ onMounted(async () => {
               <IonText style="display: flex;">
                 <IonIcon size="small" style="margin-top: auto; margin-bottom: auto;" :icon="checkmarkCircleOutline" />
                 <span style="margin-top: auto; margin-bottom: auto; margin-left: 5px;">
-                  Lançamento de notas da {{ stage.numberStage }}º Etapa concluído.
+                  Lançamento de notas realizado com sucesso.
                 </span>
               </IonText>
             </IonCardContent>
@@ -863,7 +926,7 @@ onMounted(async () => {
           <IonRow>
             <IonCol size="12">
               <IonButton
-                :disabled="!gradesAreFilled" color="secondary" expand="full"
+                :disabled="!canLaunchGrades" color="secondary" expand="full"
                 @click="showAlert = true"
               >
                 <IonIcon size="small" style="margin-top: auto; margin-bottom: auto; margin-left:10px;" :icon="checkmarkCircleOutline" />

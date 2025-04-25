@@ -32,6 +32,7 @@ const stageFinished = ref<RegisteredToSave>()
 let isDisabled = ref(false)
 let isGradesFilled = ref(false)
 let diffDays = 0
+let timestamp = ref<{ id: any; createdAt: any; updatedAt: any } | null>(null)
 const studentList = ref<MountedStudent[]>()
 const teacherId = ref(localStorage.getItem('teacherId'))
 const registeredToSave = ref<RegisteredToSave>({
@@ -46,6 +47,7 @@ watch(eduFProfile, async (newValue) => {
   if (newValue && newValue?.disciplineId) {
     conceptualTypes.value = await evaluationRuleService.getConceptualGradesTypes(newValue.courseIds)
     registeredToSave.value.isCompleted = await registeredGradeService.getRegisteredGradesIsCompletedStatus(teacherId.value, newValue?.classroomId, newValue.disciplineId, currentStage.value?.id)
+    // checkRegisteredGrades()
     studentList.value = await enrollmentService.getClassroomConceptualGrades(
       newValue.classroomId,
       newValue.schoolId,
@@ -53,7 +55,7 @@ watch(eduFProfile, async (newValue) => {
       currentStage.value.id,
       newValue.seriesId,
     )
-    console.log('eduFProfile', isDisabled.value)
+    checkRegisteredGradesInfo()
         // Checa se registro de notas já foi finalizado
     stageFinished.value = await registeredGradeService.getRegistered(
       newValue?.classroomId,
@@ -71,6 +73,7 @@ watch((currentStage), async (newValue) => {
   if (newValue && eduFProfile.value.disciplineId) {
     conceptualTypes.value = await evaluationRuleService.getConceptualGradesTypes(eduFProfile.value.courseIds)
     registeredToSave.value.isCompleted = await registeredGradeService.getRegisteredGradesIsCompletedStatus(teacherId.value, eduFProfile.value.classroomId, eduFProfile.value.disciplineId, newValue.id)
+    // checkRegisteredGrades()
     studentList.value = await enrollmentService.getClassroomConceptualGrades(
       eduFProfile.value.classroomId,
       eduFProfile.value.schoolId,
@@ -78,8 +81,7 @@ watch((currentStage), async (newValue) => {
       newValue.id,
       eduFProfile.value.seriesId,
     )
-    isDisabled.value = false // WIP desabilita o botão LANÇAR NOTAS QUANDO O USUÁRIO TROCAR DE STAGE WIP (Resta esperar o componente global de stages(etapas) for refatorado).
-    console.log('currentStage', isDisabled.value)
+    checkRegisteredGradesInfo()
         // Checa se registro de notas já foi finalizado
     stageFinished.value = await registeredGradeService.getRegistered(
       eduFProfile.value.classroomId,
@@ -95,11 +97,18 @@ onMounted(async () => {
   // console.log(stages.value)
 })
 
+async function checkRegisteredGradesInfo() {
+  if (eduFProfile.value?.classroomId && eduFProfile.value?.disciplineId && currentStage.value?.id) {
+    isDisabled = await registeredGradeService.getGradesReleasedInfo(computedRegisteredGrade.value)
+  }
+}
+
 async function saveGrades(student: MountedStudent) {
   const isNotEmpty = student.grades.every(item => item.grade)
   try {
     if (!student.conceptualGradeId) {
       const response = await conceptualGradeService.createConceptualGrade(student)
+      await registeredGradeService.setAreGradesReleasedToFalse(computedRegisteredGrade.value)
 
       student.conceptualGradeId = response[0].conceptualGradeId
       student.grades.forEach((item) => {
@@ -108,26 +117,27 @@ async function saveGrades(student: MountedStudent) {
       if (isNotEmpty) {
         student.status = 'CONCLUÍDO'
         student.isFull = true
-        isDisabled.value = true // desabilita o botão LANCAR NOTAS
+        isDisabled.value = false // habilita o botão LANÇAR NOTAS
         showToast('Notas salvas com sucesso', 'top', 'success')
       }
       else {
         student.status = 'INCOMPLETO'
-        isDisabled.value = true // desabilita o botão LANCAR NOTAS
+        isDisabled.value = false // habilita o botão LANÇAR NOTAS
         showToast('Notas salvas com sucesso', 'top', 'success')
       }
     }
     else {
       await conceptualGradeService.updateConceptualGrade(student.grades)
+      await registeredGradeService.setAreGradesReleasedToFalse(computedRegisteredGrade.value)
       if (isNotEmpty) {
         student.status = 'CONCLUÍDO'
         student.isFull = true
-        isDisabled.value = true // desabilita o botão LANCAR NOTAS
+        isDisabled.value = false // habilita o botão LANÇAR NOTAS
         showToast('Notas salvas com sucesso', 'top', 'success')
       }
       else {
         student.status = 'INCOMPLETO'
-        isDisabled.value = true // desabilita o botão LANCAR NOTAS
+        isDisabled.value = false // habilita o botão LANÇAR NOTAS
         showToast('Notas salvas com sucesso', 'top', 'success')
       }
     }
@@ -143,6 +153,7 @@ async function cleanGrades(student: MountedStudent) {
       await conceptualGradeService.softDeleteConceptualGrade(student.conceptualGradeId)
       registeredToSave.value.isCompleted = false
       await registeredGradeService.updateRegisteredGradeIsCompleted(teacherId.value, student.classroomId, student.disciplineId, student.stageId, registeredToSave.value.isCompleted)
+      await registeredGradeService.setAreGradesReleasedToFalse(computedRegisteredGrade.value)
       showToast('Notas limpas com sucesso', 'top', 'success')
     }
     catch (error) {
@@ -211,6 +222,11 @@ const deadline = computed(() => {
   return diffDays
 })
 
+const areGradesRegistered = computed(() => {
+  console.log('timestamp', timestamp.value)
+  return !!timestamp.value
+})
+
 const getStatusIcon = computed(() => (status: string) => {
   switch (status) {
     case 'CONCLUÍDO':
@@ -252,7 +268,7 @@ const getStatusColor = computed(() => (status: string) => {
         </div>
       </div>
     </div>
-    <div v-else-if="deadline && diffDays < 0 && !computedRegisteredGrade.isCompleted && studentList" class="warning-close-information">
+    <!-- <div v-else-if="deadline && diffDays < 0 && !computedRegisteredGrade.isCompleted && studentList" class="warning-close-information">
       <div class="title">
         Registro irregular
       </div>
@@ -262,8 +278,14 @@ const getStatusColor = computed(() => (status: string) => {
           Olá professor, o prazo de preenchimento se encerrou, entre em contato com a secretaria para resolver as pendências.
         </div>
       </div>
-    </div>
+    </div> -->
     <div v-else />
+    <pre>
+      <small>
+        isLoading {{ isLoading }}
+        isDisabled {{ isDisabled }}
+      </small>
+    </pre>
     <h3>
       <IonText color="secondary" class="ion-content ion-padding-bottom" style="display: flex; align-items: center;">
         <IonIcon color="secondary" style="margin-right: 10px;" aria-hidden="true" :icon="text" />
@@ -470,7 +492,7 @@ const getStatusColor = computed(() => (status: string) => {
           <IonRow>
             <IonCol size="12">
               <IonButton
-                :disabled="isLoading || !isDisabled || registeredToSave.isCompleted" color="secondary" expand="full"
+                :disabled="isLoading || !isDisabled" color="secondary" expand="full"
                 @click="preRegisterGrades"
               >
                 <IonIcon size="small" style="margin-top: auto; margin-bottom: auto; margin-left:10px;" :icon="checkmarkCircleOutline" />

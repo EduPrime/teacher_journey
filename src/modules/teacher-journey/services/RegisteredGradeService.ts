@@ -22,12 +22,83 @@ export default class RegisteredGradeService extends BaseService<RegisteredGrade>
       .single()
 
     if (error) {
-      errorHandler(error, 'Erro ao buscar status de notas registradas')
+      // errorHandler(error, 'Erro ao buscar status de notas registradas')
     }
     if (data && data.isCompleted) {
       return true
     }
     return false
+  }
+
+  async getRegisteredGradeTimestamps(teacherId: string | null, classroomId: string, disciplineId: string, stageId: string) {
+    const { data, error } = await this.client
+      .from('registeredGrade')
+      .select(`
+        id,
+        createdAt,
+        updatedAt
+      `)
+      .eq('teacherId', teacherId)
+      .eq('classroomId', classroomId)
+      .eq('disciplineId', disciplineId)
+      .eq('stageId', stageId)
+      .single()
+
+    if (error) {
+      // errorHandler(error, 'Erro ao buscar timestamps de notas registradas')
+    }
+
+    if (data) {
+      return {
+        id: data.id,
+        createdAt: data.createdAt,
+        updatedAt: data.updatedAt,
+      }
+    }
+
+    return data
+  }
+
+  async getGradesReleasedInfo(itemToSearch: RegisteredToSave) {
+    const { data, error } = await this.client
+      .from('registeredGrade')
+      .select(`
+        areGradesReleased
+      `)
+      .eq('teacherId', itemToSearch.teacherId)
+      .eq('classroomId', itemToSearch.classroomId)
+      .eq('disciplineId', itemToSearch.disciplineId)
+      .eq('stageId', itemToSearch.stageId)
+      .single()
+
+    if (error) {
+      console.log(error, 'Erro ao buscar status de liberação de notas ou inexistentes')
+    }
+
+    if (data && data.areGradesReleased !== undefined) {
+      return data.areGradesReleased
+    }
+
+    return false
+  }
+
+  async setAreGradesReleasedToFalse(filterInfo: RegisteredToSave) {
+    // Garantir que o botão "salvar" altere a coluna areGradesReleased como "notas NÃO lançadas" e espere o botão "lançar notas" para alterar para "notas lançadas" mesmo depois de um F5
+    const registeredGrade = {
+      ...filterInfo,
+      areGradesReleased: false,
+    }
+
+    const { data, error } = await this.client
+      .from('registeredGrade')
+      .upsert(registeredGrade, { onConflict: 'teacherId, classroomId, disciplineId, stageId' })
+
+    if (error) {
+      errorHandler(error, 'Erro ao atualizar ou inserir status de liberação de notas para pendente')
+      return false
+    }
+
+    return !!data
   }
 
   async getRegistered(classroomId: string, disciplineId: string, stageId: string) {
@@ -69,9 +140,12 @@ export default class RegisteredGradeService extends BaseService<RegisteredGrade>
   }
 
   async upsertRegisteredGrade(registeredGrade: RegisteredToSave) {
+    // Garantir que o upsert mantenha a coluna areGradesReleased como "notas lançadas" por motivos óbvios 
+    const records = { ...registeredGrade, areGradesReleased: true }
+
     const { data, error } = await this.client
       .from('registeredGrade')
-      .upsert(registeredGrade, { onConflict: 'teacherId, classroomId, disciplineId, stageId' })
+      .upsert(records, { onConflict: 'teacherId, classroomId, disciplineId, stageId' })
 
     if (error) {
       errorHandler(error, 'Erro ao atualizar ou inserir nota')
