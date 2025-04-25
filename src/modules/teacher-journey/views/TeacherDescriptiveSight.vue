@@ -22,7 +22,9 @@ import {
   IonGrid, 
   IonRow, 
   IonCol, 
-  IonToolbar 
+  IonToolbar,
+  IonModal,
+  IonFooter
 } from '@ionic/vue'
 import { 
   alertOutline, 
@@ -62,6 +64,12 @@ interface SightStudent extends DescriptiveStudent {
   isSaved: boolean
 }
 
+const saveModal = ref(false)
+const deleteModal = ref(false)
+
+const currentStudentToSave = ref<SightStudent | null>(null)
+const currentStudentToDelete = ref<SightStudent | null>(null)
+
 const enrollmentService = new EnrollmentService()
 const stageService = new StageService()
 const feedbackService = new FeedbackService()
@@ -78,8 +86,26 @@ function isEdited(s: SightStudent): boolean {
   return s.initialFeedback !== '' || s.partialFeedback !== '' || s.finalFeedback !== ''
 }
 
-watch(students, (newList) => {
-  newList?.forEach(s => { if (isEdited(s)) isFinalizedGlobal.value = false })
+function onFeedbackEdit(s: SightStudent) {
+  if (s.isSaved) s.isSaved = false
+}
+
+// Feedback status icon and color: '?' no feedback, '!' editing, 'v' saved
+function getFeedbackIcon(s: SightStudent) {
+  if (s.isSaved) return checkmarkOutline
+  if (isEdited(s)) return alertOutline
+  return helpOutline
+}
+
+function getFeedbackColor(s: SightStudent) {
+  if (s.isSaved) return 'success'
+  if (isEdited(s)) return 'warning'
+  return 'danger'
+}
+
+// reset finalize status on any feedback change (edit, save, or clear)
+watch(students, () => {
+  isFinalizedGlobal.value = false
 }, { deep: true })
 
 const stage1Start = ref<string|null>(null)
@@ -168,9 +194,23 @@ const getStatusIcon = computed(() => (status: string) => {
 
 function luxonFormatDate(dateString: string) {
   const date = DateTime.fromISO(dateString)
+  if (!date.isValid) return ''
   return date.setLocale('pt-BR').toFormat('dd MMM yyyy')
 }
 
+function luxonFormatDateTime(dateString: string) {
+  if (!dateString) return ''
+
+  const dt = DateTime.fromISO(dateString, { zone: 'utc' }).toLocal()
+
+  console.log("Date:", dt)
+
+  if (!dt.isValid) { 
+    console.log("Invalid date:", dt) 
+    return '' 
+  } 
+  return dt.setLocale('pt-BR').toFormat('dd/MM/yyyy HH:mm')
+}
 
 watch(selectedTad, (newValue) => {
   if (newValue) {
@@ -252,12 +292,11 @@ async function saveFeedback(s: SightStudent) {
 
 async function clearFeedback(s: SightStudent) {
   try {
-    const wasSaved = s.isSaved
     if (s.feedbackId) await feedbackService.softDeleteStudentFeedback(s.feedbackId, eduFProfile.value?.teacherId)
     s.initialFeedback = ''
     s.partialFeedback = ''
     s.finalFeedback = ''
-    if (wasSaved) s.isSaved = true
+    s.isSaved = false
     showToast('Parecer limpo com sucesso', 'top', 'success')
     console.debug(`[Clear] Student ${s.studentId}: isSaved=${s.isSaved}, isFinalizedGlobal=${isFinalizedGlobal.value}`)
   } catch (error) {
@@ -270,7 +309,33 @@ function preRegisterFeedback() {
   showAlert.value = true
 }
 
-async function registerFeedback() {
+async function registerGrades(itemToSave: RegisteredToSave) {
+  showAlert.value = false
+  isLoading.value = true
+
+  try {
+    itemToSave.isCompleted = isContentFilled.value
+
+    await registeredGradeService.upsertRegisteredGrade(itemToSave)
+
+    showToast(
+      isContentFilled.value
+        ? 'Registro de parecer descritivo finalizado com sucesso!'
+        : 'Registro de parecer descritivo incompletas finalizado com sucesso!',
+      'top',
+      'success',
+    )
+  }
+  catch (error: any) {
+    console.error('Erro ao registrar notas:', error)
+    showToast('Ocorreu um erro ao finalizar o registro de notas.', 'top', 'danger')
+  }
+  finally {
+    isLoading.value = false
+  }
+}
+
+/*async function registerFeedback() {
   try {
     isLoading.value = true
     await registeredGradeService.upsertRegisteredGrade({
@@ -291,7 +356,7 @@ async function registerFeedback() {
   } finally {
     isLoading.value = false
   }
-}
+}*/
 </script>
 
 <template>
@@ -330,8 +395,8 @@ async function registerFeedback() {
           <IonAccordion v-for="(s, i) in students" :key="i" :value="`${i}`" class="no-border-accordion">
             <IonItem slot="header" style="--padding-top: 0; --padding-bottom: 0; align-items: center;">
               <IonIcon
-                :color="getStatusColor(s.status)" style="margin-right: 6px; font-size: 24px;"
-                :icon="getStatusIcon(s.status)"
+                :color="getFeedbackColor(s)" style="margin-right: 6px; font-size: 24px;"
+                :icon="getFeedbackIcon(s)"
               />
               <IonLabel style="display: flex; align-items: center; width: 100%;">
                 <IonText color="secondary" :style="s.situation !== 'CURSANDO' ? 'opacity: 0.4;' : ''">
@@ -370,6 +435,7 @@ async function registerFeedback() {
                   :counter="true"
                   auto-grow
                   :maxlength="800"
+                  @ionInput="onFeedbackEdit(s)"
                 />
                 <IonTextarea
                   v-if="selectedTad === 'parcial'"
@@ -384,6 +450,7 @@ async function registerFeedback() {
                   :counter="true"
                   auto-grow
                   :maxlength="800"
+                  @ionInput="onFeedbackEdit(s)"
                 />
                 <IonTextarea
                   v-if="selectedTad === 'final'"
@@ -398,6 +465,7 @@ async function registerFeedback() {
                   :counter="true"
                   auto-grow
                   :maxlength="800"
+                  @ionInput="onFeedbackEdit(s)"
                 />
               </div>
               <!-- Data de criação do parecer descritivo -->
@@ -419,12 +487,12 @@ async function registerFeedback() {
               >
                 <IonText color="primary" style="display: flex; align-items: center; height: 15px;">
                   <IonIcon :icon="calendarOutline" style="margin-right: 10px;" />
-                  Atualizado em {{ luxonFormatDate(s.updatedAt) }}
+                  Atualizado em {{ luxonFormatDateTime(s.updatedAt) }}
                 </IonText>
               </IonCardHeader>
               <div class="ion-content" style="display: flex; justify-content: right; padding-top: 8px; padding-bottom: 8px;">
-                <IonButton color="danger" size="small" style="margin-right: 8px; text-transform: capitalize;" :disabled="!(isEdited(s) || s.isSaved)" @click="clearFeedback(s)">Limpar</IonButton>
-                <IonButton color="secondary" size="small" style="text-transform: capitalize;" :disabled="!isEdited(s)" @click="saveFeedback(s)">Salvar</IonButton>
+                <IonButton color="danger" size="small" style="margin-right: 8px; text-transform: capitalize;" :disabled="!(isEdited(s) || s.isSaved)" @click="() => { currentStudentToDelete = s; deleteModal = true; }">Limpar</IonButton>
+                <IonButton color="secondary" size="small" style="text-transform: capitalize;" :disabled="!isEdited(s) || s.isSaved" @click="() => { currentStudentToSave = s; saveModal = true; }">Salvar</IonButton>
               </div>
             </div>
           </IonAccordion>
@@ -459,29 +527,156 @@ async function registerFeedback() {
       </IonCard>
     </div>
 
-    <IonAlert :is-open="showAlert" header="Deseja finalizar o registro de parecer?" buttons="[{ text: 'Não', role: 'cancel', cssClass: 'alert-button-cancel', handler: () => { showAlert = false } },{ text: 'Sim', cssClass: 'alert-button-confirm', handler: () => registerFeedback() }]"/>
+    <IonModal id="save-modal" :is-open="saveModal" trigger="open-custom-dialog" @ion-modal-did-dismiss="saveModal = false">
+      <IonCard class="ion-no-margin">
+        <IonCardHeader>
+          <IonCardTitle>Salvar notas</IonCardTitle>
+          <IonText class="ion-padding-vertical">
+            Tem certeza de que deseja salvar as alterações para este aluno?
+          </IonText>
+          <div style="display: flex;">
+            <IonButton
+              size="small"
+              style="margin-left: auto; margin-right: 8px; text-transform: capitalize;"
+              color="medium"
+              @click="() => {
+                saveModal = false
+              }"
+            >
+              Cancelar
+            </IonButton>
+            <IonButton
+              style="text-transform: capitalize;"
+              size="small"
+              color="secondary"
+              @click="() => {
+                if (currentStudentToSave) {
+                  saveFeedback(currentStudentToSave)
+                }
+                saveModal = false
+              }"
+            >
+              Confirmar
+            </IonButton>
+          </div>
+        </IonCardHeader>
+      </IonCard>
+    </IonModal>
+
+    <IonModal id="delete-modal" :is-open="deleteModal" trigger="open-custom-dialog" @ion-modal-did-dismiss="deleteModal = false">
+      <IonCard class="ion-no-margin">
+        <IonCardHeader>
+          <IonCardTitle>Limpar notas</IonCardTitle>
+          <IonText class="ion-padding-vertical">
+            Tem certeza de que deseja limpar as notas?
+          </IonText>
+          <div style="display: flex;">
+            <IonButton
+              size="small"
+              style="margin-left: auto; margin-right: 8px; text-transform: capitalize;"
+              color="secondary"
+              @click="() => {
+                deleteModal = false
+              }"
+            >
+              Cancelar
+            </IonButton>
+            <IonButton
+              style="text-transform: capitalize;"
+              size="small"
+              color="danger"
+              @click="() => {
+                if (currentStudentToDelete) {
+                  clearFeedback(currentStudentToDelete)
+                }
+                deleteModal = false
+              }"
+            >
+              Confirmar
+            </IonButton>
+          </div>
+        </IonCardHeader>
+      </IonCard>
+    </IonModal>
+
+    <IonAlert
+      class="custom-alert"
+      :is-open="showAlert"
+      :header="isContentFilled ? 'Deseja finalizar os registros?' : 'Registros incompletos'"
+      :sub-header="isContentFilled ? '' : 'Deseja finalizar assim mesmo?'"
+      :buttons="[
+        {
+          text: 'Não',
+          role: 'cancel',
+          cssClass: 'alert-button-cancel',
+          handler: () => { showAlert = false },
+        },
+        {
+          text: 'Sim',
+          cssClass: 'alert-button-confirm',
+          handler: () => registerGrades(computedRegisteredFeedback),
+        },
+      ]"
+    />
     <IonLoading :is-open="isLoading" message="Finalizando..." spinner="crescent" class="custom-save-loading"/>
     <template #footer>
-      <IonToolbar>
-        <IonGrid>
-          <IonRow>
-            <IonCol size="12">
-              <IonButton :disabled="isLoading || !isAnySaved || isFinalizedGlobal" color="secondary" expand="full" @click="preRegisterFeedback">Finalizar</IonButton>
-            </IonCol>
-          </IonRow>
-        </IonGrid>
-      </IonToolbar>
+      <IonFooter translucent>
+        <IonToolbar>
+          <IonGrid>
+            <IonRow>
+              <IonCol size="12">
+                <IonButton
+                  :disabled="isLoading || !isAnySaved"
+                  color="secondary"
+                  expand="full"
+                  @click="preRegisterFeedback"
+                >
+                  Finalizar
+                </IonButton>
+              </IonCol>
+            </IonRow>
+          </IonGrid>
+        </IonToolbar>
+      </IonFooter>
     </template>
   </ContentLayout>
 </template>
 
 <style scoped>
+ion-modal {
+    --width: fit-content;
+    --min-width: 250px;
+    --height: fit-content;
+    --border-radius: 6px;
+    --box-shadow: 0 28px 48px rgba(0, 0, 0, 0.4);
+  }
+
+  ion-modal h1 {
+    margin: 20px 20px 10px 20px;
+  }
+
+  ion-modal ion-icon {
+    margin-right: 6px;
+
+    width: 48px;
+    height: 48px;
+
+    padding: 4px 0;
+
+    color: #aaaaaa;
+  }
+
+  ion-modal .wrapper {
+    margin-bottom: 10px;
+  }
+
 .content {
   position: absolute;
   width: 100%;
   align-items: center;
   justify-content: center;
   transition: transform 0.3s ease;
+  padding-bottom: 80px;
 }
 
 /* Slide out to left */

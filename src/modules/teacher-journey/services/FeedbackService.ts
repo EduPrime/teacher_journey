@@ -47,6 +47,7 @@ export default class FeedbackService extends BaseService<StudentFeedback> {
       ...feedback,
       disciplineId: feedback.disciplineId?.trim() || null,
       deletedAt: null,
+      updatedAt: new Date().toISOString()
     }
 
     const { data, error } = await this.client
