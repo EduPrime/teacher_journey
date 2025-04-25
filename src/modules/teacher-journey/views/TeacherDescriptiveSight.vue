@@ -90,20 +90,20 @@ function onFeedbackEdit(s: SightStudent) {
   if (s.isSaved) s.isSaved = false
 }
 
-// Feedback status icon and color: '?' no feedback, '!' editing, 'v' saved
 function getFeedbackIcon(s: SightStudent) {
+  if (s.situation !== 'CURSANDO') return lockClosedOutline
   if (s.isSaved) return checkmarkOutline
   if (isEdited(s)) return alertOutline
   return helpOutline
 }
 
 function getFeedbackColor(s: SightStudent) {
+  if (s.situation !== 'CURSANDO') return 'light'
   if (s.isSaved) return 'success'
   if (isEdited(s)) return 'warning'
   return 'danger'
 }
 
-// reset finalize status on any feedback change (edit, save, or clear)
 watch(students, () => {
   isFinalizedGlobal.value = false
 }, { deep: true })
@@ -163,32 +163,6 @@ watch(eduFProfile, async (newValue) => {
     students.value = enrichedStudents
   } else {
     students.value = undefined;
-  }
-})
-
-const getStatusColor = computed(() => (status: string) => {
-  switch (status) {
-    case 'CONCLUÍDO':
-      return 'success'
-    case 'INCOMPLETO':
-      return 'danger'
-    case 'PENDENTE':
-      return 'warning'
-    case 'BLOQUEADO':
-      return 'light'
-  }
-})
-
-const getStatusIcon = computed(() => (status: string) => {
-  switch (status) {
-    case 'CONCLUÍDO':
-      return checkmarkOutline
-    case 'INCOMPLETO':
-      return helpOutline
-    case 'PENDENTE':
-      return alertOutline
-    case 'BLOQUEADO':
-      return lockClosedOutline
   }
 })
 
@@ -436,6 +410,7 @@ async function registerGrades(itemToSave: RegisteredToSave) {
                   auto-grow
                   :maxlength="800"
                   @ionInput="onFeedbackEdit(s)"
+                  :disabled="s.situation !== 'CURSANDO'"
                 />
                 <IonTextarea
                   v-if="selectedTad === 'parcial'"
@@ -451,6 +426,7 @@ async function registerGrades(itemToSave: RegisteredToSave) {
                   auto-grow
                   :maxlength="800"
                   @ionInput="onFeedbackEdit(s)"
+                  :disabled="s.situation !== 'CURSANDO'"
                 />
                 <IonTextarea
                   v-if="selectedTad === 'final'"
@@ -466,6 +442,7 @@ async function registerGrades(itemToSave: RegisteredToSave) {
                   auto-grow
                   :maxlength="800"
                   @ionInput="onFeedbackEdit(s)"
+                  :disabled="s.situation !== 'CURSANDO'"
                 />
               </div>
               <!-- Data de criação do parecer descritivo -->
@@ -491,8 +468,8 @@ async function registerGrades(itemToSave: RegisteredToSave) {
                 </IonText>
               </IonCardHeader>
               <div class="ion-content" style="display: flex; justify-content: right; padding-top: 8px; padding-bottom: 8px;">
-                <IonButton color="danger" size="small" style="margin-right: 8px; text-transform: capitalize;" :disabled="!(isEdited(s) || s.isSaved)" @click="() => { currentStudentToDelete = s; deleteModal = true; }">Limpar</IonButton>
-                <IonButton color="secondary" size="small" style="text-transform: capitalize;" :disabled="!isEdited(s) || s.isSaved" @click="() => { currentStudentToSave = s; saveModal = true; }">Salvar</IonButton>
+                <IonButton v-if="s.situation === 'CURSANDO'" color="danger" size="small" style="margin-right: 8px; text-transform: capitalize;" :disabled="!(isEdited(s) || s.isSaved)" @click="() => { currentStudentToDelete = s; deleteModal = true; }">Limpar</IonButton>
+                <IonButton v-if="s.situation === 'CURSANDO'" color="secondary" size="small" style="text-transform: capitalize;" :disabled="!isEdited(s) || s.isSaved" @click="() => { currentStudentToSave = s; saveModal = true; }">Salvar</IonButton>
               </div>
             </div>
           </IonAccordion>
