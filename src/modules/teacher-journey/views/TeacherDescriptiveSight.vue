@@ -35,7 +35,8 @@ import {
   helpOutline, 
   lockClosedOutline, 
   shapes, 
-  warningOutline 
+  warningOutline,
+  checkmarkCircleOutline
 } from 'ionicons/icons'
 
 import { DateTime } from 'luxon'
@@ -51,6 +52,8 @@ import RegisteredGradeService from '../services/RegisteredGradeService'
 import type { DescriptiveStudent } from '../types/types'
 import type { RegisteredToSave } from '../types/types'
 import type { StudentFeedback } from '@prisma/client'
+
+const DEFAULT_DISCIPLINE_ID = '6b0cb88e-80a1-4185-a0b4-b625bb26b5fc'
 
 interface SightStudent extends DescriptiveStudent {
   studentId: string
@@ -115,15 +118,25 @@ const stage3End = ref<string|null>(null)
 const stage1EndDate = ref<string|null>(null)
 const stage2EndDate = ref<string|null>(null)
 const stage3EndDate = ref<string|null>(null)
+const stage1Id = ref<string>('')
+const stage2Id = ref<string>('')
+const stage3Id = ref<string>('')
 
 const isStage2Enabled = computed(() => stage2Start.value ? DateTime.local() >= DateTime.fromISO(stage2Start.value).startOf('day') : false)
 const isStage3Enabled = computed(() => stage3End.value ? DateTime.local() >= DateTime.fromISO(stage3End.value).startOf('day') : false)
 
 const isLoading = ref(false)
 const showAlert = ref(false)
-const registeredToSave = ref<RegisteredToSave>({ isCompleted: false, teacherId: '', classroomId: '', disciplineId: '', stageId: '' })
+const registeredToSave = ref<RegisteredToSave>({ isCompleted: false, teacherId: '', classroomId: '', disciplineId: '', stageId: '', areGradesReleased: false })
 const isContentFilled = computed(() => students.value?.some(s => s.initialFeedback.trim() !== '' || s.partialFeedback.trim() !== '' || s.finalFeedback.trim() !== '') ?? false)
-const computedRegisteredFeedback = computed(() => ({ isCompleted: registeredToSave.value.isCompleted, teacherId: eduFProfile.value?.teacherId || '', classroomId: eduFProfile.value?.classroomId || '', disciplineId: eduFProfile.value?.disciplineId || '', stageId: selectedTad.value }))
+const computedRegisteredFeedback = computed(() => ({
+  isCompleted: registeredToSave.value.isCompleted,
+  teacherId: eduFProfile.value?.teacherId || '',
+  classroomId: eduFProfile.value?.classroomId || '',
+  disciplineId: eduFProfile.value?.disciplineId?.trim() ? eduFProfile.value.disciplineId : DEFAULT_DISCIPLINE_ID,
+  stageId: selectedTad.value === 'inicial' ? stage1Id.value : selectedTad.value === 'parcial' ? stage2Id.value : stage3Id.value,
+  areGradesReleased: registeredToSave.value.areGradesReleased
+}))
 
 // calcula dias até fim da etapa baseada em selectedTad
 const diffDays = computed(() => {
@@ -136,6 +149,14 @@ const diffDays = computed(() => {
   const dl = new Date(edStr)
   if (isNaN(dl.getTime())) return NaN
   return Math.ceil((dl.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+})
+
+const isStageCompleted = computed(() => {
+  if (!students.value) return false
+  const cursando = students.value.filter(s => s.situation === 'CURSANDO')
+  if (selectedTad.value === 'inicial') return cursando.every(s => s.initialFeedback.trim() !== '')
+  if (selectedTad.value === 'parcial') return cursando.every(s => s.partialFeedback.trim() !== '')
+  return cursando.every(s => s.finalFeedback.trim() !== '')
 })
 
 watch(eduFProfile, async (newValue) => {
@@ -153,7 +174,7 @@ watch(eduFProfile, async (newValue) => {
       classroomId: newValue.classroomId,
       enrollmentId: e.id,
       schoolId: e.schoolId,
-      disciplineId: newValue.disciplineId ?? '',
+      disciplineId: newValue.disciplineId?.trim() ? newValue.disciplineId : DEFAULT_DISCIPLINE_ID,
       initialFeedback: '',
       partialFeedback: '',
       finalFeedback: '',
@@ -238,15 +259,26 @@ function simulateSlide() {
 onMounted(async () => {
   try {
     const stages = await stageService.getAllStages()
-    const st1 = stages?.find(s => s.numberStage === 1)
-    if (st1) stage1Start.value = st1.startDate
-    stage2Start.value = DateTime.fromISO('2025-04-30').toISO()
+
+    const st1 = stages?.find(s => Number(s.numberStage) === 1)
+    if (st1) {
+      stage1Start.value = st1.startDate
+      stage1Id.value = st1.id
+    }
+
+    const st2 = stages?.find(s => Number(s.numberStage) === 2)
+    if (st2) {
+      stage2Start.value = DateTime.fromISO('2025-04-30').toISO()
+      stage2Id.value = st2.id
+    }
     stage1EndDate.value = stage2Start.value
-    const st3 = stages?.find(s => s.numberStage === 3)
-    if (st3) { 
+
+    const st3 = stages?.find(s => Number(s.numberStage) === 3)
+    if (st3) {
       stage3End.value = st3.endDate
-      stage2EndDate.value = stage3End.value
+      stage2EndDate.value = st3.endDate
       stage3EndDate.value = DateTime.fromISO('2025-12-30').toISO()
+      stage3Id.value = st3.id
     }
   } catch (error) {
     console.error('Erro ao obter etapas', error)
@@ -262,7 +294,7 @@ async function saveFeedback(s: SightStudent) {
       studentId: s.studentId,
       enrollmentId: s.enrollmentId,
       schoolId: s.schoolId,
-      disciplineId: s.disciplineId,
+      disciplineId: s.disciplineId?.trim() ? s.disciplineId : DEFAULT_DISCIPLINE_ID,
       teacherId: eduFProfile.value.teacherId,
       initialFeedback: s.initialFeedback,
       partialFeedback: s.partialFeedback,
@@ -280,6 +312,8 @@ async function saveFeedback(s: SightStudent) {
     isFinalizedGlobal.value = false
     
     students.value = [...students.value!]
+    // After saving individual feedback, mark grades as not released to re-enable launch button
+    registeredToSave.value.areGradesReleased = false
     showToast('Parecer salvo com sucesso', 'top', 'success')
   } catch (error) {
     console.error(error)
@@ -306,19 +340,23 @@ function preRegisterFeedback() {
   showAlert.value = true
 }
 
-async function registerGrades(itemToSave: RegisteredToSave) {
+async function registerGrades() {
   showAlert.value = false
   isLoading.value = true
 
   try {
-    itemToSave.isCompleted = isContentFilled.value
+    // Update reactive state
+    registeredToSave.value.isCompleted = isStageCompleted.value
+    registeredToSave.value.areGradesReleased = true
+    // Prepare payload
+    const payload = computedRegisteredFeedback.value
 
-    await registeredGradeService.upsertRegisteredGrade(itemToSave)
+    await registeredGradeService.upsertRegisteredGrade(payload)
 
     showToast(
-      isContentFilled.value
+      isStageCompleted.value
         ? 'Registro de parecer descritivo finalizado com sucesso!'
-        : 'Registro de parecer descritivo incompletas finalizado com sucesso!',
+        : 'Registro de parecer descritivo incompleto finalizado com sucesso!',
       'top',
       'success',
     )
@@ -359,7 +397,7 @@ async function registerGrades(itemToSave: RegisteredToSave) {
 <template>
   <ContentLayout>
     <EduFilterProfile :discipline="false" @update:filtered-ocupation="($event) => eduFProfile = $event" />
-    <div v-if="diffDays <= 10 && diffDays >= 0 && !computedRegisteredFeedback.isCompleted && students" class="warning-close-information">
+    <div v-if="diffDays <= 10 && diffDays >= 0 && !computedRegisteredFeedback.isCompleted && !computedRegisteredFeedback.areGradesReleased && students" class="warning-close-information">
       <div class="title">Registro irregular</div>
       <div class="text">
         <IonIcon :icon="warningOutline" style="margin-right:6px" />
@@ -368,7 +406,7 @@ async function registerGrades(itemToSave: RegisteredToSave) {
         </div>
       </div>
     </div>
-    <div v-else-if="diffDays < 0 && !computedRegisteredFeedback.isCompleted && students" class="warning-close-information">
+    <div v-else-if="diffDays < 0 && !computedRegisteredFeedback.isCompleted && !computedRegisteredFeedback.areGradesReleased && students" class="warning-close-information">
       <div class="title">Registro irregular</div>
       <div class="text">
         <IonIcon :icon="warningOutline" style="margin-right:6px" />
@@ -401,7 +439,22 @@ async function registerGrades(itemToSave: RegisteredToSave) {
           </IonSegmentButton>
         </IonSegment>
       </div>
-
+      <IonCard v-if="computedRegisteredFeedback.areGradesReleased" :color="computedRegisteredFeedback.areGradesReleased ? 'success' : 'info'">
+            <IonCardContent>
+              <IonText v-if="computedRegisteredFeedback.areGradesReleased" style="display: flex;">
+                <IonIcon size="small" style="margin-top: auto; margin-bottom: auto;" :icon="checkmarkCircleOutline" />
+                <span style="margin-top: auto; margin-bottom: auto; margin-left: 5px;">
+                  Registro Completo do parecer descritivo na Etapa {{ selectedTad }}.
+                </span>
+              </IonText>
+              <IonText v-if="!computedRegisteredFeedback.areGradesReleased" style="display: flex;">
+                <IonIcon size="small" style="margin-top: auto; margin-bottom: auto;" :icon="alertOutline" />
+                <span style="margin-top: auto; margin-bottom: auto; margin-left: 5px;">
+                  Registro Parcial do parecer descritivo na Etapa {{ selectedTad }}.
+                </span>
+              </IonText>
+            </IonCardContent>
+          </IonCard>
       <div
         class="content"
         :class="{ 'slide-out': slidingOut, 'slide-in': slidingIn }"
@@ -620,8 +673,8 @@ async function registerGrades(itemToSave: RegisteredToSave) {
     <IonAlert
       class="custom-alert"
       :is-open="showAlert"
-      :header="isContentFilled ? 'Deseja finalizar os registros?' : 'Registros incompletos'"
-      :sub-header="isContentFilled ? '' : 'Deseja finalizar assim mesmo?'"
+      :header="isStageCompleted ? 'Deseja finalizar os registros?' : 'Registros incompletos'"
+      :sub-header="isStageCompleted ? '' : 'Deseja finalizar assim mesmo?'"
       :buttons="[
         {
           text: 'Não',
@@ -632,7 +685,7 @@ async function registerGrades(itemToSave: RegisteredToSave) {
         {
           text: 'Sim',
           cssClass: 'alert-button-confirm',
-          handler: () => registerGrades(computedRegisteredFeedback),
+          handler: () => registerGrades(),
         },
       ]"
     />
@@ -644,12 +697,12 @@ async function registerGrades(itemToSave: RegisteredToSave) {
             <IonRow>
               <IonCol size="12">
                 <IonButton
-                  :disabled="isLoading || !isAnySaved"
+                  :disabled="isLoading || !isAnySaved || computedRegisteredFeedback.areGradesReleased"
                   color="secondary"
                   expand="full"
                   @click="preRegisterFeedback"
                 >
-                  Finalizar
+                  Lançar Parecer
                 </IonButton>
               </IonCol>
             </IonRow>
