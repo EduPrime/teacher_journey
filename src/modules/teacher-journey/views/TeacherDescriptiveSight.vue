@@ -84,50 +84,10 @@ const students = ref<SightStudent[] | undefined>(undefined)
 const selectedTad = ref('inicial')
 const screenWidth = ref(window.innerWidth)
 const isFinalizedGlobal = ref(false)
-const isAnySaved = computed(() => students.value?.some(s => s.isSaved) ?? false)
+const hasLaunched = ref(false)
 
-function isEdited(s: SightStudent): boolean { 
-  return s.initialFeedback !== '' || s.partialFeedback !== '' || s.finalFeedback !== ''
-}
-
-function onFeedbackEdit(s: SightStudent) {
-  if (s.isSaved) s.isSaved = false
-}
-
-function getFeedbackIcon(s: SightStudent) {
-  if (s.situation !== 'CURSANDO') return lockClosedOutline
-  if (s.isSaved) return checkmarkOutline
-  if (isEdited(s)) return alertOutline
-  return helpOutline
-}
-
-function getFeedbackColor(s: SightStudent) {
-  if (s.situation !== 'CURSANDO') return 'light'
-  if (s.isSaved) return 'success'
-  if (isEdited(s)) return 'warning'
-  return 'danger'
-}
-
-watch(students, () => {
-  isFinalizedGlobal.value = false
-}, { deep: true })
-
-const stage1Start = ref<string|null>(null)
-const stage2Start = ref<string|null>(null)
-const stage3End = ref<string|null>(null)
-const stage1EndDate = ref<string|null>(null)
-const stage2EndDate = ref<string|null>(null)
-const stage3EndDate = ref<string|null>(null)
-const stage1Id = ref<string>('')
-const stage2Id = ref<string>('')
-const stage3Id = ref<string>('')
-
-const isStage2Enabled = computed(() => stage2Start.value ? DateTime.local() >= DateTime.fromISO(stage2Start.value).startOf('day') : false)
-const isStage3Enabled = computed(() => stage3End.value ? DateTime.local() >= DateTime.fromISO(stage3End.value).startOf('day') : false)
-
-const isLoading = ref(false)
-const showAlert = ref(false)
 const registeredToSave = ref<RegisteredToSave>({ isCompleted: false, teacherId: '', classroomId: '', disciplineId: '', stageId: '', areGradesReleased: false })
+
 const isContentFilled = computed(() => students.value?.some(s => s.initialFeedback.trim() !== '' || s.partialFeedback.trim() !== '' || s.finalFeedback.trim() !== '') ?? false)
 const computedRegisteredFeedback = computed(() => ({
   isCompleted: registeredToSave.value.isCompleted,
@@ -158,6 +118,64 @@ const isStageCompleted = computed(() => {
   if (selectedTad.value === 'parcial') return cursando.every(s => s.partialFeedback.trim() !== '')
   return cursando.every(s => s.finalFeedback.trim() !== '')
 })
+
+watch(students, () => {
+  isFinalizedGlobal.value = false
+}, { deep: true })
+
+const stage1Start = ref<string|null>(null)
+const stage2Start = ref<string|null>(null)
+const stage3End = ref<string|null>(null)
+const stage1EndDate = ref<string|null>(null)
+const stage2EndDate = ref<string|null>(null)
+const stage3EndDate = ref<string|null>(null)
+const stage1Id = ref<string>('')
+const stage2Id = ref<string>('')
+const stage3Id = ref<string>('')
+
+const isStage2Enabled = computed(() => stage2Start.value ? DateTime.local() >= DateTime.fromISO(stage2Start.value).startOf('day') : false)
+const isStage3Enabled = computed(() => stage3End.value ? DateTime.local() >= DateTime.fromISO(stage3End.value).startOf('day') : false)
+
+const isLoading = ref(false)
+const showAlert = ref(false)
+
+const isAnySaved = computed(() => students.value?.some(s => s.isSaved) ?? false)
+
+function isEdited(s: SightStudent): boolean { 
+  return s.initialFeedback !== '' || s.partialFeedback !== '' || s.finalFeedback !== ''
+}
+
+function onFeedbackEdit(s: SightStudent) {
+  if (s.isSaved) s.isSaved = false
+}
+
+function getFeedbackIcon(s: SightStudent) {
+  if (s.situation !== 'CURSANDO') return lockClosedOutline
+  if (s.isSaved) return checkmarkOutline
+  if (isEdited(s)) return alertOutline
+  return helpOutline
+}
+
+function getFeedbackColor(s: SightStudent) {
+  if (s.situation !== 'CURSANDO') return 'light'
+  if (s.isSaved) return 'success'
+  if (isEdited(s)) return 'warning'
+  return 'danger'
+}
+
+async function loadRegisteredGrade() {
+  const stageId = selectedTad.value === 'inicial' ? stage1Id.value : selectedTad.value === 'parcial' ? stage2Id.value : stage3Id.value
+  const registered = await registeredGradeService.getRegistered(
+    eduFProfile.value.classroomId,
+    eduFProfile.value.disciplineId?.trim() || DEFAULT_DISCIPLINE_ID,
+    stageId
+  )
+  if (registered) {
+    registeredToSave.value.isCompleted = registered.isCompleted
+    registeredToSave.value.areGradesReleased = registered.areGradesReleased
+    if (registered.areGradesReleased) hasLaunched.value = true
+  }
+}
 
 watch(eduFProfile, async (newValue) => {
   if (newValue?.teacherId) {
@@ -200,8 +218,10 @@ watch(eduFProfile, async (newValue) => {
     await Promise.all(feedbackPromises)
     
     students.value = enrichedStudents
+
+    await loadRegisteredGrade()
   } else {
-    students.value = undefined;
+    students.value = undefined
   }
 })
 
@@ -283,6 +303,10 @@ onMounted(async () => {
   } catch (error) {
     console.error('Erro ao obter etapas', error)
   }
+  // Load persisted registration status after stages load
+  if (eduFProfile.value?.teacherId) {
+    await loadRegisteredGrade()
+  }
 })
 
 async function saveFeedback(s: SightStudent) {
@@ -328,6 +352,8 @@ async function clearFeedback(s: SightStudent) {
     s.partialFeedback = ''
     s.finalFeedback = ''
     s.isSaved = false
+    // Re-enable launch button when feedback is cleared
+    registeredToSave.value.areGradesReleased = false
     showToast('Parecer limpo com sucesso', 'top', 'success')
     console.debug(`[Clear] Student ${s.studentId}: isSaved=${s.isSaved}, isFinalizedGlobal=${isFinalizedGlobal.value}`)
   } catch (error) {
@@ -352,6 +378,7 @@ async function registerGrades() {
     const payload = computedRegisteredFeedback.value
 
     await registeredGradeService.upsertRegisteredGrade(payload)
+    hasLaunched.value = true
 
     showToast(
       isStageCompleted.value
@@ -397,21 +424,21 @@ async function registerGrades() {
 <template>
   <ContentLayout>
     <EduFilterProfile :discipline="false" @update:filtered-ocupation="($event) => eduFProfile = $event" />
-    <div v-if="diffDays <= 10 && diffDays >= 0 && !computedRegisteredFeedback.isCompleted && !computedRegisteredFeedback.areGradesReleased && students" class="warning-close-information">
+    <div v-if="diffDays <= 10 && diffDays >= 0 && !computedRegisteredFeedback.isCompleted && !hasLaunched && students" class="warning-close-information">
       <div class="title">Registro irregular</div>
       <div class="text">
         <IonIcon :icon="warningOutline" style="margin-right:6px" />
         <div>
-          Olá professor, o prazo de preenchimento da etapa {{ selectedTad === 'inicial' ? 'inicial' : selectedTad === 'parcial' ? 'parcial' : 'final' }} se encerra em {{ diffDays }} {{ diffDays === 1 ? 'dia' : 'dias' }}, caso haja pendência será necessária entrar em contato com a secretaria.
+          Olá professor, o prazo de preenchimento da etapa {{ selectedTad }} se encerra em {{ diffDays }} {{ diffDays === 1 ? 'dia' : 'dias' }}, caso haja pendência será necessária entrar em contato com a secretaria.
         </div>
       </div>
     </div>
-    <div v-else-if="diffDays < 0 && !computedRegisteredFeedback.isCompleted && !computedRegisteredFeedback.areGradesReleased && students" class="warning-close-information">
+    <div v-else-if="diffDays < 0 && !computedRegisteredFeedback.isCompleted && !hasLaunched && students" class="warning-close-information">
       <div class="title">Registro irregular</div>
       <div class="text">
         <IonIcon :icon="warningOutline" style="margin-right:6px" />
         <div>
-          Olá professor, o prazo de preenchimento da etapa {{ selectedTad === 'inicial' ? 'inicial' : selectedTad === 'parcial' ? 'parcial' : 'final' }} se encerrou, entre em contato com a secretaria para resolver as pendências.
+          Olá professor, o prazo de preenchimento da etapa {{ selectedTad }} se encerrou, entre em contato com a secretaria para resolver as pendências.
         </div>
       </div>
     </div>
@@ -441,7 +468,7 @@ async function registerGrades() {
       </div>
       <IonCard v-if="computedRegisteredFeedback.areGradesReleased" :color="computedRegisteredFeedback.areGradesReleased ? 'success' : 'info'">
             <IonCardContent>
-              <IonText v-if="computedRegisteredFeedback.areGradesReleased" style="display: flex;">
+              <IonText style="display: flex;">
                 <IonIcon size="small" style="margin-top: auto; margin-bottom: auto;" :icon="checkmarkCircleOutline" />
                 <span style="margin-top: auto; margin-bottom: auto; margin-left: 5px;">
                   Registro Completo do parecer descritivo na Etapa {{ selectedTad }}.
@@ -738,137 +765,6 @@ ion-modal {
   }
 
   ion-modal .wrapper {
-    margin-bottom: 10px;
-  }
-
-  .warning-close-information {
-  margin: 10px;
-  background-color: #F5C228E6;
-  color: #000000B3;
-  padding: 15px;
-  border-radius: 6px;
-
-  .title {
-    font-size: 17px;
-    font-weight: 600;
-    margin-bottom: 8px;
-    padding-left: 32px; 
-  }
-
-  .text {
-    display: flex;
-    align-items: flex-start;
-    font-weight: 300;
-    font-size: 14px;
-    line-height: 1.4;
-    gap: 8px;
-    padding-left: 4px;
-    flex-wrap: wrap;
-
-    ion-icon {
-      flex-shrink: 0;
-      width: 20px;
-      height: 20px;
-      margin-top: 3px;
-    }
-
-    div {
-      flex: 1;
-      text-align: left;
-    }
-  }
-}
-
-.content {
-  position: absolute;
-  width: 100%;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.3s ease;
-  padding-bottom: 80px;
-}
-
-/* Slide out to left */
-.slide-out {
-  transform: translateX(-100%);
-}
-
-/* Slide in from right */
-.slide-in {
-  transform: translateX(100%);
-  animation: slide-in 0.3s ease forwards;
-}
-
-@keyframes slide-in {
-  from {
-    transform: translateX(100%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-ion-segment {
-  --background: rgba(var(--ion-color-tertiary-rgb), 0.15);
-  --color: var(--ion-color-secondary);
-}
-
-/*  */
-
-  ion-segment-view {
-    height: 150px;
-  }
-
-  ion-segment-content {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  ion-segment-content:nth-of-type(1) {
-    background: lightpink;
-  }
-  ion-segment-content:nth-of-type(2) {
-    background: lightblue;
-  }
-  ion-segment-content:nth-of-type(3) {
-    background: lightgreen;
-  }
-
-ion-content {
-  --padding-start: 10px;
-  --padding-end: 10px;
-}
-.ion-content {
-  padding-left: 10px;
-  padding-right: 10px;
-}
-ion-accordion-group {
-  margin-inline: 0 !important;
-  margin-top: 16px;
-}
-
-.no-border-accordion::part(content) {
-  border: none;
-}
-
-.no-border-accordion::part(header) {
-  border: none;
-}
-
-ion-modal#custom-modal {
-    --width: 400px;
-    --min-width: 400px;
-    --min-width: 250px;
-    --height: fit-content;
-    --border-radius: 6px;
-    --box-shadow: 0 28px 48px rgba(0, 0, 0, 0.4);
-  }
-
-  ion-modal#custom-modal h1 {
-    margin: 20px 20px 10px 20px;
-  }
-
-  ion-modal#custom-modal .wrapper {
     margin-bottom: 10px;
   }
 
