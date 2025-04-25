@@ -114,10 +114,10 @@ watch(
         availableDisciplineIds.value.length > 0
           ? availableDisciplineIds.value
           : props.availableDisciplines.map(
-              (disciplines: AvailableDisciplines) => {
-                return disciplines.id
-              },
-            ),
+            (disciplines: AvailableDisciplines) => {
+              return disciplines.id
+            },
+          ),
         props.seriesId,
       )
     }
@@ -128,7 +128,7 @@ watch(
 watch(
   () => filledContent.value.disciplines,
   async (newDisciplines, oldDisciplines) => {
-    if (!oldDisciplines) return 
+    if (!oldDisciplines) return
 
     await getBNCCByDisciplines(newDisciplines)
 
@@ -163,22 +163,22 @@ async function getBNCCByDisciplines(selectedDisciplines: string[]) {
 
 function formatBnccLabel(option: any) {
 
-if (!option) return ''
+  if (!option) return ''
 
-const code = option.code ?? ''
-const objective = option.objective ?? ''
+  const code = option.code ?? ''
+  const objective = option.objective ?? ''
 
-if (code && objective) return `${code} - ${objective}`
-if (code) return code
-if (objective) return objective
-return 'Sem dados'
+  if (code && objective) return `${code} - ${objective}`
+  if (code) return code
+  if (objective) return objective
+  return 'Sem dados'
 }
 
 function customFilter(option: any, label: string, search: string): boolean {
   if (!search) return true;
   const query = search.toLowerCase();
   const code = (option.code ?? '').toLowerCase();
-  const objective  = (option.objective ?? '').toLowerCase();
+  const objective = (option.objective ?? '').toLowerCase();
   return code.includes(query) || objective.includes(query);
 }
 
@@ -217,14 +217,13 @@ function luxonFormatDate(dateString: string) {
 </script>
 
 <template>
-  <IonModal id="update-modal" class="" :is-open="props.isUpdateModalOpen" @ion-modal-did-dismiss="() => { modalOpened = false; emits('update:modelValue', false) }">
-    <Form
-      :initial-values="{
-        Disciplina: filledContent.disciplines,
-        Conteúdo: filledContent.description,
-        // Currículos: filledContent.bnccs,
-      }" @submit="saveContent"
-    >
+  <IonModal id="update-modal" class="" :is-open="props.isUpdateModalOpen"
+    @ion-modal-did-dismiss="() => { modalOpened = false; emits('update:modelValue', false) }">
+    <Form :initial-values="{
+      Disciplina: filledContent.disciplines,
+      Conteúdo: filledContent.description,
+      // Currículos: filledContent.bnccs,
+    }" @submit="saveContent">
       <IonCard id="EditarRegistroFormulario" class="ion-no-padding ion-no-margin">
         <IonCardHeader color="secondary">
           <div style="display: flex; align-items: center; height: 15px;">
@@ -235,90 +234,57 @@ function luxonFormatDate(dateString: string) {
           </div>
         </IonCardHeader>
 
-          <div>
-            <IonCardContent class="update-modal-content" style="display: flex; flex-direction: column; gap: 10px;">
-              <Field name="Disciplina" v-slot="{ field }" rules="required">
-                <IonSelect
-                  v-bind="field"
-                  v-model="filledContent.disciplines"
-                  class="ion-select-card-content"
-                  label="Disciplina"
-                  label-placement="floating"
-                  fill="outline"
-                  cancel-text="Cancelar"
-                  :disabled="props.frequency === 'disciplina'"
-                  :multiple="true"
-                  @ion-change="getBNCCByDisciplines($event.detail.value)"
-                >
-                  <IonSelectOption 
-                    v-for="(discipline, index) in availableDisciplines" 
-                    :key="index" 
-                    :value="discipline.id" 
-                    :selected="filledContent.disciplines.includes(discipline.id)">
-                    {{ discipline.name }}
-                  </IonSelectOption>
-                </IonSelect>
-              </Field>
-              <ErrorMessage name="Disciplina" v-slot="{ message }">
-                <span class="error-message">{{ message }}</span>
-              </ErrorMessage>
-              
-              <br>
-              <Field name="Conteúdo" v-slot="{ field }" rules="required|min:2|max:360">
-                <IonTextarea
-                  v-bind="field"
-                  v-model="filledContent.description"
-                  label="Conteúdo"
-                  label-placement="floating"
-                  fill="outline"
-                  placeholder="Digite o conteúdo"
-                  style="--color: var(--ion-color-secondary);"
-                  :auto-grow="true"
-                  :maxlength="361"
-                />
-              </Field>
-              <ErrorMessage name="Conteúdo" v-slot="{ message }">
-                <span class="error-message">{{ message }}</span>
-              </ErrorMessage>
+        <div>
+          <IonCardContent class="update-modal-content" style="display: flex; flex-direction: column; gap: 10px;">
+            <Field name="Disciplina" v-slot="{ field }" rules="required">
+              <IonSelect v-bind="field" v-model="filledContent.disciplines" class="ion-select-card-content"
+                label="Disciplina" label-placement="floating" fill="outline" cancel-text="Cancelar"
+                :disabled="props.frequency === 'disciplina'" :multiple="true"
+                @ion-change="getBNCCByDisciplines($event.detail.value)">
+                <IonSelectOption v-for="(discipline, index) in availableDisciplines" :key="index" :value="discipline.id"
+                  :selected="filledContent.disciplines.includes(discipline.id)">
+                  {{ discipline.name }}
+                </IonSelectOption>
+              </IonSelect>
+            </Field>
+            <ErrorMessage name="Disciplina" v-slot="{ message }">
+              <span class="error-message">{{ message }}</span>
+            </ErrorMessage>
 
-              
-              <br>
-              <Field name="Currículos" v-slot="{ field }">
-                <Multiselect
-                class="bncc-scroll"
-                v-bind="field"
-                v-model="selectedBnccObjects"
-                :options="bnccs"
-                :multiple="true"
-                track-by="id"
-                :custom-label="formatBnccLabel"
-                :filterable="true"           
-                :internal-search="true"      
-                :custom-filter="customFilter"
-                :close-on-select="false" 
-                :preserve-search="true"
-                :hide-selected="true"
-                placeholder="Busque ou selecione BNCC"
-                :disabled="isLoadingBnccs"
-                :no-results-text=" isLoadingBnccs 
-                    ? 'Buscando...' 
-                    : 'Nenhum resultado encontrado' "
-                no-options-text="Sem opções disponíveis"
-                :select-label="`Pressione Enter para selecionar`"
-                :deselect-label="`Pressione Backspace para remover`"
-                :selected-label="`Selecionado`"
-                >
+            <br>
+            <Field name="Conteúdo" v-slot="{ field }" rules="required|min:2|max:360">
+              <IonTextarea v-bind="field" v-model="filledContent.description" label="Conteúdo"
+                label-placement="floating" fill="outline" placeholder="Digite o conteúdo"
+                style="--color: var(--ion-color-secondary);" :auto-grow="true" :maxlength="361" />
+            </Field>
+            <ErrorMessage name="Conteúdo" v-slot="{ message }">
+              <span class="error-message">{{ message }}</span>
+            </ErrorMessage>
+
+
+            <br>
+            <Field name="Currículos" v-slot="{ field }">
+              <Multiselect class="bncc-scroll" v-bind="field" v-model="selectedBnccObjects" :options="bnccs"
+                :multiple="true" track-by="id" :custom-label="formatBnccLabel" :filterable="true"
+                :internal-search="true" :custom-filter="customFilter" :close-on-select="false" :preserve-search="true"
+                :hide-selected="true" placeholder="Busque ou selecione BNCC" :disabled="isLoadingBnccs"
+                :no-results-text="isLoadingBnccs
+                  ? 'Buscando...'
+                  : 'Nenhum resultado encontrado'" no-options-text="Sem opções disponíveis"
+                :select-label="`Pressione Enter para selecionar`" :deselect-label="`Pressione Backspace para remover`"
+                :selected-label="`Selecionado`">
                 <template #noResult>
                   Nenhum resultado encontrado
                 </template>
-                </Multiselect>
-              </Field>
-              <!-- <ErrorMessage name="Currículos" v-slot="{ message }">
+              </Multiselect>
+            </Field>
+            <!-- <ErrorMessage name="Currículos" v-slot="{ message }">
                 <span class="error-message">{{ message }}</span>
               </ErrorMessage> -->
 
             <div class="ion-margin-top" style="display: flex; justify-content: right;">
-              <IonButton color="danger" size="small" style="text-transform: capitalize;" @click="emits('update:modelValue', false)">
+              <IonButton color="danger" size="small" style="text-transform: capitalize;"
+                @click="emits('update:modelValue', false)">
                 Cancelar
               </IonButton>
               <IonButton type="submit" color="secondary" size="small" style="text-transform: capitalize;">
@@ -334,51 +300,68 @@ function luxonFormatDate(dateString: string) {
 </template>
 
 <style>
-  ion-content {
-    --padding-start: 10px;
-    --padding-end: 10px;
-    }
-  .ion-content {
-    padding-left: 10px;
-    padding-right: 10px;
+ion-content {
+  --padding-start: 10px;
+  --padding-end: 10px;
+}
+
+.ion-content {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+ion-modal#update-modal {
+  --height: 45vh;
+
+  /* Default height for desktop */
+  @media (max-width: 1024px) {
+    /* Tablet */
+    --height: 80vh;
   }
 
-  ion-modal#update-modal {
-    --height: 45vh; /* Default height for desktop */
-    @media (max-width: 1024px) { /* Tablet */
-      --height: 80vh;
-    }
-    @media (max-width: 768px) { /* Mobile */
-      --height: 67vh;
-    }
-    --width: 40vw;
-    --min-width: 300px;
-  }
-  
-  ion-modal#update-modal,
-  ion-card#EditarRegistroFormulario {
-    box-shadow: none ;
+  @media (max-width: 768px) {
+    /* Mobile */
+    --height: 67vh;
   }
 
-  .update-modal-content {
-    max-height: calc(150vh - 200px);
-    overflow-y: auto;
-    padding: 10px;
-    box-sizing: border-box;
-  }
+  --width: 40vw;
+  --min-width: 300px;
+}
 
-  ion-modal#update-modal h1 {
-    margin: 20px 20px 10px 20px;
-  }
+ion-modal#update-modal,
+ion-card#EditarRegistroFormulario {
+  box-shadow: none;
+}
 
-  ion-modal#update-modal .wrapper {
-    margin-bottom: 10px;
-  }
+.update-modal-content {
+  max-height: calc(150vh - 200px);
+  overflow-y: auto;
+  padding: 10px;
+  box-sizing: border-box;
+}
 
-  .error-message {
+ion-modal#update-modal h1 {
+  margin: 20px 20px 10px 20px;
+}
+
+ion-modal#update-modal .wrapper {
+  margin-bottom: 10px;
+}
+
+.error-message {
   color: red;
   font-size: 1em;
 }
 
+:deep(.multiselect__tags) {
+  border-color: #b0b0b0;
+}
 
+:deep(.multiselect__tags:hover) {
+  border-color: black;
+}
+
+:deep(.multiselect__placeholder) {
+  color: var(--ion-color-secondary) !important;
+}
 </style>
