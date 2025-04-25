@@ -32,7 +32,7 @@ const stageFinished = ref<RegisteredToSave>()
 let isDisabled = ref(false)
 let isGradesFilled = ref(false)
 let diffDays = 0
-let timestamp = ref<{ id: any; createdAt: any; updatedAt: any } | null>(null)
+let timestamp = ref<{ id: any, createdAt: any, updatedAt: any } | null>(null)
 const studentList = ref<MountedStudent[]>()
 const teacherId = ref(localStorage.getItem('teacherId'))
 const registeredToSave = ref<RegisteredToSave>({
@@ -56,7 +56,7 @@ watch(eduFProfile, async (newValue) => {
       newValue.seriesId,
     )
     checkRegisteredGradesInfo()
-        // Checa se registro de notas já foi finalizado
+    // Checa se registro de notas já foi finalizado
     stageFinished.value = await registeredGradeService.getRegistered(
       newValue?.classroomId,
       newValue?.disciplineId,
@@ -82,7 +82,7 @@ watch((currentStage), async (newValue) => {
       eduFProfile.value.seriesId,
     )
     checkRegisteredGradesInfo()
-        // Checa se registro de notas já foi finalizado
+    // Checa se registro de notas já foi finalizado
     stageFinished.value = await registeredGradeService.getRegistered(
       eduFProfile.value.classroomId,
       eduFProfile.value.disciplineId,
@@ -99,7 +99,7 @@ onMounted(async () => {
 
 async function checkRegisteredGradesInfo() {
   if (eduFProfile.value?.classroomId && eduFProfile.value?.disciplineId && currentStage.value?.id) {
-    isDisabled = await registeredGradeService.getGradesReleasedInfo(computedRegisteredGrade.value)
+    isDisabled.value = await registeredGradeService.getGradesReleasedInfo(computedRegisteredGrade.value)
   }
 }
 
@@ -496,9 +496,9 @@ const getStatusColor = computed(() => (status: string) => {
                 @click="preRegisterGrades"
               >
                 <IonIcon size="small" style="margin-top: auto; margin-bottom: auto; margin-left:10px;" :icon="checkmarkCircleOutline" />
-                  <span style="margin-top: auto; margin-bottom: auto; margin-left: 5px;">
-                    lançar notas
-                  </span>
+                <span style="margin-top: auto; margin-bottom: auto; margin-left: 5px;">
+                  lançar notas
+                </span>
               </IonButton>
             </IonCol>
           </IonRow>

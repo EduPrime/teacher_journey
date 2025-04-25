@@ -9,6 +9,25 @@ export default class RegisteredGradeService extends BaseService<RegisteredGrade>
     super(table)
   }
 
+  async getRegisteredGrade(teacherId: string | null, classroomId: string, disciplineId: string, stageId: string) {
+    const { data, error } = await this.client
+      .from('registeredGrade')
+      .select(`*`)
+      .eq('teacherId', teacherId)
+      .eq('classroomId', classroomId)
+      .eq('disciplineId', disciplineId)
+      .eq('stageId', stageId)
+      .single()
+
+    if (error) {
+      // errorHandler(error, 'Erro ao buscar status de notas registradas')
+    }
+    if (data) {
+      return data
+    }
+    return null
+  }
+
   async getRegisteredGradesIsCompletedStatus(teacherId: string | null, classroomId: string, disciplineId: string, stageId: string) {
     const { data, error } = await this.client
       .from('registeredGrade')
@@ -140,7 +159,7 @@ export default class RegisteredGradeService extends BaseService<RegisteredGrade>
   }
 
   async upsertRegisteredGrade(registeredGrade: RegisteredToSave) {
-    // Garantir que o upsert mantenha a coluna areGradesReleased como "notas lançadas" por motivos óbvios 
+    // Garantir que o upsert mantenha a coluna areGradesReleased como "notas lançadas" por motivos óbvios
     const records = { ...registeredGrade, areGradesReleased: true }
 
     const { data, error } = await this.client
@@ -152,5 +171,38 @@ export default class RegisteredGradeService extends BaseService<RegisteredGrade>
     }
 
     return data
+  }
+
+  async AreGradesReleasedToFalse(filterInfo: RegisteredToSave) {
+    // Verifica se o item já existe
+    const existingRecord = await this.getRegisteredGrade(
+      filterInfo.teacherId ?? null,
+      filterInfo.classroomId,
+      filterInfo.disciplineId,
+      filterInfo.stageId,
+    )
+
+    // Se não existir, retorna false e não avança
+    if (!existingRecord) {
+      console.warn('Registro não encontrado. Não é possível avançar.')
+      return false
+    }
+
+    // Atualiza o status de areGradesReleased para false
+    const registeredGrade = {
+      ...filterInfo,
+      areGradesReleased: false,
+    }
+
+    const { data, error } = await this.client
+      .from('registeredGrade')
+      .upsert(registeredGrade, { onConflict: 'teacherId, classroomId, disciplineId, stageId' })
+
+    if (error) {
+      errorHandler(error, 'Erro ao atualizar ou inserir status de liberação de notas para pendente')
+      return false
+    }
+
+    return !!data
   }
 }

@@ -49,7 +49,6 @@ const currentStudentToSave = ref<StudentGrade | null>(null)
 const currentStudentToDelete = ref<StudentGrade | null>(null)
 const studentList = ref<StudentGrade[]>()
 const oldList = ref<StudentGrade[]>()
-const initialStudentList = ref<StudentGrade[] | null>(null) // Lista inicial para comparação
 
 const saveModal = ref(false)
 const deleteModal = ref(false)
@@ -57,11 +56,13 @@ const deleteModal = ref(false)
 const showAlert = ref(false)
 const stageFinished = ref<RegisteredToSave>()
 const gradesAreFilled = ref(false)
+const gradesAreNotFilled = ref(true)
 
 const deadline = ref()
 const diffDays = ref(0)
 
 const registeredToSave = ref<RegisteredToSave>({
+  areGradesReleased: false,
   isCompleted: false,
   teacherId: localStorage.getItem('teacherId'),
   classroomId: '',
@@ -133,21 +134,6 @@ function computedMean(s: StudentGrade): number {
 
   return (activityEvaluation + grade) / 2
 }
-/* function evaluationValidate(s:StudentGrade): boolean {
-  const evaluationValues = [s.at1, s.at2, s.at3, s.at4, s.at5, s.makeUp, s.grade].map(value => Number.parseFloat(value) || 0)
-
-  console.log('evaluationValues dentro da função', evaluationValues)
-
-  for (const evaluation of evaluationValues) {
-    console.log('evaluation', evaluation)
-
-    if (Number.isNaN(evaluation) || evaluation < 0 || evaluation > 10) {
-      console.log('entrou')
-      return false
-    }
-  }
-  return true
-} */
 
 function evaluationValidate(s: StudentGrade): boolean {
   const evaluationFields = [
@@ -212,7 +198,9 @@ function convertToDecimal(value: any): Decimal {
 watch([eduFProfile, currentStage], async ([newEduFProfile, newCurrentStage]) => {
   numericStudentList.value = []
   studentList.value = []
+
   gradesAreFilled.value = false // Reseta gradesAreFilled inicialmente
+
   computedRegisteredGrade.value = {
     isCompleted: false,
     teacherId: registeredToSave.value.teacherId,
@@ -275,6 +263,13 @@ watch([eduFProfile, currentStage], async ([newEduFProfile, newCurrentStage]) => 
         && checkMinimalGrade(item),
     )
 
+    gradesAreNotFilled.value = (studentList.value ?? []).every(
+      item =>
+        item.situation === 'CURSANDO' // Apenas alunos "CURSANDO" são considerados
+        && checkMinimalActivities(item)
+        && checkMinimalGrade(item),
+    )
+
     // Atualiza computedRegisteredGrade dinamicamente
     computedRegisteredGrade.value = {
       isCompleted: gradesAreFilled.value,
@@ -304,7 +299,9 @@ watch([eduFProfile, currentStage], async ([newEduFProfile, newCurrentStage]) => 
   else {
     students.value = undefined
     studentList.value = undefined
+
     gradesAreFilled.value = false // Reseta gradesAreFilled caso os dados sejam inválidos
+
     computedRegisteredGrade.value = {
       isCompleted: false,
       teacherId: registeredToSave.value.teacherId,
@@ -336,7 +333,7 @@ function checkMinimalGrade(s: StudentGrade): boolean {
   return !isNaN(gradeValue) && gradeValue >= 0 && gradeValue <= 10
 }
 
-async function handleSave(s: any) {
+async function handleSave(s: any, itemToSave?: RegisteredToSave) {
   try {
     isLoading.value = true
 
@@ -368,6 +365,16 @@ async function handleSave(s: any) {
 
     await numericGradeService.upsertNumericGrade(payload)
 
+    if (itemToSave) {
+      await registeredGradeService.AreGradesReleasedToFalse(itemToSave)
+      // Atualiza stageFinished após a alteração
+      stageFinished.value = await registeredGradeService.getRegistered(
+        itemToSave.classroomId,
+        itemToSave.disciplineId,
+        itemToSave.stageId,
+      )
+    }
+
     const index = studentList.value?.findIndex((st: any) => st.enrollmentId === payload.enrollmentId)
     if (index !== undefined && index !== -1) {
       const updatedStudent = { ...studentList.value[index], status: 'CONCLUÍDO' }
@@ -387,10 +394,19 @@ async function handleSave(s: any) {
   }
 }
 
-async function handleClear(s: StudentGrade) {
+async function handleClear(s: StudentGrade, itemToSave?: RegisteredToSave) {
   try {
     if (s.id) {
       await numericGradeService.softDeleteNumericGrade(s.id, s.teacherId)
+    }
+    if (itemToSave) {
+      await registeredGradeService.AreGradesReleasedToFalse(itemToSave)
+      // Atualiza stageFinished após a alteração
+      stageFinished.value = await registeredGradeService.getRegistered(
+        itemToSave.classroomId,
+        itemToSave.disciplineId,
+        itemToSave.stageId,
+      )
     }
 
     const index = studentList.value?.findIndex((st: any) => st.enrollmentId === s.enrollmentId)
@@ -469,8 +485,12 @@ async function registerGrades(itemToSave: RegisteredToSave) {
 
     await registeredGradeService.upsertRegisteredGrade(itemToSave)
 
-    // Atualiza stageFinished para exibir o card de sucesso
-    stageFinished.value = itemToSave
+    // Atualiza stageFinished após o registro
+    stageFinished.value = await registeredGradeService.getRegistered(
+      itemToSave.classroomId,
+      itemToSave.disciplineId,
+      itemToSave.stageId,
+    )
 
     showToast(
       'Registro de notas realizado com sucesso!',
@@ -504,17 +524,15 @@ function compareGrades(oldStudents: StudentGrade[] | undefined, newStudent: Stud
 
 // Computa se o botão "Lançar Notas" deve ser habilitado
 const canLaunchGrades = computed(() => {
-  // Se stageFinished já existir e gradesAreFilled for true, o botão fica desabilitado
-  if (stageFinished.value && gradesAreFilled.value) {
-    return false
+  if (!stageFinished.value) {
+    return gradesAreFilled.value // Retorna gradesAreFilled se stageFinished não existir
   }
 
-  // Verifica se houve alterações na studentList em relação à lista inicial
-  const hasChanges = initialStudentList.value
-    ? studentList.value?.some((item, index) => JSON.stringify(item) !== JSON.stringify(initialStudentList.value?.[index]))
-    : false
+  if (!stageFinished.value.areGradesReleased) {
+    return true // Retorna true se as notas ainda não foram lançadas
+  }
 
-  return hasChanges
+  return false // Retorna false se as notas já foram lançadas
 })
 
 // Watch para monitorar alterações em studentList
@@ -522,28 +540,15 @@ watch(
   () => studentList.value, // Garante que o watch observe a referência reativa
   (newValue) => {
     // Atualiza gradesAreFilled com base nas alterações detectadas
-    gradesAreFilled.value = !!newValue?.some(item => checkMinimalActivities(item) && checkMinimalGrade(item))
-
-    // Atualiza o estado de canLaunchGrades ao detectar alterações
-    if (initialStudentList.value) {
-      const hasChanges = newValue?.some((item, index) => JSON.stringify(item) !== JSON.stringify(initialStudentList.value?.[index]))
-      if (hasChanges) {
-        gradesAreFilled.value = true // Habilita o botão "Lançar Notas"
-      }
-    }
+    gradesAreFilled.value = !!newValue?.some(item => item.situation === 'CURSANDO' && checkMinimalActivities(item) && checkMinimalGrade(item))
+    gradesAreNotFilled.value = !!newValue?.every(
+      item =>
+        item.situation === 'CURSANDO'
+        && checkMinimalActivities(item)
+        && checkMinimalGrade(item),
+    )
   },
   { deep: true },
-)
-
-// Atualiza a lista inicial ao carregar os dados
-watch(
-  () => studentList.value,
-  (newStudentList) => {
-    if (!initialStudentList.value && newStudentList) {
-      initialStudentList.value = JSON.parse(JSON.stringify(newStudentList)) // Clona a lista inicial
-    }
-  },
-  { immediate: true },
 )
 
 // Garante que alterações na studentList sejam feitas de forma reativa
@@ -592,6 +597,7 @@ onMounted(async () => {
         <IonIcon color="secondary" style="margin-right: 10px;" aria-hidden="true" :icon="calculator" />
         Registro Numérico
       </IonText>
+      <!-- <pre>{{ gradesAreNotFilled }}</pre> -->
     </h3>
 
     <div v-if="eduFProfile?.classroomId && eduFProfile?.disciplineId">
@@ -849,7 +855,7 @@ onMounted(async () => {
               color="secondary"
               @click="() => {
                 if (currentStudentToSave) {
-                  handleSave(currentStudentToSave)
+                  handleSave(currentStudentToSave, computedRegisteredGrade)
                 }
                 saveModal = false
               }"
@@ -885,7 +891,7 @@ onMounted(async () => {
               color="danger"
               @click="() => {
                 if (currentStudentToDelete) {
-                  handleClear(currentStudentToDelete)
+                  handleClear(currentStudentToDelete, computedRegisteredGrade)
                 }
                 deleteModal = false
               }"
