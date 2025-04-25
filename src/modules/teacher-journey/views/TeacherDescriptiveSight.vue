@@ -34,7 +34,8 @@ import {
   checkmarkOutline, 
   helpOutline, 
   lockClosedOutline, 
-  shapes 
+  shapes, 
+  warningOutline 
 } from 'ionicons/icons'
 
 import { DateTime } from 'luxon'
@@ -111,6 +112,10 @@ watch(students, () => {
 const stage1Start = ref<string|null>(null)
 const stage2Start = ref<string|null>(null)
 const stage3End = ref<string|null>(null)
+const stage1EndDate = ref<string|null>(null)
+const stage2EndDate = ref<string|null>(null)
+const stage3EndDate = ref<string|null>(null)
+
 const isStage2Enabled = computed(() => stage2Start.value ? DateTime.local() >= DateTime.fromISO(stage2Start.value).startOf('day') : false)
 const isStage3Enabled = computed(() => stage3End.value ? DateTime.local() >= DateTime.fromISO(stage3End.value).startOf('day') : false)
 
@@ -119,6 +124,19 @@ const showAlert = ref(false)
 const registeredToSave = ref<RegisteredToSave>({ isCompleted: false, teacherId: '', classroomId: '', disciplineId: '', stageId: '' })
 const isContentFilled = computed(() => students.value?.some(s => s.initialFeedback.trim() !== '' || s.partialFeedback.trim() !== '' || s.finalFeedback.trim() !== '') ?? false)
 const computedRegisteredFeedback = computed(() => ({ isCompleted: registeredToSave.value.isCompleted, teacherId: eduFProfile.value?.teacherId || '', classroomId: eduFProfile.value?.classroomId || '', disciplineId: eduFProfile.value?.disciplineId || '', stageId: selectedTad.value }))
+
+// calcula dias até fim da etapa baseada em selectedTad
+const diffDays = computed(() => {
+  const edStr =
+    selectedTad.value === 'inicial' ? stage1EndDate.value :
+    selectedTad.value === 'parcial' ? stage2EndDate.value :
+    stage3EndDate.value
+  if (!edStr) return NaN
+  const now = new Date()
+  const dl = new Date(edStr)
+  if (isNaN(dl.getTime())) return NaN
+  return Math.ceil((dl.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+})
 
 watch(eduFProfile, async (newValue) => {
   if (newValue?.teacherId) {
@@ -222,9 +240,14 @@ onMounted(async () => {
     const stages = await stageService.getAllStages()
     const st1 = stages?.find(s => s.numberStage === 1)
     if (st1) stage1Start.value = st1.startDate
-    stage2Start.value = DateTime.fromISO('2025-06-30').toISO()
+    stage2Start.value = DateTime.fromISO('2025-04-30').toISO()
+    stage1EndDate.value = stage2Start.value
     const st3 = stages?.find(s => s.numberStage === 3)
-    if (st3) stage3End.value = st3.endDate
+    if (st3) { 
+      stage3End.value = st3.endDate
+      stage2EndDate.value = stage3End.value
+      stage3EndDate.value = DateTime.fromISO('2025-12-30').toISO()
+    }
   } catch (error) {
     console.error('Erro ao obter etapas', error)
   }
@@ -336,6 +359,24 @@ async function registerGrades(itemToSave: RegisteredToSave) {
 <template>
   <ContentLayout>
     <EduFilterProfile :discipline="false" @update:filtered-ocupation="($event) => eduFProfile = $event" />
+    <div v-if="diffDays <= 10 && diffDays >= 0 && !computedRegisteredFeedback.isCompleted && students" class="warning-close-information">
+      <div class="title">Registro irregular</div>
+      <div class="text">
+        <IonIcon :icon="warningOutline" style="margin-right:6px" />
+        <div>
+          Olá professor, o prazo de preenchimento da etapa {{ selectedTad === 'inicial' ? 'inicial' : selectedTad === 'parcial' ? 'parcial' : 'final' }} se encerra em {{ diffDays }} {{ diffDays === 1 ? 'dia' : 'dias' }}, caso haja pendência será necessária entrar em contato com a secretaria.
+        </div>
+      </div>
+    </div>
+    <div v-else-if="diffDays < 0 && !computedRegisteredFeedback.isCompleted && students" class="warning-close-information">
+      <div class="title">Registro irregular</div>
+      <div class="text">
+        <IonIcon :icon="warningOutline" style="margin-right:6px" />
+        <div>
+          Olá professor, o prazo de preenchimento da etapa {{ selectedTad === 'inicial' ? 'inicial' : selectedTad === 'parcial' ? 'parcial' : 'final' }} se encerrou, entre em contato com a secretaria para resolver as pendências.
+        </div>
+      </div>
+    </div>
     <h3>
       <IonText color="secondary" class="ion-content ion-padding-bottom" style="display: flex; align-items: center;">
         <IonIcon color="secondary" style="margin-right: 10px;" aria-hidden="true" :icon="shapes" />
@@ -646,6 +687,44 @@ ion-modal {
   ion-modal .wrapper {
     margin-bottom: 10px;
   }
+
+  .warning-close-information {
+  margin: 10px;
+  background-color: #F5C228E6;
+  color: #000000B3;
+  padding: 15px;
+  border-radius: 6px;
+
+  .title {
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    padding-left: 32px; 
+  }
+
+  .text {
+    display: flex;
+    align-items: flex-start;
+    font-weight: 300;
+    font-size: 14px;
+    line-height: 1.4;
+    gap: 8px;
+    padding-left: 4px;
+    flex-wrap: wrap;
+
+    ion-icon {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      margin-top: 3px;
+    }
+
+    div {
+      flex: 1;
+      text-align: left;
+    }
+  }
+}
 
 .content {
   position: absolute;
