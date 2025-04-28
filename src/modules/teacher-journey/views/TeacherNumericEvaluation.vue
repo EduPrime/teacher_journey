@@ -381,7 +381,7 @@ async function handleSave(s: any, itemToSave?: RegisteredToSave) {
 
     const index = studentList.value?.findIndex((st: any) => st.enrollmentId === payload.enrollmentId)
     if (index !== undefined && index !== -1) {
-      const updatedStudent = { ...studentList.value[index], status: 'CONCLUÍDO' }
+      const updatedStudent = { ...(studentList.value ?? [])[index], status: 'CONCLUÍDO' }
       updateStudentList(index, updatedStudent) // Atualiza a lista de forma reativa
     }
 
@@ -426,7 +426,7 @@ async function handleClear(s: StudentGrade, itemToSave?: RegisteredToSave) {
     const index = studentList.value?.findIndex((st: any) => st.enrollmentId === s.enrollmentId)
     if (index !== undefined && index !== -1) {
       const clearedStudent = {
-        ...studentList.value[index],
+        ...(studentList.value ?? [])[index],
         at1: '',
         at2: '',
         at3: '',
