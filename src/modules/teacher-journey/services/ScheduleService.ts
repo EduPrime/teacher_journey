@@ -249,10 +249,36 @@ export default class ScheduleService extends BaseService<Schedule> {
       throw new Error('Nenhum horário encontrado')
     }
     else {
+      const query = await this.client
+        .from('discipline')
+        .select('id, name')
+        .neq('name', 'Geral')
+        .neq('name', 'Campos de Experiência')
+
+      //Parte de baixo é para ensino fundamental 1 ter todas as disciplinas
+      const newData = data.reduce((acc: ScheduleInfo[], item: ScheduleInfo) => {
+        if (item.discipline.name === 'Geral') {
+          if (query.data) {
+            query.data.forEach((i: ScheduleDisciplines) => {
+              acc.push({
+                ...item,
+                discipline: {
+                  id: i.id,
+                  name: i.name,
+                },
+              })
+            })
+          }
+        } else {
+          acc.push(item)
+        }
+        return acc
+      }, [])
+
       const schools = ref<ScheduleSchool[]>([])
       const availableDisciplines = ref<AvailableDisciplines[]>([])
       // O map abaixo cria um novo array com as turmas
-      const info = data.map((item: ScheduleInfo) => {
+      const info = newData.map((item: ScheduleInfo) => {
         // Aqui abaixo verificamos se a escola já está no array, se não estiver eu adiciono
 
         if (schools.value.length === 0 || schools.value.find((school: ScheduleSchool) => school.id !== item.school.id)) {
