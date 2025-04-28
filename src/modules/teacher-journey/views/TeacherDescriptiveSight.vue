@@ -741,6 +741,37 @@ async function registerGrades() {
 </template>
 
 <style scoped>
+
+.warning-close-date {
+  margin-top: 5px;
+  margin-bottom: 5px;
+  background-color: #F5C228E6;
+  color: #000000B3;
+  padding: 6px 6px 6px 6px;
+  border-radius: 3px;
+  margin-left: 10px;
+  margin-right: 10px;
+
+  .title {
+    font-size: 17px;
+    font-weight: 600;
+    padding-left: 34px;
+  }
+
+  .text {
+    ion-icon {
+      width: 30px;
+      margin-right: 5px;
+      margin-top: -18px;
+    }
+
+    font-weight: 300;
+    display: flex;
+    align-items: start;
+    font-size: 15px;
+  }
+}
+
 ion-modal {
     --width: fit-content;
     --min-width: 250px;
