@@ -56,7 +56,7 @@ const deleteModal = ref(false)
 const showAlert = ref(false)
 const stageFinished = ref<RegisteredToSave>()
 const gradesAreFilled = ref(false)
-const gradesAreNotFilled = ref(true)
+const gradesAreNotFilled = ref(false)
 
 const deadline = ref()
 const diffDays = ref(0)
@@ -200,6 +200,7 @@ watch([eduFProfile, currentStage], async ([newEduFProfile, newCurrentStage]) => 
   studentList.value = []
 
   gradesAreFilled.value = false // Reseta gradesAreFilled inicialmente
+  gradesAreNotFilled.value = false
 
   computedRegisteredGrade.value = {
     isCompleted: false,
@@ -263,12 +264,15 @@ watch([eduFProfile, currentStage], async ([newEduFProfile, newCurrentStage]) => 
         && checkMinimalGrade(item),
     )
 
-    gradesAreNotFilled.value = (studentList.value ?? []).every(
-      item =>
-        item.situation === 'CURSANDO' // Apenas alunos "CURSANDO" são considerados
-        && checkMinimalActivities(item)
-        && checkMinimalGrade(item),
-    )
+    gradesAreNotFilled.value = (studentList.value ?? [])
+      .filter((item) => {
+        return item.situation === 'CURSANDO' // Filtra apenas alunos "CURSANDO"
+      })
+      .every((item) => {
+        const activitiesValid = checkMinimalActivities(item)
+        const gradeValid = checkMinimalGrade(item)
+        return activitiesValid && gradeValid
+      })
 
     // Atualiza computedRegisteredGrade dinamicamente
     computedRegisteredGrade.value = {
@@ -383,6 +387,16 @@ async function handleSave(s: any, itemToSave?: RegisteredToSave) {
 
     gradesAreFilled.value = (studentList.value ?? []).some(item => checkMinimalActivities(item) && checkMinimalGrade(item))
 
+    gradesAreNotFilled.value = (studentList.value ?? [])
+      .filter((item) => {
+        return item.situation === 'CURSANDO' // Filtra apenas alunos "CURSANDO"
+      })
+      .every((item) => {
+        const activitiesValid = checkMinimalActivities(item)
+        const gradeValid = checkMinimalGrade(item)
+        return activitiesValid && gradeValid
+      })
+
     showToast('Nota salva com sucesso', 'top', 'success')
   }
   catch (error: any) {
@@ -424,6 +438,16 @@ async function handleClear(s: StudentGrade, itemToSave?: RegisteredToSave) {
       }
       updateStudentList(index, clearedStudent) // Atualiza a lista de forma reativa
     }
+
+    gradesAreNotFilled.value = (studentList.value ?? [])
+      .filter((item) => {
+        return item.situation === 'CURSANDO' // Filtra apenas alunos "CURSANDO"
+      })
+      .every((item) => {
+        const activitiesValid = checkMinimalActivities(item)
+        const gradeValid = checkMinimalGrade(item)
+        return activitiesValid && gradeValid
+      })
 
     showToast('Nota apagada com sucesso!', 'top', 'success')
   }
@@ -541,12 +565,6 @@ watch(
   (newValue) => {
     // Atualiza gradesAreFilled com base nas alterações detectadas
     gradesAreFilled.value = !!newValue?.some(item => item.situation === 'CURSANDO' && checkMinimalActivities(item) && checkMinimalGrade(item))
-    gradesAreNotFilled.value = !!newValue?.every(
-      item =>
-        item.situation === 'CURSANDO'
-        && checkMinimalActivities(item)
-        && checkMinimalGrade(item),
-    )
   },
   { deep: true },
 )
@@ -597,7 +615,6 @@ onMounted(async () => {
         <IonIcon color="secondary" style="margin-right: 10px;" aria-hidden="true" :icon="calculator" />
         Registro Numérico
       </IonText>
-      <!-- <pre>{{ gradesAreNotFilled }}</pre> -->
     </h3>
 
     <div v-if="eduFProfile?.classroomId && eduFProfile?.disciplineId">
@@ -906,8 +923,8 @@ onMounted(async () => {
     <IonAlert
       class="custom-alert"
       :is-open="showAlert"
-      header="Concluir Lançamento"
-      sub-header="Ao confirmar, você declara que todas as notas desta turma estão corretas e prontas para a secretaria. Deseja prosseguir?"
+      header="Lançar notas"
+      :sub-header="gradesAreNotFilled ? 'Ao confirmar, você declara que todas as notas desta turma estão corretas e prontas para a secretaria. Deseja prosseguir?' : 'Existem alunos sem lançamento de nota, deseja prosseguir?'"
       :buttons="[
         {
           text: 'Não',
