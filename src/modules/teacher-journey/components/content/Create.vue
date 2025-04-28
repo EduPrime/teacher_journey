@@ -52,8 +52,12 @@ const isLoadingBnccs = ref(false);
 
 const modalOpened = ref(props.isUpdateModalOpen)
 
+const uniqueDiscipline = props.availableDisciplines.length === 1
+  ? [props.availableDisciplines[0].id]
+  : []
+
 const filledContent = ref({
-  disciplines: props.disciplineId ? [props.disciplineId] : [] as string[],
+  disciplines: props.disciplineId ? [props.disciplineId] : uniqueDiscipline as string[],
   date: computed(() => props.selectedDay),
   description: '',
   bnccs: [] as string[],
@@ -63,6 +67,8 @@ const filledContent = ref({
 
 onMounted(async () => {
   if (props.disciplineId) {
+    console.log('props.disciplineId', props.disciplineId)
+    console.log('props.availableDisciplines', props.availableDisciplines)
     await getBNCCByDisciplines([props.disciplineId]);
   } else if (props.availableDisciplines?.length > 0) {
     availableDisciplineIds.value = props.availableDisciplines
@@ -98,8 +104,8 @@ watch(
 
 watch(
   () => filledContent.value.disciplines,
-  async (newDisciplines, oldDisciplines) => {
-    if (!oldDisciplines) return
+  async (newDisciplines) => {
+    if (!newDisciplines) return
 
     await getBNCCByDisciplines(newDisciplines)
 
@@ -215,7 +221,8 @@ async function saveContent() {
             <Field name="Disciplina" v-slot="{ field }" rules="required">
               <IonSelect v-if="props.evaluation === 'conceitual'" v-bind="field" v-model="filledContent.disciplines"
                 class="ion-select-card-content" label="Disciplina" label-placement="floating" fill="outline"
-                cancel-text="Cancelar" :multiple="true" :disabled="!!props.disciplineId"
+                cancel-text="Cancelar" :multiple="true"
+                :disabled="!!props.disciplineId || availableDisciplines.length === 1"
                 @ion-change="getBNCCByDisciplines($event.detail.value)">
                 <IonSelectOption v-for="(discipline, index) in availableDisciplines" :key="index"
                   :value="discipline.id">

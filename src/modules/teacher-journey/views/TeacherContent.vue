@@ -233,8 +233,7 @@ function changeSelectedToUpdate(current: any): void {
         :series-id="eduFProfile?.seriesId" :selected-day="selectedDayInfo?.selectedDate"
         :teacher-id="eduFProfile.teacherId" :classroom-id="eduFProfile?.classroomId"
         :available-disciplines="schedules?.availableDisciplines" :frequency="eduFProfile.frequency"
-        :evaluation="eduFProfile.evaluation"
-        :discipline-id="eduFProfile?.disciplineId ? eduFProfile?.disciplineId : schedules?.availableDisciplines[0]?.id"
+        :evaluation="eduFProfile.evaluation" :discipline-id="eduFProfile?.disciplineId"
         :is-update-modal-open="isUpdateModalOpen" />
 
       <ContentUpdate v-model="isUpdateModalOpen" :is-update-modal-open="isUpdateModalOpen" :registry="selectedToUpdate"
