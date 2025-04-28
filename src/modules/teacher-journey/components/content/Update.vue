@@ -239,7 +239,7 @@ function luxonFormatDate(dateString: string) {
             <Field name="Disciplina" v-slot="{ field }" rules="required">
               <IonSelect v-bind="field" v-model="filledContent.disciplines" class="ion-select-card-content"
                 label="Disciplina" label-placement="floating" fill="outline" cancel-text="Cancelar"
-                :disabled="props.frequency === 'disciplina'" :multiple="true"
+                :disabled="props.frequency === 'disciplina' || availableDisciplines.length===1" :multiple="true"
                 @ion-change="getBNCCByDisciplines($event.detail.value)">
                 <IonSelectOption v-for="(discipline, index) in availableDisciplines" :key="index" :value="discipline.id"
                   :selected="filledContent.disciplines.includes(discipline.id)">
