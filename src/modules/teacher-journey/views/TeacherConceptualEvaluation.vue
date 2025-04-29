@@ -36,7 +36,7 @@ let timestamp = ref<{ id: any, createdAt: any, updatedAt: any } | null>(null)
 const studentList = ref<MountedStudent[]>()
 const teacherId = ref(localStorage.getItem('teacherId'))
 const registeredToSave = ref<RegisteredToSave>({
-  areGradesReleased: false,
+  areGradesReleased: undefined,
   isCompleted: false,
   classroomId: '',
   disciplineId: '',
@@ -130,6 +130,11 @@ async function saveGrades(student: MountedStudent) {
     if (!student.conceptualGradeId) {
       const response = await conceptualGradeService.createConceptualGrade(student)
       await registeredGradeService.setAreGradesReleasedToFalse(computedRegisteredGrade.value)
+      stageFinished.value = await registeredGradeService.getRegistered( // garantir a existência do stage para um registro completamente novo
+        computedRegisteredGrade.value.classroomId,
+        computedRegisteredGrade.value.disciplineId,
+        computedRegisteredGrade.value.stageId,
+    )
 
       student.conceptualGradeId = response[0].conceptualGradeId
       student.grades.forEach((item) => {
@@ -139,7 +144,7 @@ async function saveGrades(student: MountedStudent) {
         student.status = 'CONCLUÍDO'
         student.isFull = true
         if (stageFinished.value) {
-          stageFinished.value.areGradesReleased = false
+          // stageFinished.value.areGradesReleased = false
         }
         isLoading.value = false
         showToast('Notas salvas com sucesso', 'top', 'success')
@@ -147,7 +152,7 @@ async function saveGrades(student: MountedStudent) {
       else {
         student.status = 'INCOMPLETO'
         if (stageFinished.value) {
-          stageFinished.value.areGradesReleased = false
+          // stageFinished.value.areGradesReleased = false
         }
         isLoading.value = false
         showToast('Notas salvas com sucesso', 'top', 'success')
@@ -217,6 +222,9 @@ async function cleanGrades(student: MountedStudent) {
 function preRegisterGrades() {
   showAlert.value = true
   isGradesFilled.value = studentList.value?.every(item => item.situation !== 'CURSANDO' || item.grades.every(tu => tu.grade)) ?? false
+  if (currentStage.value.id === undefined || currentStage.value.id === null) { // currentStage está esvaziando, ainda n identifiquei a origem do erro.
+    registeredToSave.value.stageId = registeredToSave.value.stageId
+  }
 }
 
 function registerGrades(itemToSave: RegisteredToSave) {
@@ -293,32 +301,37 @@ const deadline = computed(() => {
 
 const isLaunchAvailable = computed(() => {
   const filled = studentList.value?.some(item => item.grades.some(tu => tu.grade))
-  console.log('isLaunchAvailable', stageFinished.value, filled, !computedRegisteredGrade.value.areGradesReleased)
-  if (stageFinished.value === null && filled && !computedRegisteredGrade.value.areGradesReleased) {
+  // console.log('isLaunchAvailable', stageFinished.value, filled, computedRegisteredGrade.value.areGradesReleased)
+  if (stageFinished.value === null && filled && computedRegisteredGrade.value.areGradesReleased === undefined) {
     //  && computedRegisteredGrade.value.areGradesReleased
-    console.log('0')
+    // console.log('0')
+    return true
+  }
+  else if (stageFinished.value === null && filled && !computedRegisteredGrade.value.areGradesReleased) {
+    //  && computedRegisteredGrade.value.areGradesReleased
+    // console.log('1')
     return false
   }
   // else if (stageFinished.value === null && registeredToSave.value.areGradesReleased) {
   //   //  && registeredToSave.value.areGradesReleased
-  //   console.log('1')
+    // console.log('1')
   //   return false
   // }
   else if (stageFinished.value && !stageFinished.value.areGradesReleased && filled) {
     //  && !computedRegisteredGrade.value.areGradesReleased
-    console.log('2')
+    // console.log('2')
     return false
   }
   else if (stageFinished.value && !stageFinished.value.areGradesReleased && !filled) {
     //  && !computedRegisteredGrade.value.areGradesReleased
-    console.log('3')
+    // console.log('3')
     return false
   }
   // if (isDisabled.value) {
   //   return true
   // }
   else {
-    console.log('ultimo')
+    // console.log('ultimo')
     return true
   }
 
