@@ -138,8 +138,10 @@ async function saveGrades(student: MountedStudent) {
 
       student.conceptualGradeId = response[0].conceptualGradeId
       student.grades.forEach((item) => {
+        item.conceptualGradeId = response[0].conceptualGradeId
         item.grade = response.find(r => r.thematicUnitId === item.thematicUnitId)?.grade
       })
+      
       if (isNotEmpty) {
         student.status = 'CONCLUÍDO'
         student.isFull = true
