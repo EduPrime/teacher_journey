@@ -66,6 +66,7 @@ interface SightStudent extends DescriptiveStudent {
   partialFeedback: string
   finalFeedback: string
   isSaved: boolean
+  firstSavedAt: string | null
 }
 
 const saveModal = ref(false)
@@ -141,6 +142,40 @@ const showAlert = ref(false)
 
 const isAnySaved = computed(() => students.value?.some(s => s.isSaved) ?? false)
 
+const editModalOpen = ref(false)
+const editingStudent = ref<SightStudent | null>(null)
+const editingField = ref<'initialFeedback'|'partialFeedback'|'finalFeedback'>('initialFeedback')
+const editTemporary = ref('')
+
+// abre o modal para o aluno e campo corretos
+function openEditModal(student: SightStudent, field: typeof editingField.value) {
+  editingStudent.value = student
+  editingField.value = field
+  editTemporary.value = student[field] || ''
+  editModalOpen.value = true
+}
+
+// reseta tudo quando o modal fechar
+function closeEditModal() {
+  editModalOpen.value = false
+  editingStudent.value = null
+  editingField.value = 'initialFeedback'
+  editTemporary.value = ''
+}
+
+// limpa o campo temporário sem fechar o modal
+function clearEditTemporary() {
+  editTemporary.value = ''
+}
+
+// aplica a edição e fecha
+function confirmEditModal() {
+  if (!editingStudent.value) return
+  editingStudent.value[editingField.value] = editTemporary.value
+  onFeedbackEdit(editingStudent.value)
+  closeEditModal()
+}
+
 function isEdited(s: SightStudent): boolean { 
   return s.initialFeedback !== '' || s.partialFeedback !== '' || s.finalFeedback !== ''
 }
@@ -151,16 +186,22 @@ function onFeedbackEdit(s: SightStudent) {
 
 function getFeedbackIcon(s: SightStudent) {
   if (s.situation !== 'CURSANDO') return lockClosedOutline
-  if (s.isSaved) return checkmarkOutline
-  if (isEdited(s)) return alertOutline
-  return helpOutline
+  const feedback = selectedTad.value === 'inicial'
+    ? s.initialFeedback
+    : selectedTad.value === 'parcial'
+      ? s.partialFeedback
+      : s.finalFeedback
+  return feedback.trim() ? checkmarkOutline : helpOutline
 }
 
 function getFeedbackColor(s: SightStudent) {
   if (s.situation !== 'CURSANDO') return 'light'
-  if (s.isSaved) return 'success'
-  if (isEdited(s)) return 'warning'
-  return 'danger'
+  const feedback = selectedTad.value === 'inicial'
+    ? s.initialFeedback
+    : selectedTad.value === 'parcial'
+      ? s.partialFeedback
+      : s.finalFeedback
+  return feedback.trim() ? 'success' : 'danger'
 }
 
 async function loadRegisteredGrade() {
@@ -181,23 +222,27 @@ watch(eduFProfile, async (newValue) => {
   if (newValue?.teacherId) {
     const raw = await enrollmentService.getClassroomStudents(newValue.classroomId)
 
-    const enrichedStudents: SightStudent[] = raw.map(e => ({
-      name: e.name,
-      situation: e.situation,
-      disability: (e.student?.disability?.length ?? 0) > 0,
-      status: e.situation !== 'CURSANDO' ? 'BLOQUEADO' : 'INCOMPLETO',
-      createdAt: e.createdAt,
-      updatedAt: e.updatedAt,
-      studentId: e.studentId,
-      classroomId: newValue.classroomId,
-      enrollmentId: e.id,
-      schoolId: e.schoolId,
-      disciplineId: newValue.disciplineId?.trim() ? newValue.disciplineId : DEFAULT_DISCIPLINE_ID,
-      initialFeedback: '',
-      partialFeedback: '',
-      finalFeedback: '',
-      isSaved: false
-    }))
+    const enrichedStudents: SightStudent[] = raw.map(e => {
+      const prev = students.value?.find(s => s.enrollmentId === e.id);
+      return {
+        name: e.name,
+        situation: e.situation,
+        disability: (e.student?.disability?.length ?? 0) > 0,
+        status: e.situation !== 'CURSANDO' ? 'BLOQUEADO' : 'INCOMPLETO',
+        createdAt: prev?.firstSavedAt ?? '',
+        updatedAt: prev?.updatedAt ?? e.updatedAt,
+        studentId: e.studentId,
+        classroomId: newValue.classroomId,
+        enrollmentId: e.id,
+        schoolId: e.schoolId,
+        disciplineId: newValue.disciplineId?.trim() ? newValue.disciplineId : DEFAULT_DISCIPLINE_ID,
+        initialFeedback: prev?.initialFeedback ?? '',
+        partialFeedback: prev?.partialFeedback ?? '',
+        finalFeedback: prev?.finalFeedback ?? '',
+        isSaved: prev?.isSaved ?? false,
+        firstSavedAt: prev?.firstSavedAt ?? null
+      }
+    })
 
     const feedbackPromises = enrichedStudents.map(s => 
       feedbackService.getStudentFeedback(s.enrollmentId)
@@ -210,6 +255,8 @@ watch(eduFProfile, async (newValue) => {
             s.isSaved = true
             s.createdAt = feedback[0].createdAt ? new Date(feedback[0].createdAt).toISOString() : s.createdAt
             s.updatedAt = feedback[0].updatedAt ? new Date(feedback[0].updatedAt).toISOString() : s.updatedAt
+            // record first save timestamp
+            s.firstSavedAt = feedback[0].createdAt ? new Date(feedback[0].createdAt).toISOString() : null
           }
           return s;
         })
@@ -225,25 +272,52 @@ watch(eduFProfile, async (newValue) => {
   }
 })
 
-function luxonFormatDate(dateString: string) {
-  const date = DateTime.fromISO(dateString)
-  if (!date.isValid) return ''
-  return date.setLocale('pt-BR').toFormat('dd MMM yyyy')
-}
-
-function luxonFormatDateTime(dateString: string) {
+function luxonFormatDate(dateString: string | null | undefined): string {
   if (!dateString) return ''
-
   const dt = DateTime.fromISO(dateString, { zone: 'utc' }).toLocal()
-
-  console.log("Date:", dt)
-
-  if (!dt.isValid) { 
-    console.log("Invalid date:", dt) 
-    return '' 
-  } 
-  return dt.setLocale('pt-BR').toFormat('dd/MM/yyyy HH:mm')
+  if (!dt.isValid) return ''
+  return dt.setLocale('pt-BR').toFormat('dd/MM/yyyy')
 }
+
+/*function luxonFormatDateTime(dateString: string | null | undefined): string {
+  if (!dateString) return ''
+  // treat timestamp as UTC, then shift to local zone
+  const dt = DateTime.fromISO(dateString, { zone: 'utc' }).toLocal()
+  if (!dt.isValid) return ''
+  return dt.setLocale('pt-BR').toFormat('dd/MM/yyyy HH:mm')
+}*/
+
+function luxonFormatDateTime(dateString: string | null | undefined): string {
+    if (!dateString) return "";
+
+    try {
+        // 1. Corrige caso a string não tenha indicador de timezone (assume UTC se não tiver 'Z' ou offset)
+        const normalizedDateString = dateString.includes('Z') || dateString.match(/[+-]\d{2}:\d{2}$/) 
+            ? dateString 
+            : dateString + 'Z';
+
+        // 2. Converte para Date object 
+        const date = new Date(normalizedDateString);
+        if (isNaN(date.getTime())) return ""; 
+
+        // 3. Ajusta para o horário de Brasília (UTC-3)
+        const offsetBrasilia = -3; 
+        date.setHours(date.getHours() + offsetBrasilia);
+
+        // 4. Formata manualmente no padrão dd/MM/yyyy HH:mm
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+
+        return `${day}/${month}/${year} ${hours}:${minutes}`;
+    } catch (error) {
+        console.error("Erro ao formatar data:", error);
+        return "";
+    }
+}
+
 
 watch(selectedTad, (newValue) => {
   if (newValue) {
@@ -288,7 +362,7 @@ onMounted(async () => {
 
     const st2 = stages?.find(s => Number(s.numberStage) === 2)
     if (st2) {
-      stage2Start.value = DateTime.fromISO('2025-04-30').toISO()
+      stage2Start.value = DateTime.fromISO('2025-04-27').toISO()
       stage2Id.value = st2.id
     }
     stage1EndDate.value = stage2Start.value
@@ -332,6 +406,10 @@ async function saveFeedback(s: SightStudent) {
     s.finalFeedback = records[0].finalFeedback || ''
     s.updatedAt = records[0].updatedAt ? new Date(records[0].updatedAt).toISOString() : s.updatedAt
     s.createdAt = records[0].createdAt ? new Date(records[0].createdAt).toISOString() : s.createdAt
+    // set firstSavedAt on first save
+    if (!s.firstSavedAt) {
+      s.firstSavedAt = records[0].createdAt ? new Date(records[0].createdAt).toISOString() : null
+    }
     s.isSaved = true
     isFinalizedGlobal.value = false
     
@@ -352,10 +430,9 @@ async function clearFeedback(s: SightStudent) {
     s.partialFeedback = ''
     s.finalFeedback = ''
     s.isSaved = false
-    // Re-enable launch button when feedback is cleared
+    
     registeredToSave.value.areGradesReleased = false
     showToast('Parecer limpo com sucesso', 'top', 'success')
-    console.debug(`[Clear] Student ${s.studentId}: isSaved=${s.isSaved}, isFinalizedGlobal=${isFinalizedGlobal.value}`)
   } catch (error) {
     console.error(error)
     showToast('Erro ao limpar parecer', 'top', 'danger')
@@ -517,54 +594,45 @@ async function registerGrades() {
                 </IonText>
               </IonCardHeader>
               <div class="ion-margin-top">
-                <IonTextarea
-                  v-if="selectedTad === 'inicial'"
-                  v-model="s.initialFeedback"
-                  color="secondary"
-                  class="ion-content"
-                  label="Parecer Descritivo Inicial"
-                  label-placement="floating"
-                  fill="outline"
-                  :style="`min-height: ${screenWidth <= 480 ? 100 : 180}px;`"
-                  placeholder="Enter text"
-                  :counter="true"
-                  auto-grow
-                  :maxlength="800"
-                  @ionInput="onFeedbackEdit(s)"
-                  :disabled="s.situation !== 'CURSANDO'"
-                />
-                <IonTextarea
-                  v-if="selectedTad === 'parcial'"
-                  v-model="s.partialFeedback"
-                  color="secondary"
-                  class="ion-content"
-                  label="Parecer Descritivo Parcial"
-                  label-placement="floating"
-                  fill="outline"
-                  :style="`min-height: ${screenWidth <= 480 ? 100 : 180}px;`"
-                  placeholder="Enter text"
-                  :counter="true"
-                  auto-grow
-                  :maxlength="800"
-                  @ionInput="onFeedbackEdit(s)"
-                  :disabled="s.situation !== 'CURSANDO'"
-                />
-                <IonTextarea
-                  v-if="selectedTad === 'final'"
-                  v-model="s.finalFeedback"
-                  color="secondary"
-                  class="ion-content"
-                  label="Parecer Descritivo Final"
-                  label-placement="floating"
-                  fill="outline"
-                  :style="`min-height: ${screenWidth <= 480 ? 100 : 180}px;`"
-                  placeholder="Enter text"
-                  :counter="true"
-                  auto-grow
-                  :maxlength="800"
-                  @ionInput="onFeedbackEdit(s)"
-                  :disabled="s.situation !== 'CURSANDO'"
-                />
+                <IonItem button :detail="false"
+                        v-if="selectedTad === 'inicial'"
+                        @click="openEditModal(s, 'initialFeedback')"
+                        :disabled="s.situation !== 'CURSANDO'">
+                  <IonLabel>
+                    <div style="min-height: 180px; white-space: pre-wrap; cursor: text;">
+                      {{ s.initialFeedback || 'Clique para inserir parecer inicial...' }}
+                    </div>
+                    <IonText slot="end" color="medium">
+                      {{ (s.initialFeedback.length) }}/1000
+                    </IonText>
+                  </IonLabel>
+                </IonItem>
+                <IonItem button :detail="false"
+                        v-if="selectedTad === 'parcial'"
+                        @click="openEditModal(s, 'partialFeedback')"
+                        :disabled="s.situation !== 'CURSANDO'">
+                  <IonLabel>
+                    <div style="min-height: 180px; white-space: pre-wrap; cursor: text;">
+                      {{ s.partialFeedback || 'Clique para inserir parecer parcial...' }}
+                    </div>
+                    <IonText slot="end" color="medium">
+                      {{ (s.partialFeedback.length) }}/1000
+                    </IonText>
+                  </IonLabel>
+                </IonItem>
+                <IonItem button :detail="false"
+                        v-if="selectedTad === 'final'"
+                        @click="openEditModal(s, 'finalFeedback')"
+                        :disabled="s.situation !== 'CURSANDO'">
+                  <IonLabel>
+                    <div style="min-height: 180px; white-space: pre-wrap; cursor: text;">
+                      {{ s.finalFeedback || 'Clique para inserir parecer final...' }}
+                    </div>
+                    <IonText slot="end" color="medium">
+                      {{ (s.finalFeedback.length) }}/1000
+                    </IonText>
+                  </IonLabel>
+                </IonItem>
               </div>
               <!-- Data de criação do parecer descritivo -->
               <IonCardHeader
@@ -574,7 +642,7 @@ async function registerGrades() {
               >
                 <IonText color="primary" style="display: flex; align-items: center; height: 15px;">
                   <IonIcon :icon="calendarClearOutline" style="margin-right: 10px;" />
-                  Criado em {{ luxonFormatDate(s.createdAt) }}
+                  Criado em {{ luxonFormatDate(s.firstSavedAt) }}
                 </IonText>
               </IonCardHeader>
               <!-- Data de *ATUALIZAÇÂO do parecer descritivo -->
@@ -697,6 +765,51 @@ async function registerGrades() {
       </IonCard>
     </IonModal>
 
+    <IonModal
+      :key="`${editingStudent?.studentId}-${editingField}`"
+      v-model:is-open="editModalOpen"
+      swipe-to-close="false"
+      backdrop-dismiss="false"
+      class="edit-modal"
+      @ion-modal-did-dismiss="closeEditModal"
+    >
+      <IonHeader>
+        <IonToolbar>
+          <IonTitle style="padding-left: 16px; color: var(--ion-color-primary)">
+            {{ selectedTad === 'inicial'
+                ? 'Editar Parecer Inicial'
+                : selectedTad === 'parcial'
+                  ? 'Editar Parecer Parcial'
+                  : 'Editar Parecer Final' }}
+          </IonTitle>
+          <IonButtons slot="end">
+            <IonButton style="padding-right: 16px;" @click="closeEditModal">Fechar</IonButton>
+          </IonButtons>
+        </IonToolbar>
+      </IonHeader>
+
+      <IonContent class="edit-modal-content ion-padding">
+        <IonTextarea
+          v-model="editTemporary"
+          autofocus
+          counter
+          :maxlength="1000"
+          :rows="10"
+          placeholder="Digite até 1000 caracteres..."
+          auto-grow
+        />
+      </IonContent>
+
+      <IonFooter>
+        <IonToolbar>
+          <IonButtons slot="end">
+            <IonButton color="medium" @click="clearEditTemporary">Limpar</IonButton>
+            <IonButton color="secondary" style="padding-right: 16px;" @click="confirmEditModal()">Salvar</IonButton>
+          </IonButtons>
+        </IonToolbar>
+      </IonFooter>
+    </IonModal>
+
     <IonAlert
       class="custom-alert"
       :is-open="showAlert"
@@ -742,7 +855,21 @@ async function registerGrades() {
 
 <style scoped>
 
-.warning-close-date {
+.edit-modal {
+  --width: 90%;
+  --max-width: 500px;
+  --min-width: 250px;
+  --height: auto;
+  --max-height: 80%;
+}
+
+.edit-modal-content {
+  max-height: calc(80vh - 112px);
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.warning-close-information {
   margin-top: 5px;
   margin-bottom: 5px;
   background-color: #F5C228E6;
