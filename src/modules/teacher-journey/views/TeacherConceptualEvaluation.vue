@@ -20,7 +20,7 @@ const enrollmentService = new EnrollmentService()
 const registeredGradeService = new RegisteredGradeService()
 const conceptualGradeService = new ConceptualGradeService()
 
-const cleanModal = ref(false)
+let cleanModal = ref(false)
 const selectedStudent = ref()
 const stages = ref()
 const eduFProfile = ref()
@@ -29,13 +29,14 @@ const conceptualTypes = ref()
 const isLoading = ref(false)
 const showAlert = ref(false)
 const stageFinished = ref<RegisteredToSave>()
-let isDisabled = ref(false)
+const isDisabled = ref(true)
 let isGradesFilled = ref(false)
 let diffDays = 0
 let timestamp = ref<{ id: any, createdAt: any, updatedAt: any } | null>(null)
 const studentList = ref<MountedStudent[]>()
 const teacherId = ref(localStorage.getItem('teacherId'))
 const registeredToSave = ref<RegisteredToSave>({
+  areGradesReleased: false,
   isCompleted: false,
   classroomId: '',
   disciplineId: '',
@@ -55,19 +56,20 @@ watch(eduFProfile, async (newValue) => {
       currentStage.value.id,
       newValue.seriesId,
     )
-    checkRegisteredGradesInfo()
-    // Checa se registro de notas já foi finalizado
     stageFinished.value = await registeredGradeService.getRegistered(
-      newValue?.classroomId,
-      newValue?.disciplineId,
+      newValue.classroomId,
+      newValue.disciplineId,
       currentStage.value?.id,
     )
-    // isDisabled.value = studentList.value?.some(item => item.grades.some(tu => tu.grade !== '')) ?? false
+    registeredToSave.value.stageId = currentStage.value?.id
   }
   else {
     studentList.value = undefined
+    registeredToSave.value.stageId = currentStage.value?.id
   }
-})
+},
+  { immediate: true }
+)
 
 watch((currentStage), async (newValue) => {
   if (newValue && eduFProfile.value.disciplineId) {
@@ -81,29 +83,48 @@ watch((currentStage), async (newValue) => {
       newValue.id,
       eduFProfile.value.seriesId,
     )
-    checkRegisteredGradesInfo()
-    // Checa se registro de notas já foi finalizado
     stageFinished.value = await registeredGradeService.getRegistered(
       eduFProfile.value.classroomId,
       eduFProfile.value.disciplineId,
       newValue.id,
     )
-    // isDisabled.value = studentList.value?.some(item => item.grades.some(tu => tu.grade !== '')) ?? false
+    registeredToSave.value.stageId = newValue?.id
   }
-})
+  registeredToSave.value.stageId = newValue?.id
+},
+  { immediate: true }
+)
 
 onMounted(async () => {
   stages.value = await stageService.getAllStages()
   // console.log(stages.value)
 })
 
-async function checkRegisteredGradesInfo() {
-  if (eduFProfile.value?.classroomId && eduFProfile.value?.disciplineId && currentStage.value?.id) {
-    isDisabled.value = await registeredGradeService.getGradesReleasedInfo(computedRegisteredGrade.value)
+// function guaranteeIonModalDidDismissWorksFine() {
+//   if (cleanModal.value) {
+//     cleanModal.value = false
+//   }
+//   else {
+//     cleanModal.value = true
+//   }
+// }
+
+// function guaranteeNoUndefinedStage(value: string) {
+//   if (value) {
+//     registeredToSave.value.stageId = value
+//   }
+// }
+
+function guaranteeIonModalDidDismissWorksFine(open: boolean) {
+  cleanModal.value = open
+  if (open) {
+    cleanModal.value = false
+    setTimeout(() => (cleanModal.value = true), 10)
   }
 }
 
 async function saveGrades(student: MountedStudent) {
+  isLoading.value = true
   const isNotEmpty = student.grades.every(item => item.grade)
   try {
     if (!student.conceptualGradeId) {
@@ -117,12 +138,18 @@ async function saveGrades(student: MountedStudent) {
       if (isNotEmpty) {
         student.status = 'CONCLUÍDO'
         student.isFull = true
-        isDisabled.value = false // habilita o botão LANÇAR NOTAS
+        if (stageFinished.value) {
+          stageFinished.value.areGradesReleased = false
+        }
+        isLoading.value = false
         showToast('Notas salvas com sucesso', 'top', 'success')
       }
       else {
         student.status = 'INCOMPLETO'
-        isDisabled.value = false // habilita o botão LANÇAR NOTAS
+        if (stageFinished.value) {
+          stageFinished.value.areGradesReleased = false
+        }
+        isLoading.value = false
         showToast('Notas salvas com sucesso', 'top', 'success')
       }
     }
@@ -132,31 +159,44 @@ async function saveGrades(student: MountedStudent) {
       if (isNotEmpty) {
         student.status = 'CONCLUÍDO'
         student.isFull = true
-        isDisabled.value = false // habilita o botão LANÇAR NOTAS
+        if (stageFinished.value) {
+          stageFinished.value.areGradesReleased = false
+        }
+        isLoading.value = false
         showToast('Notas salvas com sucesso', 'top', 'success')
       }
       else {
         student.status = 'INCOMPLETO'
-        isDisabled.value = false // habilita o botão LANÇAR NOTAS
+        if (stageFinished.value) {
+          stageFinished.value.areGradesReleased = false
+        }
+        isLoading.value = false
         showToast('Notas salvas com sucesso', 'top', 'success')
       }
     }
   }
   catch (error) {
+    isLoading.value = false
     console.error(error)
   }
 }
 
 async function cleanGrades(student: MountedStudent) {
+  isLoading.value = true
   if (student.conceptualGradeId) {
     try {
       await conceptualGradeService.softDeleteConceptualGrade(student.conceptualGradeId)
       registeredToSave.value.isCompleted = false
       await registeredGradeService.updateRegisteredGradeIsCompleted(teacherId.value, student.classroomId, student.disciplineId, student.stageId, registeredToSave.value.isCompleted)
       await registeredGradeService.setAreGradesReleasedToFalse(computedRegisteredGrade.value)
+      if (stageFinished.value) {
+        stageFinished.value.areGradesReleased = false
+      }
+      isLoading.value = false
       showToast('Notas limpas com sucesso', 'top', 'success')
     }
     catch (error) {
+      isLoading.value = false
       console.error(error)
     }
   }
@@ -167,6 +207,10 @@ async function cleanGrades(student: MountedStudent) {
   student.conceptualGradeId = null
   student.isFull = false
   isDisabled.value = false
+  if (stageFinished.value) {
+        stageFinished.value.areGradesReleased = false
+      }
+  isLoading.value = false
   showToast('Notas limpas com sucesso', 'top', 'success')
 }
 
@@ -176,39 +220,49 @@ function preRegisterGrades() {
 }
 
 function registerGrades(itemToSave: RegisteredToSave) {
-  showAlert.value = false
   isLoading.value = true
+  showAlert.value = false
   try {
     isGradesFilled.value = studentList.value?.every(item => item.situation !== 'CURSANDO' || item.grades.every(tu => tu.grade)) ?? false
     if (isGradesFilled.value) {
       itemToSave.isCompleted = true
       registeredGradeService.upsertRegisteredGrade(itemToSave)
-      isDisabled.value = false
-      showToast('Registro de notas completas finalizado com sucesso!', 'top', 'success')
+      isDisabled.value = true
+      showToast('Notas completas lançadas com sucesso!', 'top', 'success')
     }
     else {
       itemToSave.isCompleted = false
       registeredGradeService.upsertRegisteredGrade(itemToSave)
-      isDisabled.value = false
-      showToast('Registro de notas incompletas finalizado com sucesso!', 'top', 'success')
+      isDisabled.value = true
+      showToast('Notas incompletas lançadas com sucesso!', 'top', 'success')
     }
   }
   catch (error) {
     console.error('Erro ao registrar notas:', error)
-    showToast('Ocorreu um erro ao finalizar o registro de notas.', 'top', 'danger')
+    showToast('Ocorreu um erro ao lançadas o registro de notas.', 'top', 'danger')
   }
   finally {
     isLoading.value = false
     registeredToSave.value.isCompleted = itemToSave.isCompleted
-  }
+    registeredToSave.value.areGradesReleased = true
+    stageFinished.value = {
+      areGradesReleased: true,
+      isCompleted: itemToSave.isCompleted,
+      classroomId: '',
+      disciplineId: '',
+      stageId: ''
+    }
+    isLoading.value = false
+    }
 }
 
 const computedRegisteredGrade = computed(() => ({
+  areGradesReleased: registeredToSave.value.areGradesReleased,
   isCompleted: registeredToSave.value.isCompleted,
   teacherId: teacherId.value,
   classroomId: eduFProfile.value?.classroomId || '',
   disciplineId: eduFProfile.value?.disciplineId || '',
-  stageId: currentStage.value?.id || '',
+  stageId: currentStage.value?.id || registeredToSave.value?.stageId,
 }))
 
 const deadline = computed(() => {
@@ -222,9 +276,61 @@ const deadline = computed(() => {
   return diffDays
 })
 
-const areGradesRegistered = computed(() => {
-  console.log('timestamp', timestamp.value)
-  return !!timestamp.value
+// const isGradeRegistered = computed(async () => {
+//   return await registeredGradeService.getGradesReleasedInfo(computedRegisteredGrade.value)
+// })
+
+// const isAnyRecord = computed(() => {
+//   if (computedRegisteredGrade.value.classroomId && computedRegisteredGrade.value.disciplineId && computedRegisteredGrade.value.stageId) {
+//     return registeredGradeService.getRegistered(
+//       computedRegisteredGrade.value.classroomId,
+//       computedRegisteredGrade.value.disciplineId,
+//       computedRegisteredGrade.value.stageId
+//     ).then(registered => !!registered)
+//   }
+//   return false
+// })
+
+const isLaunchAvailable = computed(() => {
+  const filled = studentList.value?.some(item => item.grades.some(tu => tu.grade))
+  console.log('isLaunchAvailable', stageFinished.value, filled, !computedRegisteredGrade.value.areGradesReleased)
+  if (stageFinished.value === null && filled && !computedRegisteredGrade.value.areGradesReleased) {
+    //  && computedRegisteredGrade.value.areGradesReleased
+    console.log('0')
+    return false
+  }
+  // else if (stageFinished.value === null && registeredToSave.value.areGradesReleased) {
+  //   //  && registeredToSave.value.areGradesReleased
+  //   console.log('1')
+  //   return false
+  // }
+  else if (stageFinished.value && !stageFinished.value.areGradesReleased && filled) {
+    //  && !computedRegisteredGrade.value.areGradesReleased
+    console.log('2')
+    return false
+  }
+  else if (stageFinished.value && !stageFinished.value.areGradesReleased && !filled) {
+    //  && !computedRegisteredGrade.value.areGradesReleased
+    console.log('3')
+    return false
+  }
+  // if (isDisabled.value) {
+  //   return true
+  // }
+  else {
+    console.log('ultimo')
+    return true
+  }
+
+  // else if (!stageFinished.value && isDisabled.value) {
+  //   return false
+  // }
+  // else if (isDisabled.value) {
+  //   return true
+  // }
+  // else if (stageFinished.value && !filled) {
+  //   return true
+  // }
 })
 
 const getStatusIcon = computed(() => (status: string) => {
@@ -257,7 +363,7 @@ const getStatusColor = computed(() => (status: string) => {
 <template>
   <ContentLayout>
     <EduFilterProfile :discipline="true" @update:filtered-ocupation="($event) => eduFProfile = $event" />
-    <div v-if="deadline && diffDays <= 10 && diffDays >= 0 && !computedRegisteredGrade.isCompleted && studentList" class="warning-close-information">
+    <div v-if="deadline && diffDays <= 10 && diffDays >= 0 && !stageFinished && studentList" class="warning-close-information">
       <div class="title">
         Registro irregular
       </div>
@@ -268,7 +374,7 @@ const getStatusColor = computed(() => (status: string) => {
         </div>
       </div>
     </div>
-    <!-- <div v-else-if="deadline && diffDays < 0 && !computedRegisteredGrade.isCompleted && studentList" class="warning-close-information">
+    <div v-else-if="deadline && diffDays < 0 && !stageFinished && studentList" class="warning-close-information">
       <div class="title">
         Registro irregular
       </div>
@@ -278,14 +384,18 @@ const getStatusColor = computed(() => (status: string) => {
           Olá professor, o prazo de preenchimento se encerrou, entre em contato com a secretaria para resolver as pendências.
         </div>
       </div>
-    </div> -->
+    </div>
     <div v-else />
-    <pre>
+    <!-- <pre>
       <small>
-        isLoading {{ isLoading }}
+        comp.areGradesReleased {{ computedRegisteredGrade.areGradesReleased }}
         isDisabled {{ isDisabled }}
+        stageFinished {{ stageFinished }}
+        isLaunchAvailable {{ isLaunchAvailable }}
+        {{ stageFinished }} stageFinished
+        {{ currentStage }} currentStage
       </small>
-    </pre>
+    </pre> -->
     <h3>
       <IonText color="secondary" class="ion-content ion-padding-bottom" style="display: flex; align-items: center;">
         <IonIcon color="secondary" style="margin-right: 10px;" aria-hidden="true" :icon="text" />
@@ -294,13 +404,13 @@ const getStatusColor = computed(() => (status: string) => {
     </h3>
     <div v-if="eduFProfile?.classroomId && eduFProfile?.disciplineId">
       <EduStageTabs v-model="currentStage" :stages="stages">
-        <template v-for="stage in stages" :key="stage.numberStage" #[stage?.numberStage]>
-          <IonCard v-if="registeredToSave.isCompleted" class="success-card" style="margin:10px 0px 10px 0px;">
+        <template v-for="stage in stages" :key="stage.numberStage" #[stage.numberStage]>
+          <IonCard v-if="stageFinished?.areGradesReleased" class="success-card" style="margin:10px 0px 10px 0px;">
             <IonCardContent>
               <IonText style="display: flex;">
                 <IonIcon size="small" style="margin-top: auto; margin-bottom: auto;" :icon="checkmarkCircleOutline" />
                 <span style="margin-top: auto; margin-bottom: auto; margin-left: 5px;">
-                  Lançamento de notas da {{ stage.numberStage }}º Etapa concluído.
+                  Lançamento de notas realizado com sucesso.
                 </span>
               </IonText>
             </IonCardContent>
@@ -375,7 +485,7 @@ const getStatusColor = computed(() => (status: string) => {
                   <div class="ion-content" style="display: flex;">
                     <IonButton
                       style="margin-left: auto; margin-right: 8px; text-transform: capitalize;" size="small"
-                      :disabled="s.status === 'BLOQUEADO'" color="danger" @click="() => { selectedStudent = s; cleanModal = true }"
+                      :disabled="s.status === 'BLOQUEADO'" color="danger" @click="() => { selectedStudent = s; guaranteeIonModalDidDismissWorksFine(true) }"
                     >
                       Limpar
                     </IonButton>
@@ -424,7 +534,7 @@ const getStatusColor = computed(() => (status: string) => {
       </IonCardContent>
     </IonCard>
 
-    <IonModal id="clean-modal" :is-open="cleanModal" trigger="open-custom-dialog" @ion-modal-did-dismiss="cleanModal = false">
+    <IonModal id="clean-modal" :is-open="cleanModal" @ion-modal-will-dismiss="guaranteeIonModalDidDismissWorksFine(false)">
       <IonCard class="ion-no-margin">
         <IonCardHeader>
           <IonCardTitle>Limpar notas</IonCardTitle>
@@ -433,25 +543,22 @@ const getStatusColor = computed(() => (status: string) => {
           </IonText>
           <div style="display: flex;">
             <IonButton
-              style="margin-left: auto; margin-right: 8px;  text-transform: capitalize;"
               size="small"
-              color="danger"
-              @click="() => {
-                cleanGrades(selectedStudent);
-                cleanModal = false
-              }"
-            >
-              Confirmar
-            </IonButton>
-            <IonButton
-              size="small"
-              style=" text-transform: capitalize;"
-              color="secondary"
-              @click="() => {
-                cleanModal = false
-              }"
+              style="margin-left: auto; margin-right: 8px; text-transform: capitalize;"
+              color="medium"
+              @click="guaranteeIonModalDidDismissWorksFine(false)"
             >
               Cancelar
+            </IonButton>
+            <IonButton
+              style="text-transform: capitalize;"
+              size="small"
+              color="danger"
+              @click="cleanGrades(selectedStudent);
+                guaranteeIonModalDidDismissWorksFine(false)
+              "
+            >
+              Confirmar
             </IonButton>
           </div>
         </IonCardHeader>
@@ -461,8 +568,8 @@ const getStatusColor = computed(() => (status: string) => {
     <IonAlert
       class="custom-alert"
       :is-open="showAlert"
-      :header="isGradesFilled ? 'Deseja finalizar os registros?' : 'Registros incompletos'"
-      :sub-header="isGradesFilled ? '' : 'Deseja finalizar assim mesmo?'"
+      header="Lançar notas"
+      :sub-header="isGradesFilled ? 'Ao confirmar, você declara que todas as notas desta turma estão corretas e prontas para a secretaria. Deseja prosseguir?' : 'Existem alunos sem lançamento de nota, deseja prosseguir?'"
       :buttons="[
         {
           text: 'Não',
@@ -480,7 +587,7 @@ const getStatusColor = computed(() => (status: string) => {
 
     <IonLoading
       :is-open="isLoading"
-      message="Finalizando..."
+      message="Carregando..."
       spinner="crescent"
       class="custom-save-loading"
     />
@@ -492,7 +599,7 @@ const getStatusColor = computed(() => (status: string) => {
           <IonRow>
             <IonCol size="12">
               <IonButton
-                :disabled="isLoading || !isDisabled" color="secondary" expand="full"
+                :disabled="isLaunchAvailable" color="secondary" expand="full"
                 @click="preRegisterGrades"
               >
                 <IonIcon size="small" style="margin-top: auto; margin-bottom: auto; margin-left:10px;" :icon="checkmarkCircleOutline" />

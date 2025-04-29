@@ -165,6 +165,7 @@ export default class RegisteredGradeService extends BaseService<RegisteredGrade>
     const { data, error } = await this.client
       .from('registeredGrade')
       .upsert(records, { onConflict: 'teacherId, classroomId, disciplineId, stageId' })
+      .select()
 
     if (error) {
       errorHandler(error, 'Erro ao atualizar ou inserir nota')

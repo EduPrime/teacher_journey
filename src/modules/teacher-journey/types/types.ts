@@ -79,8 +79,8 @@ export interface ConceptualToSave {
 export interface RegisteredToSave {
   id?: string
   teacherId?: string | null
-  isCompleted: boolean
   areGradesReleased?: boolean
+  isCompleted: boolean
   classroomId: string
   disciplineId: string
   stageId: string

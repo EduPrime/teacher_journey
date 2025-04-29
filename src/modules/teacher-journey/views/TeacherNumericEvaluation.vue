@@ -123,6 +123,22 @@ const getStatusColor = computed(() => (status: string) => {
   }
 })
 
+function guaranteeDeleteIonModalDidDismissWorksFineOnProd(open: boolean) {
+  deleteModal.value = open
+  if (open) {
+    deleteModal.value = false
+    setTimeout(() => (deleteModal.value = true), 10)
+  }
+}
+
+function guaranteeSaveIonModalDidDismissWorksFineOnProd(open: boolean) {
+  saveModal.value = open
+  if (open) {
+    saveModal.value = false
+    setTimeout(() => (saveModal.value = true), 10)
+  }
+}
+
 function computedEvaluationActivity(s: StudentGrade) {
   const activityValues = [s.at1, s.at2, s.at3, s.at4, s.at5, s.makeUp].map(value => value ? Number.parseFloat(value) : 0)
   return activityValues.reduce((sum, val) => sum + val, 0)
@@ -194,7 +210,7 @@ function convertToDecimal(value: any): Decimal {
   return new Decimal(sanitizedValue)
 }
 
-// Watcher que observa o filtro e o calendário para montar a listágem de alunos
+// Watcher que observa o filtro e o calendário para montar a listagem de alunos
 watch([eduFProfile, currentStage], async ([newEduFProfile, newCurrentStage]) => {
   numericStudentList.value = []
   studentList.value = []
@@ -620,7 +636,7 @@ onMounted(async () => {
     <div v-if="eduFProfile?.classroomId && eduFProfile?.disciplineId">
       <EduStageTabs v-model="currentStage" :stages="stages">
         <template v-for="stage in stages" :key="stage" #[stage.numberStage]>
-          <IonCard v-if="stageFinished" class="success-card">
+          <IonCard v-if="stageFinished?.areGradesReleased" class="success-card">
             <IonCardContent>
               <IonText style="display: flex;">
                 <IonIcon size="small" style="margin-top: auto; margin-bottom: auto;" :icon="checkmarkCircleOutline" />
@@ -812,7 +828,7 @@ onMounted(async () => {
                         <IonButton
                           color="danger" expand="block"
                           :disabled="!canClear(s)"
-                          @click="() => { currentStudentToDelete = s; deleteModal = true; }"
+                          @click="() => { currentStudentToDelete = s; guaranteeDeleteIonModalDidDismissWorksFineOnProd(true); }"
                         >
                           Limpar
                         </IonButton>
@@ -821,7 +837,7 @@ onMounted(async () => {
                         <IonButton
                           color="secondary" expand="block"
                           :disabled="!canSave(s)"
-                          @click="() => { currentStudentToSave = s; saveModal = true; }"
+                          @click="() => { currentStudentToSave = s; guaranteeSaveIonModalDidDismissWorksFineOnProd(true); }"
                         >
                           Salvar
                         </IonButton>
@@ -848,7 +864,7 @@ onMounted(async () => {
       </IonCardContent>
     </IonCard>
 
-    <IonModal id="save-modal" :is-open="saveModal" trigger="open-custom-dialog" @ion-modal-did-dismiss="saveModal = false">
+    <IonModal id="save-modal" :is-open="saveModal" @ion-modal-did-dismiss="guaranteeSaveIonModalDidDismissWorksFineOnProd(false)">
       <IonCard class="ion-no-margin">
         <IonCardHeader>
           <IonCardTitle>Salvar notas</IonCardTitle>
@@ -861,7 +877,7 @@ onMounted(async () => {
               style="margin-left: auto; margin-right: 8px; text-transform: capitalize;"
               color="medium"
               @click="() => {
-                saveModal = false
+                guaranteeSaveIonModalDidDismissWorksFineOnProd(false)
               }"
             >
               Cancelar
@@ -874,7 +890,7 @@ onMounted(async () => {
                 if (currentStudentToSave) {
                   handleSave(currentStudentToSave, computedRegisteredGrade)
                 }
-                saveModal = false
+                guaranteeSaveIonModalDidDismissWorksFineOnProd(false)
               }"
             >
               Confirmar
@@ -884,7 +900,7 @@ onMounted(async () => {
       </IonCard>
     </IonModal>
 
-    <IonModal id="delete-modal" :is-open="deleteModal" trigger="open-custom-dialog" @ion-modal-did-dismiss="deleteModal = false">
+    <IonModal id="delete-modal" :is-open="deleteModal" @ion-modal-did-dismiss="guaranteeDeleteIonModalDidDismissWorksFineOnProd(false)">
       <IonCard class="ion-no-margin">
         <IonCardHeader>
           <IonCardTitle>Limpar notas</IonCardTitle>
@@ -895,9 +911,9 @@ onMounted(async () => {
             <IonButton
               size="small"
               style="margin-left: auto; margin-right: 8px; text-transform: capitalize;"
-              color="secondary"
+              color="medium"
               @click="() => {
-                deleteModal = false
+                guaranteeDeleteIonModalDidDismissWorksFineOnProd(false)
               }"
             >
               Cancelar
@@ -910,7 +926,7 @@ onMounted(async () => {
                 if (currentStudentToDelete) {
                   handleClear(currentStudentToDelete, computedRegisteredGrade)
                 }
-                deleteModal = false
+                guaranteeDeleteIonModalDidDismissWorksFineOnProd(false)
               }"
             >
               Confirmar
@@ -1049,6 +1065,10 @@ ion-modal#cancel-modal h1 {
 
 ion-modal#cancel-modal .wrapper {
   margin-bottom: 10px;
+}
+ion-modal#save-modal {
+  padding-right: 10px;
+  padding-left: 10px;
 }
 
 .warning-close-date {
