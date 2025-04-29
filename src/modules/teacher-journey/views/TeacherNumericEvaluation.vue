@@ -569,7 +569,7 @@ const canLaunchGrades = computed(() => {
   }
 
   if (!stageFinished.value.areGradesReleased) {
-    return true // Retorna true se as notas ainda não foram lançadas
+    return gradesAreFilled.value // Retorna gradesAreFilled se stageFinished.areGradesReleased for false
   }
 
   return false // Retorna false se as notas já foram lançadas
