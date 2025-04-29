@@ -353,6 +353,51 @@ function checkMinimalGrade(s: StudentGrade): boolean {
   return !isNaN(gradeValue) && gradeValue >= 0 && gradeValue <= 10
 }
 
+function hasStudentEvaluationChanged(s: StudentGrade): boolean {
+  // CASO 1: Card nunca modificado, ambos botões desabilitados
+  if (!s.id)
+    return !!(s.at1 || s.at2 || s.at3 || s.at4 || s.at5 || s.makeUp || s.grade)
+
+  const original = oldList.value?.find(item => item.enrollmentId === s.enrollmentId)
+  if (!original)
+    return false
+
+  return original.at1 !== s.at1
+    || original.at2 !== s.at2
+    || original.at3 !== s.at3
+    || original.at4 !== s.at4
+    || original.at5 !== s.at5
+    || original.makeUp !== s.makeUp
+    || original.grade !== s.grade
+}
+
+function canSave(s: StudentGrade): boolean {
+  // CASO 0: Está bloqueado não pode salvar
+  if (s.status === 'BLOQUEADO')
+    return false
+
+  // CASO 1: Verifica se houve alterações nos campos de notas
+  return hasStudentEvaluationChanged(s)
+}
+
+function canClear(s: StudentGrade): boolean {
+  // CASO 0: Está bloqueado não pode limpar
+  if (s.status === 'BLOQUEADO')
+    return false
+
+  // CASO 1: Verifica se pelo menos um campo está preenchido
+  const hasAnyFieldFilled = !!(s.at1 || s.at2 || s.at3 || s.at4 || s.at5 || s.makeUp || s.grade)
+  if (!hasAnyFieldFilled)
+    return false
+
+  // CASO 2: Se tem id, mesmo sem modificações, pode limpar
+  if (s.id)
+    return true
+
+  // CASO 3: Só pode limpar após modificações
+  return hasStudentEvaluationChanged(s)
+}
+
 async function handleSave(s: any, itemToSave?: RegisteredToSave) {
   try {
     isLoading.value = true
@@ -395,10 +440,19 @@ async function handleSave(s: any, itemToSave?: RegisteredToSave) {
       )
     }
 
+    // Atualiza a lista original para refletir o estado atual após salvar
+    oldList.value = JSON.parse(JSON.stringify(studentList.value))
+
+    // Desabilita o botão "Salvar" após confirmar o lançamento
+    currentStudentToSave.value = null
+
+    // Garante que o botão "Salvar" seja desabilitado
     const index = studentList.value?.findIndex((st: any) => st.enrollmentId === payload.enrollmentId)
     if (index !== undefined && index !== -1) {
-      const updatedStudent = { ...(studentList.value ?? [])[index], status: 'CONCLUÍDO' }
-      updateStudentList(index, updatedStudent) // Atualiza a lista de forma reativa
+      const updatedStudent = { ...(studentList.value ?? [])[index], status: s.grade ? 'CONCLUÍDO' : 'INCOMPLETO' }
+      updateStudentList(index, updatedStudent)
+      oldList.value = oldList.value ?? []
+      oldList.value[index] = JSON.parse(JSON.stringify(updatedStudent))
     }
 
     gradesAreFilled.value = (studentList.value ?? []).some(item => checkMinimalActivities(item) && checkMinimalGrade(item))
@@ -413,7 +467,13 @@ async function handleSave(s: any, itemToSave?: RegisteredToSave) {
         return activitiesValid && gradeValid
       })
 
-    showToast('Nota salva com sucesso', 'top', 'success')
+    // Atualiza a lista original para refletir o estado atual após salvar
+    oldList.value = JSON.parse(JSON.stringify(studentList.value))
+
+    // Desabilita o botão "Salvar" após confirmar o lançamento
+    currentStudentToSave.value = null
+
+    showToast('Nota salva com sucesso!', 'top', 'success')
   }
   catch (error: any) {
     showToast('Erro ao salvar nota', 'top', 'warning')
@@ -465,6 +525,13 @@ async function handleClear(s: StudentGrade, itemToSave?: RegisteredToSave) {
         return activitiesValid && gradeValid
       })
 
+    // Atualiza a lista original para refletir o estado limpo
+    oldList.value = JSON.parse(JSON.stringify(studentList.value))
+
+    // Desabilita os botões "Limpar" e "Salvar" após confirmar
+    currentStudentToDelete.value = null
+    currentStudentToSave.value = null
+
     showToast('Nota apagada com sucesso!', 'top', 'success')
   }
   catch (error: any) {
@@ -474,46 +541,6 @@ async function handleClear(s: StudentGrade, itemToSave?: RegisteredToSave) {
   finally {
     isLoading.value = false
   }
-}
-
-function canClear(s: StudentGrade): boolean {
-  // CASO 0: Está bloqueado não pode limpar
-  if (s.status === 'BLOQUEADO')
-    return false
-
-  // CASO 2: Se tem id, mesmo sem modifcações, pode limpar
-  if (s.id)
-    return true
-
-  // CASO 3: Só pode limpar após modicações
-  return hasStudentEvaluationChanged(s)
-}
-
-function canSave(s: StudentGrade): boolean {
-  // CASO 0: Está bloqueado não pode limpar
-  if (s.status === 'BLOQUEADO')
-    return false
-
-  // CASO 3: Só pode limpar após modicações
-  return hasStudentEvaluationChanged(s)
-}
-
-function hasStudentEvaluationChanged(s: StudentGrade): boolean {
-  // CASO 1: Card nunca modificado, ambos botões desabilitados
-  if (!s.id)
-    return !!(s.at1 || s.at2 || s.at3 || s.at4 || s.at5 || s.makeUp || s.grade)
-
-  const original = oldList.value?.find(item => item.enrollmentId === s.enrollmentId)
-  if (!original)
-    return false
-
-  return original.at1 !== s.at1
-    || original.at2 !== s.at2
-    || original.at3 !== s.at3
-    || original.at4 !== s.at4
-    || original.at5 !== s.at5
-    || original.makeUp !== s.makeUp
-    || original.grade !== s.grade
 }
 
 async function registerGrades(itemToSave: RegisteredToSave) {
