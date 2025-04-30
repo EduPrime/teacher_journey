@@ -102,8 +102,6 @@ watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo
     todayFrequency.value = await attendanceService.getAttendanceByToday(newSelectedDayInfo.selectedDate, newEduFProfile.classroomId, newEduFProfile.frequency === 'discipline' && newEduFProfile.disciplineId ? newEduFProfile.disciplineId : undefined)
     stage.value = await stageService.getCurrentStageWeekday(newSelectedDayInfo.selectedDate)
     justifyOptions.value = await justificationService.getJustifications()
-
-    //
     students.value = await enrollmentService.getClassroomStudents(newEduFProfile.classroomId)
 
     if (todayFrequency.value && todayFrequency.value.length > 0) {
@@ -134,8 +132,6 @@ watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo
       })
     }
     else {
-      // Frequência não encontrada
-      isWarningInformation.value = true // Frequência pendente
       // Frequência não encontrada
       isWarningInformation.value = true // Frequência pendente
 
@@ -194,61 +190,26 @@ watch(() => checkboxModal.value.quantifiedPresence, (newValue) => {
   }
 })
 
-// async function mountStudentList(filterInfo: any, dayInfo: any) {
-//   if (dayInfo.value && dayInfo.value.length > 0) {
-//     // Frequência encontrada
-//     isWarningInformation.value = false // Frequência registrada
+watch(eduFProfile, async (newValue) => {
+  const deveClicar = newValue.disciplineId || (newValue.classroomId && newValue.frequency === 'diaria');
+  selectedDayInfo.value.selectedDate = null
+  if (deveClicar) {
+    await nextTick()
+    const currentDay = new Date().getDate()
+    const currentMonth = new Date().getMonth() + 1
+    const formatDay = String(currentDay).padStart(2, '0')
+    const formatMonth = String(currentMonth).padStart(2, '0')
+    const chipId = `frequency-${formatMonth}-${formatDay}`
 
-//     frequencyToSave.value = students.value.map((i: any) => {
-//       // atribuimos o valor do find em todayFrequency dentro da constante abaixo
-//       const studentFrequency = todayFrequency.value?.find((atdc: { studentId: string, disciplineId: string }) => atdc.studentId === i.studentId && (atdc.disciplineId === filterInfo.disciplineId || filterInfo.frequency === 'diaria'))
-
-//       return {
-//         name: i.name,
-//         enrollmentId: i.id,
-//         classroomId: filterInfo.classroomId,
-//         disciplineId: filterInfo.disciplineId,
-//         studentId: i.studentId,
-//         schoolId: i.schoolId,
-//         stageId: stage.value?.stageId,
-//         status: i.status,
-//         situation: i.situation,
-//         disability: i.student.disability,
-//         teacherId: filterInfo.teacherId,
-//         date: dayInfo.selectedDate,
-//         presence: studentFrequency?.presence ?? true,
-//         justificationId: studentFrequency?.justificationId ?? undefined,
-//         frequencies: studentFrequency?.frequencies ?? [],
-//       } as FrequencyToSave
-//     })
-//   }
-//   else {
-//     // Frequência não encontrada
-//     isWarningInformation.value = true // Frequência pendente
-//     // Frequência não encontrada
-//     isWarningInformation.value = true // Frequência pendente
-
-//     frequencyToSave.value = students.value.map((i: any) => {
-//       return {
-//         name: i.name,
-//         enrollmentId: i.id,
-//         classroomId: filterInfo.classroomId,
-//         disciplineId: filterInfo.disciplineId,
-//         studentId: i.studentId,
-//         schoolId: i.schoolId,
-//         stageId: stage.value?.stageId,
-//         status: i.status,
-//         situation: i.situation,
-//         disability: i.student.disability,
-//         teacherId: filterInfo.teacherId,
-//         date: dayInfo.selectedDate,
-//         presence: true,
-//         justificationId: undefined as string | undefined,
-//         frequencies: [],
-//       } as FrequencyToSave
-//     })
-//   }
-// }
+    const tentarClick = setInterval(() => {
+      const chip = document.getElementById(chipId) as HTMLButtonElement
+      if (chip && !chip.disabled) {
+        chip.click()
+        clearInterval(tentarClick)
+      }
+    }, 200)
+  }
+}, { immediate: true, deep: true })
 
 function getFullWeekday(abbreviatedWeekday: string): string {
   switch (abbreviatedWeekday) {
@@ -371,7 +332,9 @@ function openMultiSelectModal(student: any) {
         Frequência diária
       </IonText>
     </h3>
-    <EduCalendar v-model="selectedDayInfo" :teacher-id="eduFProfile?.teacherId" :current-classroom="eduFProfile?.classroomId" :current-discipline="eduFProfile?.disciplineId" :frequency="eduFProfile?.frequency" />
+    <EduCalendar v-model="selectedDayInfo" :teacher-id="eduFProfile?.teacherId"
+      :current-classroom="eduFProfile?.classroomId" :current-discipline="eduFProfile?.disciplineId"
+      :frequency="eduFProfile?.frequency" originPage="frequency" />
 
     <IonCard v-if="false" class="success-card">
       <IonCardContent>
@@ -384,16 +347,10 @@ function openMultiSelectModal(student: any) {
       </IonCardContent>
     </IonCard>
 
-    <FrequencyMultiSelect
-      v-if="eduFProfile?.frequency === 'disciplina'"
-      v-model="checkboxModal.quantifiedPresence"
-      :checkbox-modal="checkboxModal?.modal"
-      :clean-checks="cleanChecks"
-      :num-classes="schedules"
-      :current-student="selectedStudent"
-      @update:open-modal="($event) => checkboxModal.modal = $event"
-      @update:clean="($event) => cleanChecks = $event"
-    />
+    <FrequencyMultiSelect v-if="eduFProfile?.frequency === 'disciplina'" v-model="checkboxModal.quantifiedPresence"
+      :checkbox-modal="checkboxModal?.modal" :clean-checks="cleanChecks" :num-classes="schedules"
+      :current-student="selectedStudent" @update:open-modal="($event) => checkboxModal.modal = $event"
+      @update:clean="($event) => cleanChecks = $event" />
 
     <!-- @update:model-value="($event) => checkboxModal.quantifiedPresence = $event" -->
 
@@ -428,14 +385,12 @@ function openMultiSelectModal(student: any) {
       </div>
     </div>
 
-    <IonLoading
-      :is-open="isLoadingSaveFrequency"
-      message="Salvando..."
-      spinner="crescent"
-      class="custom-save-loading"
-    />
+    <IonLoading :is-open="isLoadingSaveFrequency" message="Salvando..." spinner="crescent"
+      class="custom-save-loading" />
 
-    <IonAccordionGroup v-if="selectedDayInfo?.selectedDate && Array.isArray(frequencyToSave) && frequencyToSave.length > 0" class="ion-content" expand="inset">
+    <IonAccordionGroup
+      v-if="selectedDayInfo?.selectedDate && Array.isArray(frequencyToSave) && frequencyToSave.length > 0"
+      class="ion-content" expand="inset">
       <IonAccordion v-for="(s, i) in frequencyToSave" :key="i" :value="`${i}`" class="no-border-accordion">
         <IonItem slot="header">
           <IonLabel>
@@ -446,7 +401,9 @@ function openMultiSelectModal(student: any) {
         </IonItem>
         <div slot="content" class="ion-padding">
           <IonRow>
-            <IonRadioGroup v-model="s.presence" style="color: var(--ion-color-secondary); margin-top: auto; margin-bottom: auto;" @ion-change="() => onPresenceChange(s)">
+            <IonRadioGroup v-model="s.presence"
+              style="color: var(--ion-color-secondary); margin-top: auto; margin-bottom: auto;"
+              @ion-change="() => onPresenceChange(s)">
               <IonRadio label-placement="end" color="secondary" style="padding-right: 16px; scale: 0.9;" :value="true">
                 Presente
               </IonRadio>
@@ -454,11 +411,14 @@ function openMultiSelectModal(student: any) {
                 Ausente
               </IonRadio>
             </IonRadioGroup>
-            <IonButton v-if="eduFProfile.frequency === 'disciplina' && !s.presence" size="small" style="margin-top: auto; margin-bottom: auto; margin-left: auto;" shape="round" @click="openMultiSelectModal(s)">
+            <IonButton v-if="eduFProfile.frequency === 'disciplina' && !s.presence" size="small"
+              style="margin-top: auto; margin-bottom: auto; margin-left: auto;" shape="round"
+              @click="openMultiSelectModal(s)">
               <IonIcon slot="icon-only" :icon="layers" />
             </IonButton>
 
-            <IonSelect v-if="!s.presence" v-model="s.justificationId" class="custom-floating-label ion-margin-vertical" label-placement="floating" justify="space-between" label="Justificativa de falta" fill="outline">
+            <IonSelect v-if="!s.presence" v-model="s.justificationId" class="custom-floating-label ion-margin-vertical"
+              label-placement="floating" justify="space-between" label="Justificativa de falta" fill="outline">
               <!-- @TODO: As justificativas disponiveis ainda estão estáticas, é necessário consultar e receber estas informações de forma dinâmica -->
               <IonSelectOption v-for="(j, index) in justifyOptions" :key="index" :value="j.id">
                 {{ j.name }}
@@ -475,7 +435,8 @@ function openMultiSelectModal(student: any) {
 
       <IonCardContent>
         <IonText>
-          Nenhum aluno encontrado. Por favor entre em contato com a secretaria de sua escola para verificar se sua turma foi cadastrada corretamente.
+          Nenhum aluno encontrado. Por favor entre em contato com a secretaria de sua escola para verificar se sua turma
+          foi cadastrada corretamente.
         </IonText>
       </IonCardContent>
     </IonCard>
@@ -491,7 +452,8 @@ function openMultiSelectModal(student: any) {
       </IonCardContent>
     </IonCard>
 
-    <ion-modal id="cancel-modal" :is-open="cancelModal" trigger="open-cancel-dialog" class="ion-content" @ion-modal-did-dismiss="cancelModal = false">
+    <ion-modal id="cancel-modal" :is-open="cancelModal" trigger="open-cancel-dialog" class="ion-content"
+      @ion-modal-did-dismiss="cancelModal = false">
       <div class="wrapper">
         <h1>Cancelar registro</h1>
 
@@ -503,13 +465,11 @@ function openMultiSelectModal(student: any) {
         <div v-if="true">
           <div class="ion-margin" style="display: flex; justify-content: right;">
             <!-- @TODO: construir função para ao clicar em salvar inserir uma copia do registro de conteúdo atual para a turma selecionada -->
-            <IonButton
-              color="secondary"
-              style="text-transform: capitalize;" @click="resetFrequencyToInitialState"
-            >
+            <IonButton color="secondary" style="text-transform: capitalize;" @click="resetFrequencyToInitialState">
               Confirmar
             </IonButton>
-            <IonButton color="tertiary" size="small" style="text-transform: capitalize; margin-left: 10px;" @click="cancelModal = false">
+            <IonButton color="tertiary" size="small" style="text-transform: capitalize; margin-left: 10px;"
+              @click="cancelModal = false">
               Cancelar
             </IonButton>
           </div>
@@ -543,10 +503,12 @@ ion-content {
   --padding-start: 10px;
   --padding-end: 10px;
 }
+
 .ion-content {
   padding-left: 10px;
   padding-right: 10px;
 }
+
 ion-accordion-group {
   margin-inline: 0 !important;
   margin-top: 16px;
@@ -561,21 +523,21 @@ ion-accordion-group {
 }
 
 ion-modal#cancel-modal {
-    --width: 400px;
-    --min-width: 400px;
-    --min-width: 250px;
-    --height: fit-content;
-    --border-radius: 6px;
-    --box-shadow: 0 28px 48px rgba(0, 0, 0, 0.4);
-  }
+  --width: 400px;
+  --min-width: 400px;
+  --min-width: 250px;
+  --height: fit-content;
+  --border-radius: 6px;
+  --box-shadow: 0 28px 48px rgba(0, 0, 0, 0.4);
+}
 
-  ion-modal#cancel-modal h1 {
-    margin: 20px 20px 10px 20px;
-  }
+ion-modal#cancel-modal h1 {
+  margin: 20px 20px 10px 20px;
+}
 
-  ion-modal#cancel-modal .wrapper {
-    margin-bottom: 10px;
-  }
+ion-modal#cancel-modal .wrapper {
+  margin-bottom: 10px;
+}
 
 .warning-close-date {
   margin-top: 5px;
