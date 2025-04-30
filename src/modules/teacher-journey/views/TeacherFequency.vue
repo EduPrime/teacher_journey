@@ -336,7 +336,7 @@ function openMultiSelectModal(student: any) {
     </h3>
     <EduCalendar v-model="selectedDayInfo" :teacher-id="eduFProfile?.teacherId"
       :current-classroom="eduFProfile?.classroomId" :current-discipline="eduFProfile?.disciplineId"
-      :frequency="eduFProfile?.frequency" originPage="frequency" />
+      :frequency="eduFProfile?.frequency" :hasUnsavedChangesToAlert="isCancelEnabled" originPage="frequency" />
 
     <IonCard v-if="false" class="success-card">
       <IonCardContent>
