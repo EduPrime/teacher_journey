@@ -66,6 +66,7 @@ interface SightStudent extends DescriptiveStudent {
   partialFeedback: string
   finalFeedback: string
   isSaved: boolean
+  isDirty: boolean
   initialCreatedAt: string | null
   initialUpdatedAt: string | null
   partialCreatedAt: string | null
@@ -73,6 +74,7 @@ interface SightStudent extends DescriptiveStudent {
   finalCreatedAt: string | null
   finalUpdatedAt: string | null
   firstSavedAt: string | null
+  savedByUser: boolean
 }
 
 const saveModal = ref(false)
@@ -187,11 +189,14 @@ function isEdited(s: SightStudent): boolean {
 }
 
 function onFeedbackEdit(s: SightStudent) {
+  s.savedByUser = false
+  s.isDirty = true
   if (s.isSaved) s.isSaved = false
 }
 
 function getFeedbackIcon(s: SightStudent) {
   if (s.situation !== 'CURSANDO') return lockClosedOutline
+  if (s.isDirty) return alertOutline
   const feedback = selectedTad.value === 'inicial'
     ? s.initialFeedback
     : selectedTad.value === 'parcial'
@@ -202,12 +207,27 @@ function getFeedbackIcon(s: SightStudent) {
 
 function getFeedbackColor(s: SightStudent) {
   if (s.situation !== 'CURSANDO') return 'light'
+  if (s.isDirty) return 'warning'
   const feedback = selectedTad.value === 'inicial'
     ? s.initialFeedback
     : selectedTad.value === 'parcial'
       ? s.partialFeedback
       : s.finalFeedback
   return feedback.trim() ? 'success' : 'danger'
+}
+
+function getCurrentFeedback(s: SightStudent): string {
+  return selectedTad.value === 'inicial' ? s.initialFeedback
+       : selectedTad.value === 'parcial'  ? s.partialFeedback
+       : s.finalFeedback
+}
+function canSave(s: SightStudent): boolean {
+  const fb = getCurrentFeedback(s).trim()
+  return s.isDirty && fb.length > 0
+}
+function canClear(s: SightStudent): boolean {
+  const fb = getCurrentFeedback(s).trim()
+  return fb.length > 0 && (s.isDirty || s.isSaved)
 }
 
 async function loadRegisteredGrade() {
@@ -252,7 +272,9 @@ watch(eduFProfile, async (newValue) => {
         finalCreatedAt: prev?.finalCreatedAt ?? null,
         finalUpdatedAt: prev?.finalUpdatedAt ?? null,
         isSaved: prev?.isSaved ?? false,
-        firstSavedAt: prev?.firstSavedAt ?? null
+        isDirty: prev?.isDirty ?? false,
+        firstSavedAt: prev?.firstSavedAt ?? null,
+        savedByUser: prev?.savedByUser ?? false
       }
     })
 
@@ -273,6 +295,7 @@ watch(eduFProfile, async (newValue) => {
             s.updatedAt = feedback[0].updatedAt ? new Date(feedback[0].updatedAt).toISOString() : s.updatedAt
             // record first save timestamp
             s.firstSavedAt = feedback[0].createdAt ? new Date(feedback[0].createdAt).toISOString() : null
+            s.isSaved = true // flag as saved on load so clear remains enabled after refresh
           }
           return s;
         })
@@ -427,6 +450,8 @@ async function saveFeedback(s: SightStudent) {
     s.finalUpdatedAt = records[0].finalUpdatedAt ? new Date(records[0].finalUpdatedAt).toISOString() : s.finalUpdatedAt
     s.updatedAt = records[0].updatedAt ? new Date(records[0].updatedAt).toISOString() : s.updatedAt
     s.isSaved = true
+    s.isDirty = false
+    s.savedByUser = true
     isFinalizedGlobal.value = false
     
     students.value = [...students.value!]
@@ -465,6 +490,8 @@ async function clearFeedback(s: SightStudent) {
         : new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString()
     }
     s.isSaved = false
+    s.isDirty = false
+    s.savedByUser = true
     registeredToSave.value.areGradesReleased = false
     students.value = [...students.value!]
     showToast('Parecer limpo com sucesso', 'top', 'success')
@@ -704,8 +731,14 @@ async function registerGrades() {
                 </IonText>
               </IonCardHeader>
               <div class="ion-content" style="display: flex; justify-content: right; padding-top: 8px; padding-bottom: 8px;">
-                <IonButton v-if="s.situation === 'CURSANDO'" color="danger" size="small" style="margin-right: 8px; text-transform: capitalize;" :disabled="!(isEdited(s) || s.isSaved)" @click="() => { currentStudentToDelete = s; deleteModal = true; }">Limpar</IonButton>
-                <IonButton v-if="s.situation === 'CURSANDO'" color="secondary" size="small" style="text-transform: capitalize;" :disabled="!isEdited(s) || s.isSaved" @click="() => { currentStudentToSave = s; saveModal = true; }">Salvar</IonButton>
+                <IonButton v-if="s.situation === 'CURSANDO'"
+                  color="danger" size="small" style="margin-right: 8px; text-transform: capitalize;"
+                  :disabled="!canClear(s)"
+                  @click="() => { currentStudentToDelete = s; deleteModal = true; }">Limpar</IonButton>
+                <IonButton v-if="s.situation === 'CURSANDO'"
+                  color="secondary" size="small" style="text-transform: capitalize;"
+                  :disabled="!canSave(s)"
+                  @click="() => { currentStudentToSave = s; saveModal = true; }">Salvar</IonButton>
               </div>
             </div>
           </IonAccordion>
@@ -978,5 +1011,9 @@ ion-loading.custom-save-loading {
   --spinner-color: var(--ion-color-warning);
 
   color: var(--ion-color-info);
+}
+
+.content {
+  padding-bottom: 80px;
 }
 </style>
