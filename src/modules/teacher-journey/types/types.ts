@@ -81,7 +81,6 @@ export interface RegisteredToSave {
   teacherId?: string | null
   areGradesReleased?: boolean
   isCompleted: boolean
-  areGradesReleased?: boolean
   classroomId: string
   disciplineId: string
   stageId: string
