@@ -377,7 +377,8 @@ function canSave(s: StudentGrade): boolean {
     return false
 
   // CASO 1: Verifica se houve alterações nos campos de notas
-  return hasStudentEvaluationChanged(s)
+  const hasChanged = hasStudentEvaluationChanged(s)
+  return hasChanged
 }
 
 function canClear(s: StudentGrade): boolean {
@@ -440,19 +441,16 @@ async function handleSave(s: any, itemToSave?: RegisteredToSave) {
       )
     }
 
-    // Atualiza a lista original para refletir o estado atual após salvar
-    oldList.value = JSON.parse(JSON.stringify(studentList.value))
-
-    // Desabilita o botão "Salvar" após confirmar o lançamento
-    currentStudentToSave.value = null
-
-    // Garante que o botão "Salvar" seja desabilitado
     const index = studentList.value?.findIndex((st: any) => st.enrollmentId === payload.enrollmentId)
     if (index !== undefined && index !== -1) {
-      const updatedStudent = { ...(studentList.value ?? [])[index], status: s.grade ? 'CONCLUÍDO' : 'INCOMPLETO' }
+      const updatedStudent = {
+        ...(studentList.value ?? [])[index],
+        status: (s.grade && s.at1 && s.at2 && s.at3) ? 'CONCLUÍDO' : 'INCOMPLETO',
+      }
       updateStudentList(index, updatedStudent)
-      oldList.value = oldList.value ?? []
-      oldList.value[index] = JSON.parse(JSON.stringify(updatedStudent))
+
+      // Marca o aluno como não modificado para desabilitar o botão "Salvar"
+      oldList.value = JSON.parse(JSON.stringify(studentList.value))
     }
 
     gradesAreFilled.value = (studentList.value ?? []).some(item => checkMinimalActivities(item) && checkMinimalGrade(item))
@@ -466,12 +464,6 @@ async function handleSave(s: any, itemToSave?: RegisteredToSave) {
         const gradeValid = checkMinimalGrade(item)
         return activitiesValid && gradeValid
       })
-
-    // Atualiza a lista original para refletir o estado atual após salvar
-    oldList.value = JSON.parse(JSON.stringify(studentList.value))
-
-    // Desabilita o botão "Salvar" após confirmar o lançamento
-    currentStudentToSave.value = null
 
     showToast('Nota salva com sucesso!', 'top', 'success')
   }
@@ -915,9 +907,9 @@ onMounted(async () => {
               color="secondary"
               @click="() => {
                 if (currentStudentToSave) {
-                  handleSave(currentStudentToSave, computedRegisteredGrade)
+                  handleSave(currentStudentToSave, computedRegisteredGrade);
                 }
-                guaranteeSaveIonModalDidDismissWorksFineOnProd(false)
+                guaranteeSaveIonModalDidDismissWorksFineOnProd(false);
               }"
             >
               Confirmar
