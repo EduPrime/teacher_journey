@@ -79,6 +79,7 @@ export interface ConceptualToSave {
 export interface RegisteredToSave {
   id?: string
   teacherId?: string | null
+  areGradesReleased?: boolean
   isCompleted: boolean
   classroomId: string
   disciplineId: string
@@ -108,7 +109,7 @@ export interface QueryEnrollments {
     id: string
     name: string
     situation: string
-    student: { id: string; disability: string[] | null }
+    student: { id: string, disability: string[] | null }
   }[]
   error: {
     message: string
@@ -121,7 +122,7 @@ export interface QueryGrades {
     name: string
     situation: string | null
     enrollmentId: string
-    student: { id: string; disability: string[] | null }
+    student: { id: string, disability: string[] | null }
     thematicUnits: {
       thematicUnitId: string
       grade: string
