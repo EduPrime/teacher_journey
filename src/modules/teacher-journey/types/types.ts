@@ -81,6 +81,7 @@ export interface RegisteredToSave {
   teacherId?: string | null
   areGradesReleased?: boolean
   isCompleted: boolean
+  areGradesReleased?: boolean
   classroomId: string
   disciplineId: string
   stageId: string
@@ -102,6 +103,15 @@ export interface MountedStudent {
   grades: Grades[]
   status: string
   isCleansed?: boolean
+}
+
+export interface DescriptiveStudent {
+  name: string
+  situation: string
+  disability: boolean
+  status: string
+  createdAt: string
+  updatedAt: string
 }
 
 export interface QueryEnrollments {
