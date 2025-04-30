@@ -144,11 +144,29 @@ function computedEvaluationActivity(s: StudentGrade) {
   return activityValues.reduce((sum, val) => sum + val, 0)
 }
 
+function roundGrade(value: number): number {
+  const decimalPart = +(value - Math.floor(value)).toFixed(2) // Arredonda o decimal para 2 casas
+
+  if (decimalPart === 0.5) {
+    return Math.floor(value) + 0.5 // Retorna o valor arredondado para 0.5
+  }
+  else if (decimalPart > 0.1 && decimalPart <= 0.4) {
+    return Math.floor(value) + 0.5 // Arredonda para 0.5
+  }
+  else if (decimalPart >= 0.6 && decimalPart <= 0.9) {
+    return Math.ceil(value) // Arredonda para o próximo inteiro
+  }
+
+  return Math.floor(value) // Retorna o valor inteiro se não se encaixar nas condições
+}
+
 function computedMean(s: StudentGrade): number {
   const activityEvaluation = computedEvaluationActivity(s)
   const grade = Number.parseFloat(String(s.grade).replace(',', '.')) || 0
 
-  return (activityEvaluation + grade) / 2
+  const mean = (activityEvaluation + grade) / 2
+
+  return roundGrade(mean) // Aplica o arredondamento
 }
 
 function evaluationValidate(s: StudentGrade): boolean {
