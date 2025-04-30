@@ -6,10 +6,11 @@ import showToast from '@/utils/toast-alert'
 import { IonAccordion, IonAccordionGroup, IonAlert, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonIcon, IonItem, IonLabel } from '@ionic/vue'
 import { add, calendarOutline, save } from 'ionicons/icons'
 import { ref, watch } from 'vue'
+
 import ContentCopy from '../components/content/Copy.vue'
 import ContentCreate from '../components/content/Create.vue'
-
 import ContentUpdate from '../components/content/Update.vue'
+
 import ContentService from '../services/ContentService'
 import ScheduleService from '../services/ScheduleService'
 
@@ -37,19 +38,16 @@ const contentService = new ContentService()
 const scheduleService = new ScheduleService()
 
 const eduFProfile = ref()
-
 const selectedToCopy = ref()
 const selectedToUpdate = ref()
-
 const schedules = ref()
+const selectedDayInfo = ref()
 
 const isCopyModalOpen = ref(false)
 const isUpdateModalOpen = ref(false)
+const showAlert = ref(false)
 const isContentSaved = ref({ card: false, saved: undefined as any })
 
-const selectedDayInfo = ref()
-const isAccordionContent = ref(false)
-const showAlert = ref(false)
 const registroToDelete = ref<string | null>(null)
 const setCopyModalOpen = (open: boolean) => (isCopyModalOpen.value = open)
 const setUpdateModalOpen = (open: boolean) => (isUpdateModalOpen.value = open)
@@ -94,6 +92,7 @@ async function loadDataContent(currentClassroomId: string, selectedDate: string)
   try {
     const data = await contentService.listContentByToday(currentClassroomId, selectedDate)
     registros.value = data || []
+    console.log('Registros:', registros.value)
   }
   catch (error: unknown | any) {
     registros.value = []
@@ -144,7 +143,9 @@ function changeSelectedToUpdate(current: any): void {
         Lançamento diário
       </ion-text>
     </h3>
-    <EduCalendar v-model="selectedDayInfo" :teacher-id="eduFProfile?.teacherId" :current-classroom="eduFProfile?.classroomId" :current-discipline="eduFProfile?.disciplineId" :frequency="eduFProfile?.frequency" />
+    <EduCalendar v-model="selectedDayInfo" :teacher-id="eduFProfile?.teacherId"
+      :current-classroom="eduFProfile?.classroomId" :current-discipline="eduFProfile?.disciplineId"
+      :frequency="eduFProfile?.frequency" />
     <!-- <pre>
 
       schedules: {{ schedules?.classesPerSchool?.filter((x: any) => x.classes.find((vish: any) => vish.seriesId === eduFProfile.seriesId && vish.classroomId !== eduFProfile.classroomId)) }}
@@ -176,19 +177,22 @@ function changeSelectedToUpdate(current: any): void {
       </IonCard>
 
       <IonAccordionGroup id="RegistrosExistentes" v-model="expandedAccordion" class="ion-content" expand="inset">
-        <IonAccordion v-for="(registro, index) in registros" :key="index" style="margin-bottom: 5px;" :value="`${index}`">
+        <IonAccordion v-for="(registro, index) in registros" :key="index" style="margin-bottom: 5px;"
+          :value="`${index}`">
           <IonItem slot="header" color="secondary">
             <IonLabel class="custom-span">
               {{ registro.classroom }} -
               <span v-for="(disciplina, i) in registro.disciplines" :key="i">
-                <span v-if="disciplina !== registro?.disciplines?.at(0)"><span v-if="registro?.disciplines.length > 2">, </span><span v-else> e </span></span>
+                <span v-if="disciplina !== registro?.disciplines?.at(0)"><span v-if="registro?.disciplines.length > 2">,
+                  </span><span v-else> e </span></span>
                 {{ disciplina.disciplineId.name }}
               </span>
             </IonLabel>
           </IonItem>
           <div slot="content" style="margin: 10px 0 0 10px;">
             <!-- @TODO: Disciplina ainda precisa ser tipada -->
-            <IonChip v-for="(disciplina, i) in registro.disciplines" :key="i" style="margin-left: 0px; margin-right: 10px;" color="secondary">
+            <IonChip v-for="(disciplina, i) in registro.disciplines" :key="i"
+              style="margin-left: 0px; margin-right: 10px;" color="secondary">
               {{ disciplina.disciplineId.name }}
             </IonChip>
             <div style="margin: 10px 10px 10px 5px;">
@@ -197,18 +201,22 @@ function changeSelectedToUpdate(current: any): void {
               </ion-text>
             </div>
             <!-- @TODO: Bncc ainda precisa ser tipada -->
-            <IonChip v-for="(bncc, i) in registro.bnccs" :key="i" style="margin-left: 0px;  margin-right: 10px; font-size: 12px;" color="tertiary">
+            <IonChip v-for="(bncc, i) in registro.bnccs" :key="i"
+              style="margin-left: 0px;  margin-right: 10px; font-size: 12px;" color="tertiary">
               {{ bncc.bnccId.code }}
             </IonChip>
             <br>
             <div class="ion-margin" style="display: flex; justify-content: right; margin-top: 20px; gap: 5px;">
-              <IonButton color="tertiary" size="small" style="text-transform: capitalize;" @click="() => { setCopyModalOpen(!isCopyModalOpen); changeSelectedToCopy(registro) }">
+              <IonButton color="tertiary" size="small" style="text-transform: capitalize;"
+                @click="() => { setCopyModalOpen(!isCopyModalOpen); changeSelectedToCopy(registro) }">
                 Copiar
               </IonButton>
-              <IonButton color="secondary" size="small" style="text-transform: capitalize;" @click="() => { setUpdateModalOpen(!isUpdateModalOpen); changeSelectedToUpdate(registro) }">
+              <IonButton color="secondary" size="small" style="text-transform: capitalize;"
+                @click="() => { setUpdateModalOpen(!isUpdateModalOpen); changeSelectedToUpdate(registro) }">
                 Editar
               </IonButton>
-              <IonButton color="danger" size="small" style="text-transform: capitalize;" @click="() => { softDeleteDataContent(registro.id) }">
+              <IonButton color="danger" size="small" style="text-transform: capitalize;"
+                @click="() => { softDeleteDataContent(registro.id) }">
                 Excluir
               </IonButton>
             </div>
@@ -216,36 +224,25 @@ function changeSelectedToUpdate(current: any): void {
         </IonAccordion>
       </IonAccordionGroup>
 
-      <ContentCopy v-model="isCopyModalOpen" :is-copy-modal-open="isCopyModalOpen" :schedules="schedules" :registry="selectedToCopy" :current-classroom-id="eduFProfile?.classroomId" :current-serie-id="eduFProfile?.seriesId" :current-school-id="eduFProfile?.schoolId" />
+      <ContentCopy v-model="isCopyModalOpen" :is-copy-modal-open="isCopyModalOpen" :schedules="schedules"
+        :registry="selectedToCopy" :current-classroom-id="eduFProfile?.classroomId"
+        :current-serie-id="eduFProfile?.seriesId" :current-school-id="eduFProfile?.schoolId" />
 
       <!-- aqui vem o registro do conteúdo -->
-      <ContentCreate
-        v-if="isContentSaved.card"
-        id="NovoRegistroFormulario"
-        v-model="isContentSaved"
-        :series-id="eduFProfile?.seriesId"
-        :selected-day="selectedDayInfo?.selectedDate"
+      <ContentCreate v-if="isContentSaved.card" id="NovoRegistroFormulario" v-model="isContentSaved"
+        :series-id="eduFProfile?.seriesId" :selected-day="selectedDayInfo?.selectedDate"
         :teacher-id="eduFProfile.teacherId" :classroom-id="eduFProfile?.classroomId"
-        :available-disciplines="schedules?.availableDisciplines"
-        :frequency="eduFProfile.frequency"
-        :evaluation="eduFProfile.evaluation"
-        :discipline-id="eduFProfile?.disciplineId"
-        :is-update-modal-open="isUpdateModalOpen"
-      />
+        :available-disciplines="schedules?.availableDisciplines" :frequency="eduFProfile.frequency"
+        :evaluation="eduFProfile.evaluation" :discipline-id="eduFProfile?.disciplineId"
+        :is-update-modal-open="isUpdateModalOpen" />
 
-      <ContentUpdate
-        v-model="isUpdateModalOpen"
-        :is-update-modal-open="isUpdateModalOpen"
-        :registry="selectedToUpdate"
-        :series-id="eduFProfile?.seriesId"
-        :classroom-id="eduFProfile?.classroomId"
-        :available-disciplines="schedules?.availableDisciplines"
-        :frequency="eduFProfile.frequency"
-        :evaluation="eduFProfile.evaluation"
-        :discipline-id="eduFProfile?.disciplineId"
-      />
+      <ContentUpdate v-model="isUpdateModalOpen" :is-update-modal-open="isUpdateModalOpen" :registry="selectedToUpdate"
+        :series-id="eduFProfile?.seriesId" :classroom-id="eduFProfile?.classroomId"
+        :available-disciplines="schedules?.availableDisciplines" :frequency="eduFProfile.frequency"
+        :evaluation="eduFProfile.evaluation" :discipline-id="eduFProfile?.disciplineId" />
 
-      <div v-if="registros.length > 0" id="NovoRegistro" style="display: flex; justify-content: flex-end;" class="ion-content">
+      <div v-if="registros.length > 0" id="NovoRegistro" style="display: flex; justify-content: flex-end;"
+        class="ion-content">
         <IonButton color="tertiary" @click="isContentSaved.card = !isContentSaved.card">
           <IonIcon slot="icon-only" :icon="add" />
         </IonButton>
@@ -256,24 +253,21 @@ function changeSelectedToUpdate(current: any): void {
         <IonCardTitle>Selecione a turma e dia</IonCardTitle>
       </IonCardHeader>
 
-      <IonCardContent> Olá, por favor selecione qual a turma e em qual dia você dejesa fazer o preenchimento </IonCardContent>
+      <IonCardContent> Olá, por favor selecione qual a turma e em qual dia você dejesa fazer o preenchimento
+      </IonCardContent>
     </IonCard>
 
-    <IonAlert
-      :is-open="showAlert"
-      header="Deseja apagar o conteúdo?"
-      :buttons="[
-        {
-          text: 'Não',
-          role: 'cancel',
-          handler: () => { showAlert = false },
-        },
-        {
-          text: 'Sim',
-          handler: confirmDeleteContent,
-        },
-      ]"
-    />
+    <IonAlert :is-open="showAlert" header="Deseja apagar o conteúdo?" :buttons="[
+      {
+        text: 'Não',
+        role: 'cancel',
+        handler: () => { showAlert = false },
+      },
+      {
+        text: 'Sim',
+        handler: confirmDeleteContent,
+      },
+    ]" />
   </ContentLayout>
 </template>
 
@@ -282,10 +276,12 @@ ion-content {
   --padding-start: 10px;
   --padding-end: 10px;
 }
+
 .ion-content {
   padding-left: 10px;
   padding-right: 10px;
 }
+
 ion-accordion-group {
   margin-inline: 0 !important;
   margin-top: 16px;
@@ -343,21 +339,25 @@ ion-select {
   --placeholder-color: var(--ion-color-primary);
   --placeholder-opacity: 1;
   --border-color: var(--ion-color-primary)
- }
- ion-select::part(text) {
-    color: var(--ion-color-primary);
-  }
-  ion-select::part(icon) {
-    color: var(--ion-color-primary);
-    opacity: 1;
-  }
-  ion-select::part(label) {
-    color: var(--ion-color-primary);
-    opacity: 1;
-  }
-  .custom-span {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+}
+
+ion-select::part(text) {
+  color: var(--ion-color-primary);
+}
+
+ion-select::part(icon) {
+  color: var(--ion-color-primary);
+  opacity: 1;
+}
+
+ion-select::part(label) {
+  color: var(--ion-color-primary);
+  opacity: 1;
+}
+
+.custom-span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 </style>
