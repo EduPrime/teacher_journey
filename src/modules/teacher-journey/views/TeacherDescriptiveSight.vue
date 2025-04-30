@@ -66,6 +66,12 @@ interface SightStudent extends DescriptiveStudent {
   partialFeedback: string
   finalFeedback: string
   isSaved: boolean
+  initialCreatedAt: string | null
+  initialUpdatedAt: string | null
+  partialCreatedAt: string | null
+  partialUpdatedAt: string | null
+  finalCreatedAt: string | null
+  finalUpdatedAt: string | null
   firstSavedAt: string | null
 }
 
@@ -82,7 +88,7 @@ const registeredGradeService = new RegisteredGradeService()
 
 const eduFProfile = ref()
 const students = ref<SightStudent[] | undefined>(undefined)
-const selectedTad = ref('inicial')
+const selectedTad = ref<'inicial' | 'parcial' | 'final'>('inicial')
 const screenWidth = ref(window.innerWidth)
 const isFinalizedGlobal = ref(false)
 const hasLaunched = ref(false)
@@ -237,8 +243,14 @@ watch(eduFProfile, async (newValue) => {
         schoolId: e.schoolId,
         disciplineId: newValue.disciplineId?.trim() ? newValue.disciplineId : DEFAULT_DISCIPLINE_ID,
         initialFeedback: prev?.initialFeedback ?? '',
+        initialCreatedAt: prev?.initialCreatedAt ?? null,
+        initialUpdatedAt: prev?.initialUpdatedAt ?? null,
         partialFeedback: prev?.partialFeedback ?? '',
+        partialCreatedAt: prev?.partialCreatedAt ?? null,
+        partialUpdatedAt: prev?.partialUpdatedAt ?? null,
         finalFeedback: prev?.finalFeedback ?? '',
+        finalCreatedAt: prev?.finalCreatedAt ?? null,
+        finalUpdatedAt: prev?.finalUpdatedAt ?? null,
         isSaved: prev?.isSaved ?? false,
         firstSavedAt: prev?.firstSavedAt ?? null
       }
@@ -250,10 +262,14 @@ watch(eduFProfile, async (newValue) => {
           if (feedback?.length) {
             s.feedbackId = feedback[0].id
             s.initialFeedback = feedback[0].initialFeedback || ''
+            s.initialCreatedAt = feedback[0].initialCreatedAt ? new Date(feedback[0].initialCreatedAt).toISOString() : s.initialCreatedAt
+            s.initialUpdatedAt = feedback[0].initialUpdatedAt ? new Date(feedback[0].initialUpdatedAt).toISOString() : s.initialUpdatedAt
             s.partialFeedback = feedback[0].partialFeedback || ''
+            s.partialCreatedAt = feedback[0].partialCreatedAt ? new Date(feedback[0].partialCreatedAt).toISOString() : s.partialCreatedAt
+            s.partialUpdatedAt = feedback[0].partialUpdatedAt ? new Date(feedback[0].partialUpdatedAt).toISOString() : s.partialUpdatedAt
             s.finalFeedback = feedback[0].finalFeedback || ''
-            s.isSaved = true
-            s.createdAt = feedback[0].createdAt ? new Date(feedback[0].createdAt).toISOString() : s.createdAt
+            s.finalCreatedAt = feedback[0].finalCreatedAt ? new Date(feedback[0].finalCreatedAt).toISOString() : s.finalCreatedAt
+            s.finalUpdatedAt = feedback[0].finalUpdatedAt ? new Date(feedback[0].finalUpdatedAt).toISOString() : s.finalUpdatedAt
             s.updatedAt = feedback[0].updatedAt ? new Date(feedback[0].updatedAt).toISOString() : s.updatedAt
             // record first save timestamp
             s.firstSavedAt = feedback[0].createdAt ? new Date(feedback[0].createdAt).toISOString() : null
@@ -377,7 +393,6 @@ onMounted(async () => {
   } catch (error) {
     console.error('Erro ao obter etapas', error)
   }
-  // Load persisted registration status after stages load
   if (eduFProfile.value?.teacherId) {
     await loadRegisteredGrade()
   }
@@ -402,19 +417,19 @@ async function saveFeedback(s: SightStudent) {
   
     s.feedbackId = records[0].id
     s.initialFeedback = records[0].initialFeedback || ''
+    s.initialCreatedAt = records[0].initialCreatedAt ? new Date(records[0].initialCreatedAt).toISOString() : s.initialCreatedAt
+    s.initialUpdatedAt = records[0].initialUpdatedAt ? new Date(records[0].initialUpdatedAt).toISOString() : s.initialUpdatedAt
     s.partialFeedback = records[0].partialFeedback || ''
+    s.partialCreatedAt = records[0].partialCreatedAt ? new Date(records[0].partialCreatedAt).toISOString() : s.partialCreatedAt
+    s.partialUpdatedAt = records[0].partialUpdatedAt ? new Date(records[0].partialUpdatedAt).toISOString() : s.partialUpdatedAt
     s.finalFeedback = records[0].finalFeedback || ''
+    s.finalCreatedAt = records[0].finalCreatedAt ? new Date(records[0].finalCreatedAt).toISOString() : s.finalCreatedAt
+    s.finalUpdatedAt = records[0].finalUpdatedAt ? new Date(records[0].finalUpdatedAt).toISOString() : s.finalUpdatedAt
     s.updatedAt = records[0].updatedAt ? new Date(records[0].updatedAt).toISOString() : s.updatedAt
-    s.createdAt = records[0].createdAt ? new Date(records[0].createdAt).toISOString() : s.createdAt
-    // set firstSavedAt on first save
-    if (!s.firstSavedAt) {
-      s.firstSavedAt = records[0].createdAt ? new Date(records[0].createdAt).toISOString() : null
-    }
     s.isSaved = true
     isFinalizedGlobal.value = false
     
     students.value = [...students.value!]
-    // After saving individual feedback, mark grades as not released to re-enable launch button
     registeredToSave.value.areGradesReleased = false
     showToast('Parecer salvo com sucesso', 'top', 'success')
   } catch (error) {
@@ -425,13 +440,33 @@ async function saveFeedback(s: SightStudent) {
 
 async function clearFeedback(s: SightStudent) {
   try {
-    if (s.feedbackId) await feedbackService.softDeleteStudentFeedback(s.feedbackId, eduFProfile.value?.teacherId)
-    s.initialFeedback = ''
-    s.partialFeedback = ''
-    s.finalFeedback = ''
+    let updated: any[] = []
+    if (s.feedbackId) {
+      updated = await feedbackService.softDeleteStudentFeedback(
+        s.feedbackId,
+        eduFProfile.value?.teacherId,
+        selectedTad.value
+      )
+    }
+    if (selectedTad.value === 'inicial') {
+      s.initialFeedback = ''
+      s.initialUpdatedAt = updated[0]?.initialUpdatedAt
+        ? new Date(new Date(updated[0].initialUpdatedAt).getTime() + 3 * 60 * 60 * 1000).toISOString()
+        : new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString()
+    } else if (selectedTad.value === 'parcial') {
+      s.partialFeedback = ''
+      s.partialUpdatedAt = updated[0]?.partialUpdatedAt
+        ? new Date(new Date(updated[0].partialUpdatedAt).getTime() + 3 * 60 * 60 * 1000).toISOString()
+        : new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString()
+    } else {
+      s.finalFeedback = ''
+      s.finalUpdatedAt = updated[0]?.finalUpdatedAt
+        ? new Date(new Date(updated[0].finalUpdatedAt).getTime() + 3 * 60 * 60 * 1000).toISOString()
+        : new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString()
+    }
     s.isSaved = false
-    
     registeredToSave.value.areGradesReleased = false
+    students.value = [...students.value!]
     showToast('Parecer limpo com sucesso', 'top', 'success')
   } catch (error) {
     console.error(error)
@@ -448,10 +483,10 @@ async function registerGrades() {
   isLoading.value = true
 
   try {
-    // Update reactive state
+    
     registeredToSave.value.isCompleted = isStageCompleted.value
     registeredToSave.value.areGradesReleased = true
-    // Prepare payload
+    
     const payload = computedRegisteredFeedback.value
 
     await registeredGradeService.upsertRegisteredGrade(payload)
@@ -642,7 +677,13 @@ async function registerGrades() {
               >
                 <IonText color="primary" style="display: flex; align-items: center; height: 15px;">
                   <IonIcon :icon="calendarClearOutline" style="margin-right: 10px;" />
-                  Criado em {{ luxonFormatDate(s.firstSavedAt) }}
+                  {{
+                    selectedTad === 'inicial'
+                      ? 'Criado em ' + luxonFormatDate(s.initialCreatedAt)
+                      : selectedTad === 'parcial'
+                        ? 'Criado em ' + luxonFormatDate(s.partialCreatedAt)
+                        : 'Criado em ' + luxonFormatDate(s.finalCreatedAt)
+                  }}
                 </IonText>
               </IonCardHeader>
               <!-- Data de *ATUALIZAÇÂO do parecer descritivo -->
@@ -653,7 +694,13 @@ async function registerGrades() {
               >
                 <IonText color="primary" style="display: flex; align-items: center; height: 15px;">
                   <IonIcon :icon="calendarOutline" style="margin-right: 10px;" />
-                  Atualizado em {{ luxonFormatDateTime(s.updatedAt) }}
+                  {{
+                    selectedTad === 'inicial'
+                      ? 'Atualizado em ' + luxonFormatDateTime(s.initialUpdatedAt)
+                      : selectedTad === 'parcial'
+                        ? 'Atualizado em ' + luxonFormatDateTime(s.partialUpdatedAt)
+                        : 'Atualizado em ' + luxonFormatDateTime(s.finalUpdatedAt)
+                  }}
                 </IonText>
               </IonCardHeader>
               <div class="ion-content" style="display: flex; justify-content: right; padding-top: 8px; padding-bottom: 8px;">
