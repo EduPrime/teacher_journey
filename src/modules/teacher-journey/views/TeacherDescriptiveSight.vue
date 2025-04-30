@@ -495,7 +495,7 @@ async function registerGrades() {
     showToast(
       isStageCompleted.value
         ? 'Registro de parecer descritivo finalizado com sucesso!'
-        : 'Registro de parecer descritivo incompleto finalizado com sucesso!',
+        : 'Registro de parecer descritivo com notas faltantes finalizado com sucesso!',
       'top',
       'success',
     )
@@ -583,13 +583,13 @@ async function registerGrades() {
               <IonText style="display: flex;">
                 <IonIcon size="small" style="margin-top: auto; margin-bottom: auto;" :icon="checkmarkCircleOutline" />
                 <span style="margin-top: auto; margin-bottom: auto; margin-left: 5px;">
-                  Registro Completo do parecer descritivo na Etapa {{ selectedTad }}.
+                  Registro do parecer descritivo na Etapa {{ selectedTad }} finalizado com sucesso.
                 </span>
               </IonText>
               <IonText v-if="!computedRegisteredFeedback.areGradesReleased" style="display: flex;">
                 <IonIcon size="small" style="margin-top: auto; margin-bottom: auto;" :icon="alertOutline" />
                 <span style="margin-top: auto; margin-bottom: auto; margin-left: 5px;">
-                  Registro Parcial do parecer descritivo na Etapa {{ selectedTad }}.
+                  Registro do parecer descritivo na Etapa {{ selectedTad }} com notas faltantes finalizado com sucesso.
                 </span>
               </IonText>
             </IonCardContent>
@@ -860,8 +860,8 @@ async function registerGrades() {
     <IonAlert
       class="custom-alert"
       :is-open="showAlert"
-      :header="isStageCompleted ? 'Deseja finalizar os registros?' : 'Registros incompletos'"
-      :sub-header="isStageCompleted ? '' : 'Deseja finalizar assim mesmo?'"
+      :header="'Deseja finalizar os registros?'"
+      :sub-header="isStageCompleted ? 'Ao confirmar, você declara que todas as notas desta turma estão corretas e prontas para a secretaria. Deseja prosseguir?' : 'Existem alunos sem lançamento de nota, deseja prosseguir?'"
       :buttons="[
         {
           text: 'Não',
