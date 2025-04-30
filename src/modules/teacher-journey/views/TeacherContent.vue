@@ -65,8 +65,10 @@ watch(selectedDayInfo, async (newValue) => {
 })
 
 watch(eduFProfile, async (newValue) => {
-  const deveClicar = newValue.disciplineId || (newValue.classroomId && newValue.frequency === 'diaria')
-  selectedDayInfo.value.selectedDate = null
+  const deveClicar = newValue?.disciplineId || (newValue?.classroomId && newValue?.frequency === 'diaria')
+  if (selectedDayInfo.value) {
+    selectedDayInfo.value.selectedDate = null
+  }
   if (deveClicar) {
     await nextTick()
 
