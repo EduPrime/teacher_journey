@@ -5,7 +5,7 @@ import EduCalendar from '@/components/WeekDayPicker.vue'
 import showToast from '@/utils/toast-alert'
 import { IonAccordion, IonAccordionGroup, IonAlert, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonIcon, IonItem, IonLabel } from '@ionic/vue'
 import { add, calendarOutline, save } from 'ionicons/icons'
-import { ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 
 import ContentCopy from '../components/content/Copy.vue'
 import ContentCreate from '../components/content/Create.vue'
@@ -65,6 +65,28 @@ watch(selectedDayInfo, async (newValue) => {
 })
 
 watch(eduFProfile, async (newValue) => {
+  const deveClicar = newValue?.disciplineId || (newValue?.classroomId && newValue?.frequency === 'diaria')
+  if (selectedDayInfo.value) {
+    selectedDayInfo.value.selectedDate = null
+  }
+  if (deveClicar) {
+    await nextTick()
+
+    const currentDay = new Date().getDate()
+    const currentMonth = new Date().getMonth() + 1
+    const formatDay = String(currentDay).padStart(2, '0')
+    const formatMonth = String(currentMonth).padStart(2, '0')
+    const chipId = `content-${formatMonth}-${formatDay}`
+
+    const tentarClick = setInterval(() => {
+      const chip = document.getElementById(chipId) as HTMLButtonElement
+      if (chip && !chip.disabled) {
+        chip.click()
+        clearInterval(tentarClick)
+      }
+    }, 200)
+  }
+
   if (newValue.teacherId) {
     schedules.value = await scheduleService.getSchedules(newValue.teacherId)
   }
@@ -74,7 +96,8 @@ watch(eduFProfile, async (newValue) => {
   else {
     registros.value = []
   }
-})
+
+}, { immediate: true, deep: true })
 
 watch(isContentSaved, async (newValue) => {
   if (newValue.saved) {
@@ -132,6 +155,14 @@ function changeSelectedToUpdate(current: any): void {
   selectedToUpdate.value = current
   return void 0
 }
+
+const isContentEnabled = computed(() => {
+  if (!selectedDayInfo.value?.selectedDate) return false;
+  const id = `content-${selectedDayInfo.value.selectedDate.substring(5)}`;
+  const el = document.getElementById(id) as HTMLButtonElement | null;
+  console.log('Elemento disabled:', el?.disabled);
+  return !!el && !el.disabled;
+});
 </script>
 
 <template>
@@ -145,12 +176,9 @@ function changeSelectedToUpdate(current: any): void {
     </h3>
     <EduCalendar v-model="selectedDayInfo" :teacher-id="eduFProfile?.teacherId"
       :current-classroom="eduFProfile?.classroomId" :current-discipline="eduFProfile?.disciplineId"
-      :frequency="eduFProfile?.frequency" />
-    <!-- <pre>
+      :frequency="eduFProfile?.frequency" originPage="content" />
 
-      schedules: {{ schedules?.classesPerSchool?.filter((x: any) => x.classes.find((vish: any) => vish.seriesId === eduFProfile.seriesId && vish.classroomId !== eduFProfile.classroomId)) }}
-    </pre> -->
-    <div v-if="eduFProfile?.classroomId && selectedDayInfo?.selectedDate">
+    <div v-if="eduFProfile?.classroomId && selectedDayInfo?.selectedDate && isContentEnabled" class="ion-content">
       <IonCard v-show="registros?.length === 0 && !isContentSaved.card" class="ion-no-padding ion-margin-top">
         <IonCardHeader color="secondary">
           <div style="display: flex; align-items: center; height: 10px;">
