@@ -244,7 +244,7 @@ async function saveFrequency() {
         eduFProfile.value.teacherId,
         selectedDayInfo.value.selectedDate,
         eduFProfile.value.classroomId,
-        eduFProfile.value.frequency.toUpperCase(), // Tipo de frequência DISCIPLINA OU DIARIA
+        eduFProfile.value.frequency,
         eduFProfile.value.disciplineId,
       )
       if (!teacherAttendance || teacherAttendance.length === 0) {
@@ -252,7 +252,7 @@ async function saveFrequency() {
         await attendanceService.createTeacherAttendance({
           date: selectedDayInfo.value.selectedDate,
           totalClasses: schedules.value, // Número total de aulas
-          type: eduFProfile.value.frequency.toUpperCase(), // Tipo de frequência DISCIPLINA OU DIARIA
+          type: eduFProfile.value.frequency,
           teacherId: eduFProfile.value.teacherId,
           classroomId: eduFProfile.value.classroomId,
           disciplineId: eduFProfile.value.disciplineId,
