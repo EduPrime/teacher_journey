@@ -115,7 +115,6 @@ async function loadDataContent(currentClassroomId: string, selectedDate: string)
   try {
     const data = await contentService.listContentByToday(currentClassroomId, selectedDate)
     registros.value = data || []
-    console.log('Registros:', registros.value)
   }
   catch (error: unknown | any) {
     registros.value = []
@@ -157,12 +156,11 @@ function changeSelectedToUpdate(current: any): void {
 }
 
 const isContentEnabled = computed(() => {
-  if (!selectedDayInfo.value?.selectedDate) return false;
-  const id = `content-${selectedDayInfo.value.selectedDate.substring(5)}`;
-  const el = document.getElementById(id) as HTMLButtonElement | null;
-  console.log('Elemento disabled:', el?.disabled);
-  return !!el && !el.disabled;
-});
+  if (!selectedDayInfo.value?.selectedDate) return false
+  const id = `content-${selectedDayInfo.value.selectedDate.substring(5)}`
+  const el = document.getElementById(id) as HTMLButtonElement | null
+  return !!el && !el.disabled
+})
 </script>
 
 <template>

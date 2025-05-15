@@ -67,12 +67,8 @@ const filledContent = ref({
 
 onMounted(async () => {
   if (props.disciplineId) {
-    console.log('props.disciplineId', props.disciplineId)
-    console.log('props.availableDisciplines', props.availableDisciplines)
     await getBNCCByDisciplines([props.disciplineId]);
   } else if (props.availableDisciplines?.length > 0) {
-    console.log('props.availableDisciplines', props.availableDisciplines)
-    console.log('props.disciplineId', props)
     availableDisciplineIds.value = props.availableDisciplines
       .filter(discipline => discipline.classroomId === props.classroomId)
       .map(discipline => discipline.id);

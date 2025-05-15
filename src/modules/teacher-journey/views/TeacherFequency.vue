@@ -301,7 +301,6 @@ function luxonFormatDate(dateString: string) {
 
 function onPresenceChange(student: FrequencyToSave) {
   if (student.presence === false) {
-    console.log('justifyOptions.value', justifyOptions.value)
     const defaultJustification = justifyOptions.value?.find(j => j.name === 'Não informada')
     if (defaultJustification) {
       student.justificationId = defaultJustification.id

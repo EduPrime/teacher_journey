@@ -91,7 +91,7 @@ export default class RegisteredGradeService extends BaseService<RegisteredGrade>
       .single()
 
     if (error) {
-      console.log(error, 'Erro ao buscar status de liberação de notas ou inexistentes')
+      errorHandler(error, 'Erro ao buscar status de liberação de notas ou inexistentes')
     }
 
     if (data && data.areGradesReleased !== undefined) {
