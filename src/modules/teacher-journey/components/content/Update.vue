@@ -239,7 +239,7 @@ function luxonFormatDate(dateString: string) {
             <Field name="Disciplina" v-slot="{ field }" rules="required">
               <IonSelect v-bind="field" v-model="filledContent.disciplines" class="ion-select-card-content"
                 label="Disciplina" label-placement="floating" fill="outline" cancel-text="Cancelar"
-                :disabled="props.frequency === 'disciplina' || availableDisciplines.length===1" :multiple="true"
+                :disabled="props.frequency === 'Disciplina' || availableDisciplines.length === 1" :multiple="true"
                 @ion-change="getBNCCByDisciplines($event.detail.value)">
                 <IonSelectOption v-for="(discipline, index) in availableDisciplines" :key="index" :value="discipline.id"
                   :selected="filledContent.disciplines.includes(discipline.id)">
@@ -311,17 +311,18 @@ ion-content {
 }
 
 ion-modal#update-modal {
-  --height: 45vh;
+  --height: auto;
+  --max-height: 90vh;
 
   /* Default height for desktop */
   @media (max-width: 1024px) {
     /* Tablet */
-    --height: 80vh;
+    --max-height: 80vh;
   }
 
   @media (max-width: 768px) {
     /* Mobile */
-    --height: 67vh;
+    --max-height: 75vh;
   }
 
   --width: 40vw;
