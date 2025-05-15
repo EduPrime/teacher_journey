@@ -253,9 +253,11 @@ function luxonFormatDate(dateString: string) {
 
             <br>
             <Field name="Conteúdo" v-slot="{ field }" rules="required|min:2|max:360">
-              <IonTextarea v-bind="field" v-model="filledContent.description" label="Conteúdo"
-                label-placement="floating" fill="outline" placeholder="Digite o conteúdo"
-                style="--color: var(--ion-color-secondary);" :auto-grow="true" :maxlength="361" />
+              <textarea v-model="filledContent.description" class="native-scroll-textarea" maxlength="360"
+                placeholder="Digite o conteúdo" spellcheck="false"></textarea>
+              <div class="char-counter">
+                Tamanho do texto: {{ filledContent.description.length }}/360 caracteres
+              </div>
             </Field>
             <ErrorMessage name="Conteúdo" v-slot="{ message }">
               <span class="error-message">{{ message }}</span>
@@ -322,10 +324,10 @@ ion-modal#update-modal {
 
   @media (max-width: 768px) {
     /* Mobile */
-    --max-height: 75vh;
+    --max-height: 77vh;
   }
 
-  --width: 40vw;
+  --width: 60vw;
   --min-width: 300px;
 }
 
@@ -364,5 +366,25 @@ ion-modal#update-modal .wrapper {
 
 :deep(.multiselect__placeholder) {
   color: var(--ion-color-secondary) !important;
+}
+
+.native-scroll-textarea {
+  width: 100%;
+  height: 230px;
+  overflow-y: auto;
+  padding: 12px;
+  border: 1px solid #b0b0b0;
+  border-radius: 8px;
+  font-family: inherit;
+  resize: none;
+}
+
+textarea:focus {
+  outline: none;
+  border-color: var(--ion-color-secondary);
+}
+
+textarea:hover {
+  border-color: var(--ion-color-secondary);
 }
 </style>
