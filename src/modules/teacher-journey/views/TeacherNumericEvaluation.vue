@@ -146,19 +146,12 @@ function computedEvaluationActivity(s: StudentGrade) {
 }
 
 function roundGrade(value: number): number {
-  const decimalPart = +(value - Math.floor(value)).toFixed(2) // Arredonda o decimal para 2 casas
+  const decimalPart = value - Math.floor(value)
 
-  if (decimalPart === 0.5) {
-    return Math.floor(value) + 0.5 // Retorna o valor arredondado para 0.5
-  }
-  else if (decimalPart > 0.1 && decimalPart <= 0.4) {
+  if (decimalPart > 0.0 && decimalPart <= 0.5) {
     return Math.floor(value) + 0.5 // Arredonda para 0.5
   }
-  else if (decimalPart >= 0.6 && decimalPart <= 0.9) {
-    return Math.ceil(value) // Arredonda para o próximo inteiro
-  }
-
-  return Math.floor(value) // Retorna o valor inteiro se não se encaixar nas condições
+  return Math.ceil(value) // Arredonda para o próximo inteiro
 }
 
 function computedMean(s: StudentGrade): number {
