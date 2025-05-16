@@ -422,8 +422,6 @@ onMounted(async () => {
 })
 
 async function saveFeedback(s: SightStudent) {
-  
-  console.log('s', s)
 
   try {
     const payload = {

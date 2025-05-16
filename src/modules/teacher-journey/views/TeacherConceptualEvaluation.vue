@@ -97,23 +97,7 @@ watch((currentStage), async (newValue) => {
 
 onMounted(async () => {
   stages.value = await stageService.getAllStages()
-  // console.log(stages.value)
 })
-
-// function guaranteeIonModalDidDismissWorksFine() {
-//   if (cleanModal.value) {
-//     cleanModal.value = false
-//   }
-//   else {
-//     cleanModal.value = true
-//   }
-// }
-
-// function guaranteeNoUndefinedStage(value: string) {
-//   if (value) {
-//     registeredToSave.value.stageId = value
-//   }
-// }
 
 function guaranteeIonModalDidDismissWorksFine(open: boolean) {
   cleanModal.value = open
@@ -286,66 +270,29 @@ const deadline = computed(() => {
   return diffDays
 })
 
-// const isGradeRegistered = computed(async () => {
-//   return await registeredGradeService.getGradesReleasedInfo(computedRegisteredGrade.value)
-// })
-
-// const isAnyRecord = computed(() => {
-//   if (computedRegisteredGrade.value.classroomId && computedRegisteredGrade.value.disciplineId && computedRegisteredGrade.value.stageId) {
-//     return registeredGradeService.getRegistered(
-//       computedRegisteredGrade.value.classroomId,
-//       computedRegisteredGrade.value.disciplineId,
-//       computedRegisteredGrade.value.stageId
-//     ).then(registered => !!registered)
-//   }
-//   return false
-// })
-
 const isLaunchAvailable = computed(() => {
   const filled = studentList.value?.some(item => item.grades.some(tu => tu.grade))
-  // console.log('isLaunchAvailable', stageFinished.value, filled, computedRegisteredGrade.value.areGradesReleased)
-  if (stageFinished.value === null && filled && computedRegisteredGrade.value.areGradesReleased === undefined) {
-    //  && computedRegisteredGrade.value.areGradesReleased
-    // console.log('0')
+   if (stageFinished.value === null && filled && computedRegisteredGrade.value.areGradesReleased === undefined) {
+
     return true
   }
   else if (stageFinished.value === null && filled && !computedRegisteredGrade.value.areGradesReleased) {
-    //  && computedRegisteredGrade.value.areGradesReleased
-    // console.log('1')
+
     return false
   }
-  // else if (stageFinished.value === null && registeredToSave.value.areGradesReleased) {
-  //   //  && registeredToSave.value.areGradesReleased
-    // console.log('1')
-  //   return false
-  // }
+
   else if (stageFinished.value && !stageFinished.value.areGradesReleased && filled) {
-    //  && !computedRegisteredGrade.value.areGradesReleased
-    // console.log('2')
+
     return false
   }
   else if (stageFinished.value && !stageFinished.value.areGradesReleased && !filled) {
-    //  && !computedRegisteredGrade.value.areGradesReleased
-    // console.log('3')
+
     return false
   }
-  // if (isDisabled.value) {
-  //   return true
-  // }
+
   else {
-    // console.log('ultimo')
     return true
   }
-
-  // else if (!stageFinished.value && isDisabled.value) {
-  //   return false
-  // }
-  // else if (isDisabled.value) {
-  //   return true
-  // }
-  // else if (stageFinished.value && !filled) {
-  //   return true
-  // }
 })
 
 const getStatusIcon = computed(() => (status: string) => {
@@ -401,16 +348,7 @@ const getStatusColor = computed(() => (status: string) => {
       </div>
     </div>
     <div v-else />
-    <!-- <pre>
-      <small>
-        comp.areGradesReleased {{ computedRegisteredGrade.areGradesReleased }}
-        isDisabled {{ isDisabled }}
-        stageFinished {{ stageFinished }}
-        isLaunchAvailable {{ isLaunchAvailable }}
-        {{ stageFinished }} stageFinished
-        {{ currentStage }} currentStage
-      </small>
-    </pre> -->
+
     <h3>
       <IonText color="secondary" class="ion-content ion-padding-bottom" style="display: flex; align-items: center;">
         <IonIcon color="secondary" style="margin-right: 10px;" aria-hidden="true" :icon="text" />

@@ -99,7 +99,7 @@ watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo
   isLoadingWarning.value = true // Inicia o carregamento
   todayFrequency.value = []
   if (newEduFProfile?.teacherId && newSelectedDayInfo?.selectedDate) {
-    todayFrequency.value = await attendanceService.getAttendanceByToday(newSelectedDayInfo.selectedDate, newEduFProfile.classroomId, newEduFProfile.frequency === 'discipline' && newEduFProfile.disciplineId ? newEduFProfile.disciplineId : undefined)
+    todayFrequency.value = await attendanceService.getAttendanceByToday(newSelectedDayInfo.selectedDate, newEduFProfile.classroomId, newEduFProfile.frequency === 'Discipline' && newEduFProfile.disciplineId ? newEduFProfile.disciplineId : undefined)
     stage.value = await stageService.getCurrentStageWeekday(newSelectedDayInfo.selectedDate)
     justifyOptions.value = await justificationService.getJustifications()
     students.value = await enrollmentService.getClassroomStudents(newEduFProfile.classroomId)
@@ -110,7 +110,7 @@ watch([eduFProfile, selectedDayInfo], async ([newEduFProfile, newSelectedDayInfo
 
       frequencyToSave.value = students.value.map((i: any) => {
         // atribuimos o valor do find em todayFrequency dentro da constante abaixo
-        const studentFrequency = todayFrequency.value?.find((atdc: { studentId: string, disciplineId: string }) => atdc.studentId === i.studentId && (atdc.disciplineId === newEduFProfile.disciplineId || newEduFProfile.frequency === 'diaria'))
+        const studentFrequency = todayFrequency.value?.find((atdc: { studentId: string, disciplineId: string }) => atdc.studentId === i.studentId && (atdc.disciplineId === newEduFProfile.disciplineId || newEduFProfile.frequency === 'Diária'))
 
         return {
           name: i.name,
@@ -191,7 +191,7 @@ watch(() => checkboxModal.value.quantifiedPresence, (newValue) => {
 })
 
 watch(eduFProfile, async (newValue) => {
-  const deveClicar = newValue?.disciplineId || (newValue?.classroomId && newValue?.frequency === 'diaria');
+  const deveClicar = newValue?.disciplineId || (newValue?.classroomId && newValue?.frequency === 'Diária');
   if (selectedDayInfo.value) {
     selectedDayInfo.value.selectedDate = null
   }
@@ -301,7 +301,6 @@ function luxonFormatDate(dateString: string) {
 
 function onPresenceChange(student: FrequencyToSave) {
   if (student.presence === false) {
-    console.log('justifyOptions.value', justifyOptions.value)
     const defaultJustification = justifyOptions.value?.find(j => j.name === 'Não informada')
     if (defaultJustification) {
       student.justificationId = defaultJustification.id
@@ -349,7 +348,7 @@ function openMultiSelectModal(student: any) {
       </IonCardContent>
     </IonCard>
 
-    <FrequencyMultiSelect v-if="eduFProfile?.frequency === 'disciplina'" v-model="checkboxModal.quantifiedPresence"
+    <FrequencyMultiSelect v-if="eduFProfile?.frequency === 'Disciplina'" v-model="checkboxModal.quantifiedPresence"
       :checkbox-modal="checkboxModal?.modal" :clean-checks="cleanChecks" :num-classes="schedules"
       :current-student="selectedStudent" @update:open-modal="($event) => checkboxModal.modal = $event"
       @update:clean="($event) => cleanChecks = $event" />
@@ -413,7 +412,7 @@ function openMultiSelectModal(student: any) {
                 Ausente
               </IonRadio>
             </IonRadioGroup>
-            <IonButton v-if="eduFProfile.frequency === 'disciplina' && !s.presence" size="small"
+            <IonButton v-if="eduFProfile.frequency === 'Disciplina' && !s.presence" size="small"
               style="margin-top: auto; margin-bottom: auto; margin-left: auto;" shape="round"
               @click="openMultiSelectModal(s)">
               <IonIcon slot="icon-only" :icon="layers" />

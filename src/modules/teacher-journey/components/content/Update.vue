@@ -239,7 +239,7 @@ function luxonFormatDate(dateString: string) {
             <Field name="Disciplina" v-slot="{ field }" rules="required">
               <IonSelect v-bind="field" v-model="filledContent.disciplines" class="ion-select-card-content"
                 label="Disciplina" label-placement="floating" fill="outline" cancel-text="Cancelar"
-                :disabled="props.frequency === 'disciplina' || availableDisciplines.length===1" :multiple="true"
+                :disabled="props.frequency === 'Disciplina' || availableDisciplines.length === 1" :multiple="true"
                 @ion-change="getBNCCByDisciplines($event.detail.value)">
                 <IonSelectOption v-for="(discipline, index) in availableDisciplines" :key="index" :value="discipline.id"
                   :selected="filledContent.disciplines.includes(discipline.id)">
@@ -253,9 +253,11 @@ function luxonFormatDate(dateString: string) {
 
             <br>
             <Field name="Conteúdo" v-slot="{ field }" rules="required|min:2|max:360">
-              <IonTextarea v-bind="field" v-model="filledContent.description" label="Conteúdo"
-                label-placement="floating" fill="outline" placeholder="Digite o conteúdo"
-                style="--color: var(--ion-color-secondary);" :auto-grow="true" :maxlength="361" />
+              <textarea v-model="filledContent.description" class="native-scroll-textarea" maxlength="360"
+                placeholder="Digite o conteúdo" spellcheck="false"></textarea>
+              <div class="char-counter">
+                Tamanho do texto: {{ filledContent.description.length }}/360 caracteres
+              </div>
             </Field>
             <ErrorMessage name="Conteúdo" v-slot="{ message }">
               <span class="error-message">{{ message }}</span>
@@ -311,20 +313,21 @@ ion-content {
 }
 
 ion-modal#update-modal {
-  --height: 45vh;
+  --height: auto;
+  --max-height: 90vh;
 
   /* Default height for desktop */
   @media (max-width: 1024px) {
     /* Tablet */
-    --height: 80vh;
+    --max-height: 80vh;
   }
 
   @media (max-width: 768px) {
     /* Mobile */
-    --height: 67vh;
+    --max-height: 77vh;
   }
 
-  --width: 40vw;
+  --width: 60vw;
   --min-width: 300px;
 }
 
@@ -363,5 +366,25 @@ ion-modal#update-modal .wrapper {
 
 :deep(.multiselect__placeholder) {
   color: var(--ion-color-secondary) !important;
+}
+
+.native-scroll-textarea {
+  width: 100%;
+  height: 230px;
+  overflow-y: auto;
+  padding: 12px;
+  border: 1px solid #b0b0b0;
+  border-radius: 8px;
+  font-family: inherit;
+  resize: none;
+}
+
+textarea:focus {
+  outline: none;
+  border-color: var(--ion-color-secondary);
+}
+
+textarea:hover {
+  border-color: var(--ion-color-secondary);
 }
 </style>

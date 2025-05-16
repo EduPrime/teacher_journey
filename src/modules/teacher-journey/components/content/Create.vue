@@ -67,8 +67,6 @@ const filledContent = ref({
 
 onMounted(async () => {
   if (props.disciplineId) {
-    console.log('props.disciplineId', props.disciplineId)
-    console.log('props.availableDisciplines', props.availableDisciplines)
     await getBNCCByDisciplines([props.disciplineId]);
   } else if (props.availableDisciplines?.length > 0) {
     availableDisciplineIds.value = props.availableDisciplines
@@ -168,23 +166,6 @@ function customFilter(option: any, label: string, search: string): boolean {
 
 async function saveContent() {
   try {
-    // // Verifica se alguma disciplina não tem um bncc selecionado
-    // const missing = filledContent.value.disciplines.filter(disciplineId =>
-    //   !selectedBnccObjects.value.some(bncc => bncc.discipline.id === disciplineId)
-    // )
-
-    // if (missing.length > 0) {
-    //   const missingDisciplinesNames = props.availableDisciplines
-    //   .filter(d => missing.includes(d.id))
-    //   .map(d => d.name)
-    //   showToast(
-    //   `Selecione ao menos uma BNCC para: ${missingDisciplinesNames.join(', ')}`,
-    //   'top',
-    //   'warning'
-    //   )
-    //   return
-    // }
-
     const payload = {
       ...filledContent.value,
       bnccs: selectedBnccObjects.value.map(bncc => bncc.id)
@@ -219,7 +200,7 @@ async function saveContent() {
         <div>
           <IonCardContent class="ion-padding-top">
             <Field name="Disciplina" v-slot="{ field }" rules="required">
-              <IonSelect v-if="props.evaluation === 'conceitual'" v-bind="field" v-model="filledContent.disciplines"
+              <IonSelect v-if="props.evaluation === 'Conceitual'" v-bind="field" v-model="filledContent.disciplines"
                 class="ion-select-card-content" label="Disciplina" label-placement="floating" fill="outline"
                 cancel-text="Cancelar" :multiple="true"
                 :disabled="!!props.disciplineId || availableDisciplines.length === 1"

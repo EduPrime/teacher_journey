@@ -43,6 +43,7 @@ const fixedRoutes: Array<CustomRouteRecordRaw> = [
       requiredRole: ['PROFESSOR'],
     },
   },
+  /*
   {
     path: '/teacherjourney/performance',
     name: 'TeacherPerformance',
@@ -56,6 +57,7 @@ const fixedRoutes: Array<CustomRouteRecordRaw> = [
       requiredRole: ['PROFESSOR'],
     },
   },
+  */
   {
     path: '/teacherjourney/content',
     name: 'teacherContent',
@@ -69,6 +71,7 @@ const fixedRoutes: Array<CustomRouteRecordRaw> = [
       requiredRole: ['PROFESSOR'],
     },
   },
+  /*
   {
     path: '/teacher-report/attendance',
     name: 'TeacherAttendanceReport',
@@ -120,7 +123,7 @@ const fixedRoutes: Array<CustomRouteRecordRaw> = [
       order: 11,
       requiredRole: ['PROFESSOR'],
     },
-  },
+  },*/
 ]
 const dynamicRoutes: Array<CustomRouteRecordRaw> = [
   {
@@ -164,6 +167,7 @@ const dynamicRoutes: Array<CustomRouteRecordRaw> = [
       requiredRole: ['PROFESSOR'],
     },
   },
+  /*
   {
     path: '/teacher-report/assessment/numerical',
     name: 'TeacherNumericalAssessment',
@@ -229,7 +233,7 @@ const dynamicRoutes: Array<CustomRouteRecordRaw> = [
       requiredRole: ['PROFESSOR'],
     },
   },
-
+  */
 ]
 
 let filteredroutes: Array<CustomRouteRecordRaw> = [...dynamicRoutes]

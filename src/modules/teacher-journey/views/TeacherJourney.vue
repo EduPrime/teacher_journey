@@ -28,7 +28,6 @@ async function loadData() {
   /* try {
     const data = await teacherJourneyService.getAll()
     dataList.value = data || []
-    console.log('Dados carregados:', data)
   } catch (error) {
     console.error('Erro ao carregar os dados:', error)
   }
